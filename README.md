@@ -8,13 +8,38 @@ Plateforme e-learning full stack pour créer des formations en **parcours étape
 
 ## Fonctionnalités
 
-### Rôles
+### Multi-organismes et rôles
+
+Skillio héberge plusieurs **organismes de formation (OF)**. Chacun a son espace (`/of`), son équipe, ses formations, ses apprenants et ses paramètres réglementaires : SIRET, NDA, Qualiopi, signataire, justificatifs exigés, délai d'inactivité.
 
 | Rôle | Droits |
 |---|---|
-| **Administrateur** | Gère les utilisateurs et les rôles (création, désactivation, réinitialisation du mot de passe), les paramètres de la plateforme et **toutes** les formations. |
-| **Formateur** | Crée ses formations (et celles où il est co-formateur), ses quiz et ses grilles, inscrit et suit ses apprenants, corrige et exporte les résultats. |
-| **Apprenant** | Suit les formations auxquelles il est inscrit, passe les quiz, remet ses devoirs et obtient ses certificats. |
+| **Super admin Skillio** | Gère la plateforme : organismes, tous les comptes, pages légales, journal d'audit global. |
+| **Responsable OF** | Gère son OF : dossiers d'inscription, inscriptions définitives, apprenants, sessions et émargement, rapports OPCO / France Travail, qualité, équipe, paramètres. |
+| **Formateur** | Crée ses formations, quiz et grilles ; corrige ; suit ses apprenants. |
+| **Apprenant** | Candidate en ligne, suit ses formations, émarge, donne son avis, gère ses données (RGPD). |
+
+### Dossier d'inscription (candidature → inscription définitive)
+1. L'apprenant dépose son dossier en ligne : profil administratif (identité, adresse, situation, identifiant France Travail, employeur/SIRET/OPCO, handicap), projet et financement (CPF, OPCO, France Travail, employeur…), session souhaitée, justificatifs (10 Mo, PDF/images/Word) et consentements (RGPD, CGV, règlement intérieur).
+2. **Contrôles automatiques** avant dépôt : les champs obligatoires dépendent de la situation et du financement, et les justificatifs exigés combinent la liste de la formation (ou de l'OF) et les pièces liées au financement : récapitulatif CPF, attestation France Travail, accord de prise en charge OPCO ou employeur.
+3. L'OF instruit le dossier : il **valide ou refuse chaque pièce avec un motif**, demande des compléments (le dossier se rouvre pour l'apprenant), puis valide ou refuse le dossier. Messagerie avec l'apprenant et notes internes.
+4. **Inscription définitive** : session, dates, heures prévues, financement, n° de prise en charge, avec contrôle de la capacité de la session.
+5. Chaque étape est historisée (timeline), notifiée dans l'application et tracée dans le journal d'audit.
+
+### Traçabilité (contrôles OPCO, France Travail, CPF, Qualiopi)
+- **Journal des connexions** : connexions, déconnexions et échecs, avec date, adresse IP et navigateur. Verrouillage 15 min après 5 échecs.
+- **Temps actif mesuré** : signal d'activité toutes les 30 s, uniquement quand la page est visible et que l'apprenant est actif. Au-delà du délai d'inactivité de l'OF, le chronomètre se met en pause et l'apprenant doit confirmer sa présence (« Êtes-vous toujours là ? »). Le temps est enregistré par session de connexion et par segment de leçon.
+- **Chronomètre visible** sur chaque leçon et **temps minimum** paramétrable par leçon avant validation, vérifié côté navigateur et côté serveur.
+- **Documents imprimables / PDF** : relevé de connexions (jour par jour, par étape, connexions, sessions, émargements), attestation d'assiduité, **certificat de réalisation** (modèle du ministère du Travail).
+- **Rapports & exports CSV** filtrables par formation et par période : synthèse d'assiduité (heures réalisées/prévues, taux, progression), journal des connexions, sessions de travail, temps détaillé par leçon, journal d'audit.
+- **Émargement électronique** : créneaux générés sur une période (matin/après-midi), signature manuscrite horodatée avec IP, feuille d'émargement imprimable.
+- **Journal d'audit** : décisions sur les dossiers, vérification des pièces, inscriptions, notes, téléchargements de justificatifs, exports, paramètres, rôles.
+- Détection du **décrochage** (aucune activité depuis 7 jours) sur le tableau de bord OF.
+
+### Qualité et RGPD
+- Questionnaire de **satisfaction** à chaud (6 critères + recommandation + commentaire), avec statistiques par critère (Qualiopi, indicateur 30).
+- **Réclamations et demandes** avec suivi du traitement et réponse notifiée (Qualiopi, indicateur 31).
+- Consentement à l'inscription, pages mentions légales, CGU, confidentialité et accessibilité (modifiables), **export des données personnelles** (JSON), demande de suppression de compte.
 
 ### Formations et parcours
 - Formation → **Modules** → **Leçons** (ex. : Module 1 avec 13 leçons), dans l'ordre que vous voulez (boutons ↑/↓) et duplicables.
@@ -98,9 +123,11 @@ Mot de passe : `Skillio2026!` — **changez-le ou désactivez ces comptes avant 
 
 | Email | Rôle |
 |---|---|
-| admin@skillio.fr | Administrateur |
+| admin@skillio.fr | Super admin Skillio |
+| of@skillio.fr | Responsable OF (Skillio Formation) |
 | formateur@skillio.fr | Formateur |
-| apprenant@skillio.fr | Apprenant (inscrit à la formation de démo) |
+| apprenant@skillio.fr | Apprenant inscrit à la formation de démo |
+| candidat@skillio.fr | Apprenant sans inscription, pour tester le dossier de candidature |
 
 La formation de démo « Production de contenus audiovisuels sur les réseaux sociaux » contient un Module 1 de 13 leçons : votre module interactif Vercel, des contenus, une vidéo, une ressource, un quiz de 5 questions (tous les types) et un devoir évalué avec sa grille à 4 critères.
 
@@ -113,8 +140,10 @@ prisma/schema.prisma        Modèle de données (utilisateurs, formations, modul
 src/lib/                    Auth (sessions JWT), permissions, progression, correction des quiz, exports
 src/app/actions/            Server Actions (auth, apprenant, formateur, admin)
 src/app/learn/              Espace apprenant (plan du parcours + lecteur de leçon)
-src/app/trainer/            Espace formateur (constructeur, quiz, apprenants, résultats, grilles, corrections)
-src/app/admin/              Administration (utilisateurs, rôles, paramètres)
+src/app/of/                 Espace OF : dossiers, apprenants, formations, sessions, rapports, qualité, audit, équipe (constructeur, quiz, apprenants, résultats, grilles, corrections)
+src/app/admin/              Super admin : organismes, utilisateurs, paramètres et pages légales
+src/app/applications/       Dossiers de candidature (apprenant)
+src/app/documents/          Relevé de connexions, attestation d'assiduité, certificat de réalisation
 src/app/api/                HTML des modules importés, fichiers remis, exports CSV
 public/lms-bridge.js        Pont de suivi pour vos modules interactifs
 ```

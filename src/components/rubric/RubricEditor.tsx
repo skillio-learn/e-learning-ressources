@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { saveRubricAction, type RubricInput } from "@/app/actions/trainer";
+import { saveRubricAction, type RubricInput } from "@/app/actions/of";
 
 const DEFAULT_LEVELS = [
   { label: "Insuffisant", description: "", points: 0 },
@@ -53,7 +53,7 @@ export function RubricEditor({
         setOk(false);
         const res = await saveRubricAction(rubricId, r, attachToLessonId);
         if (returnTo) router.push(returnTo);
-        else if (!rubricId) router.push(`/trainer/rubrics/${res.id}`);
+        else if (!rubricId) router.push(`/of/rubrics/${res.id}`);
         else {
           setOk(true);
           router.refresh();

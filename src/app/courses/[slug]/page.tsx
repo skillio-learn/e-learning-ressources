@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { canManageCourse } from "@/lib/permissions";
 import { renderMarkdown } from "@/lib/markdown";
 import { enrollAction } from "@/app/actions/learner";
+import { startApplicationAction } from "@/app/actions/applications";
+import { MODALITY_LABELS } from "@/lib/labels";
 import { Badge, Container } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS, LEVEL_LABELS } from "@/lib/utils";
@@ -18,6 +20,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     where: { slug },
     include: {
       author: { select: { name: true, bio: true } },
+      organization: { select: { name: true, nda: true, qualiopiNumber: true, city: true } },
+      sessions: { where: { open: true, endDate: { gte: new Date() } }, orderBy: { startDate: "asc" } },
       trainers: { include: { user: { select: { name: true } } } },
       modules: {
         orderBy: { position: "asc" },
@@ -29,9 +33,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const manager = user ? await canManageCourse(user, course.id) : false;
   if (course.status !== "PUBLISHED" && !manager) notFound();
 
-  const enrollment = user
-    ? await db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } })
-    : null;
+  const [enrollment, application] = user
+    ? await Promise.all([
+        db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } }),
+        db.application.findFirst({
+          where: { userId: user.id, courseId: course.id, status: { notIn: ["WITHDRAWN", "REJECTED"] } },
+          select: { id: true, status: true, number: true },
+        }),
+      ])
+    : [null, null];
   const lessonCount = course.modules.reduce((s, m) => s + m.lessons.length, 0);
   const minutes = course.modules.reduce((s, m) => s + m.lessons.reduce((t, l) => t + (l.durationMin ?? 0), 0), 0);
 
@@ -69,6 +79,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               <Link href={`/learn/${course.slug}`} className="btn-primary w-full">Prévisualiser comme apprenant</Link>
             ) : !user ? (
               <Link href={`/login?next=/courses/${course.slug}`} className="btn-primary w-full">Se connecter pour s&apos;inscrire</Link>
+            ) : application ? (
+              <Link href={`/applications/${application.id}`} className="btn-primary w-full">
+                Suivre mon dossier {application.number}
+              </Link>
+            ) : course.enrollmentPolicy === "APPLICATION" ? (
+              <form action={startApplicationAction.bind(null, course.id)}>
+                <SubmitButton className="btn-primary w-full" pendingLabel="Création du dossier…">📝 Déposer ma candidature</SubmitButton>
+                <p className="mt-2 text-xs text-slate-500">Constituez votre dossier en ligne : informations, financement et justificatifs. L&apos;organisme le vérifie puis confirme votre inscription.</p>
+              </form>
             ) : course.enrollmentPolicy === "OPEN" ? (
               <form action={enrollAction.bind(null, course.id)}>
                 <SubmitButton className="btn-primary w-full" pendingLabel="Inscription…">S&apos;inscrire gratuitement</SubmitButton>
@@ -79,8 +98,17 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               </p>
             )}
             {manager && (
-              <Link href={`/trainer/courses/${course.id}`} className="btn-secondary mt-2 w-full">Modifier la formation</Link>
+              <Link href={`/of/courses/${course.id}`} className="btn-secondary mt-2 w-full">Modifier la formation</Link>
             )}
+            <dl className="mt-4 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
+              <div>Organisme : <b>{course.organization.name}</b>{course.organization.city ? ` (${course.organization.city})` : ""}</div>
+              {course.organization.nda && <div>N° déclaration d&apos;activité : {course.organization.nda}</div>}
+              {course.organization.qualiopiNumber && <div>✅ Certifié Qualiopi – {course.organization.qualiopiNumber}</div>}
+              <div>Modalité : {MODALITY_LABELS[course.modality]}</div>
+              {course.rncpCode && <div>Certification : {course.rncpCode}</div>}
+              {course.cpfEligible && <div>💳 Éligible au CPF</div>}
+              {course.price != null && <div>Tarif : {course.price.toLocaleString("fr-FR")} € HT</div>}
+            </dl>
           </div>
         </div>
       </section>
@@ -97,6 +125,22 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
             <section className="card p-5">
               <h2 className="mb-2">🎯 Objectifs pédagogiques</h2>
               <div className="prose-lms" dangerouslySetInnerHTML={{ __html: renderMarkdown(course.objectives) }} />
+            </section>
+          )}
+          {course.sessions.length > 0 && (
+            <section className="card p-5">
+              <h2 className="mb-2">📅 Prochaines sessions</h2>
+              <ul className="divide-y divide-slate-100 text-sm">
+                {course.sessions.map((s) => (
+                  <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-slate-500">
+                      du {s.startDate.toLocaleDateString("fr-FR")} au {s.endDate.toLocaleDateString("fr-FR")}
+                      {s.location ? ` · ${s.location}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
           <section>

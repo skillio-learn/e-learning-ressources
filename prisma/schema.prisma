@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL") // Supabase : pooler « Transaction » (port 6543, ?pgbouncer=true)
   directUrl = env("DIRECT_URL") // Supabase : connexion directe / « Session » (port 5432), utilisée par les migrations
 }
@@ -11,32 +11,55 @@ datasource db {
 // ─────────────────────────────── Utilisateurs & rôles ───────────────────────────────
 
 enum Role {
-  ADMIN // Administrateur : gère la plateforme, les utilisateurs, les paramètres
-  TRAINER // Formateur : crée les formations, quiz, grilles et évalue
-  LEARNER // Apprenant : suit les formations
+  ADMIN // Super administrateur Skillio : gère la plateforme et tous les organismes
+  OF_ADMIN // Responsable d'organisme de formation : gère son OF, ses dossiers, ses formations et son équipe
+  TRAINER // Formateur rattaché à un OF : crée ses formations, quiz, grilles et évalue
+  LEARNER // Apprenant : candidate et suit les formations
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         Role      @default(LEARNER)
-  active       Boolean   @default(true)
-  bio          String?
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String        @id @default(cuid())
+  email               String        @unique
+  name                String
+  passwordHash        String
+  role                Role          @default(LEARNER)
+  active              Boolean       @default(true)
+  bio                 String?
+  lastLoginAt         DateTime?
+  phone               String?
+  organizationId      String? // OF d'appartenance (équipe OF) ou OF d'inscription (apprenant)
+  organization        Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  failedLogins        Int           @default(0)
+  lockedUntil         DateTime?
+  consentAt           DateTime? // Acceptation CGU / politique de confidentialité
+  deletionRequestedAt DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  coursesAuthored   Course[]         @relation("CourseAuthor")
-  coTeaching        CourseTrainer[]
-  enrollments       Enrollment[]
-  lessonProgress    LessonProgress[]
-  quizAttempts      QuizAttempt[]
-  submissions       Submission[]     @relation("SubmissionLearner")
-  gradedSubmissions Submission[]     @relation("SubmissionGrader")
-  rubrics           Rubric[]
-  certificates      Certificate[]
+  profile              LearnerProfile?
+  applications         Application[]          @relation("ApplicationLearner")
+  reviewedApplications Application[]          @relation("ApplicationReviewer")
+  applicationEvents    ApplicationEvent[]
+  reviewedDocuments    ApplicationDocument[]
+  loginEvents          LoginEvent[]
+  activitySessions     ActivitySession[]
+  timeLogs             TimeLog[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  signatures           AttendanceSignature[]
+  satisfactions        SatisfactionResponse[]
+  complaints           Complaint[]            @relation("ComplaintAuthor")
+  handledComplaints    Complaint[]            @relation("ComplaintHandler")
+  enrollmentsCreated   Enrollment[]           @relation("EnrolledBy")
+  coursesAuthored      Course[]               @relation("CourseAuthor")
+  coTeaching           CourseTrainer[]
+  enrollments          Enrollment[]           @relation("EnrollmentLearner")
+  lessonProgress       LessonProgress[]
+  quizAttempts         QuizAttempt[]
+  submissions          Submission[]           @relation("SubmissionLearner")
+  gradedSubmissions    Submission[]           @relation("SubmissionGrader")
+  rubrics              Rubric[]
+  certificates         Certificate[]
 }
 
 model Setting {
@@ -60,7 +83,14 @@ enum CourseLevel {
 
 enum EnrollmentPolicy {
   OPEN // Inscription libre depuis le catalogue
-  INVITE // Inscription uniquement par le formateur / l'admin
+  APPLICATION // Candidature avec dossier, vérifiée puis validée par l'OF
+  INVITE // Inscription uniquement par l'OF
+}
+
+enum TrainingModality {
+  FOAD // Formation ouverte et à distance
+  PRESENTIEL
+  MIXTE // Blended learning
 }
 
 model Course {
@@ -83,9 +113,20 @@ model Course {
   passingScore       Int              @default(70) // % moyen minimum aux quiz notés pour valider la formation
   authorId           String
   author             User             @relation("CourseAuthor", fields: [authorId], references: [id])
+  organizationId     String
+  organization       Organization     @relation(fields: [organizationId], references: [id])
+  modality           TrainingModality @default(FOAD)
+  rncpCode           String? // Code RNCP / RS de la certification visée
+  cpfEligible        Boolean          @default(false)
+  price              Float? // Tarif HT
+  requiredDocuments  String[]         @default([]) // Justificatifs exigés pour candidater (vide = réglage de l'OF)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
+  sessions     TrainingSession[]
+  applications Application[]
+  timeLogs     TimeLog[]
+  complaints   Complaint[]
   trainers     CourseTrainer[]
   modules      Module[]
   enrollments  Enrollment[]
@@ -135,6 +176,7 @@ model Lesson {
   type        LessonType @default(CONTENT)
   position    Int
   durationMin Int?
+  minTimeSec  Int? // Temps minimum de consultation avant de pouvoir valider l'étape (traçabilité FOAD)
   required    Boolean    @default(true)
   published   Boolean    @default(true)
 
@@ -154,6 +196,7 @@ model Lesson {
   quiz        Quiz?
   progress    LessonProgress[]
   submissions Submission[]
+  timeLogs    TimeLog[]
 
   @@index([moduleId, position])
 }
@@ -358,13 +401,28 @@ enum EnrollmentStatus {
 model Enrollment {
   id             String           @id @default(cuid())
   userId         String
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User             @relation("EnrollmentLearner", fields: [userId], references: [id], onDelete: Cascade)
   courseId       String
   course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   status         EnrollmentStatus @default(ACTIVE)
   enrolledAt     DateTime         @default(now())
   completedAt    DateTime?
   lastActivityAt DateTime?
+
+  // Inscription définitive (contractualisation)
+  applicationId    String?          @unique
+  application      Application?     @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  sessionId        String?
+  session          TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  fundingType      FundingType?
+  fundingReference String? // N° dossier CPF / AIF / prise en charge OPCO
+  startDate        DateTime?
+  endDate          DateTime?
+  plannedHours     Float? // Durée prévue (heures) pour le certificat de réalisation
+  enrolledById     String?
+  enrolledBy       User?            @relation("EnrolledBy", fields: [enrolledById], references: [id], onDelete: SetNull)
+
+  satisfaction SatisfactionResponse?
 
   @@unique([userId, courseId])
 }
@@ -400,4 +458,364 @@ model Certificate {
   finalScore Float?
 
   @@unique([userId, courseId])
+}
+
+// ─────────────────────────────── Organismes de formation ───────────────────────────────
+
+model Organization {
+  id                   String    @id @default(cuid())
+  slug                 String    @unique
+  name                 String // Nom commercial
+  legalName            String? // Raison sociale
+  siret                String?
+  nda                  String? // Numéro de déclaration d'activité
+  ndaRegion            String? // Région / préfecture d'enregistrement
+  qualiopiNumber       String?
+  qualiopiDate         DateTime?
+  address              String?
+  postalCode           String?
+  city                 String?
+  phone                String?
+  email                String?
+  website              String?
+  logoUrl              String?
+  managerName          String? // Signataire des attestations
+  managerTitle         String?
+  internalRulesUrl     String? // Règlement intérieur
+  cgvUrl               String?
+  requiredDocuments    String[]  @default(["ID", "CV"]) // Justificatifs demandés par défaut
+  inactivityTimeoutMin Int       @default(15) // Minutes sans activité avant arrêt du chronomètre
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  users      User[]
+  courses    Course[]
+  auditLogs  AuditLog[]
+  complaints Complaint[]
+}
+
+// ─────────────────────────────── Dossier apprenant & candidatures ───────────────────────────────
+
+enum EmploymentStatus {
+  JOB_SEEKER // Demandeur d'emploi
+  EMPLOYEE // Salarié
+  SELF_EMPLOYED // Indépendant / chef d'entreprise
+  STUDENT
+  CIVIL_SERVANT // Agent public
+  OTHER
+}
+
+enum FundingType {
+  CPF
+  OPCO
+  FRANCE_TRAVAIL // AIF / financement France Travail
+  EMPLOYER // Plan de développement des compétences
+  REGION
+  PERSONAL // Financement personnel
+  OTHER
+}
+
+model LearnerProfile {
+  id                   String            @id @default(cuid())
+  userId               String            @unique
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  civility             String? // M. / Mme
+  firstName            String?
+  lastName             String?
+  birthName            String?
+  birthDate            DateTime?
+  birthPlace           String?
+  nationality          String?
+  address              String?
+  postalCode           String?
+  city                 String?
+  country              String?           @default("France")
+  phone                String?
+  employmentStatus     EmploymentStatus?
+  franceTravailId      String? // Identifiant France Travail
+  franceTravailAgency  String?
+  educationLevel       String? // Niveau (3 à 8)
+  lastDiploma          String?
+  currentJob           String?
+  employerName         String?
+  employerSiret        String?
+  employerAddress      String?
+  employerContactName  String?
+  employerContactEmail String?
+  employerContactPhone String?
+  opcoName             String?
+  disability           Boolean           @default(false) // RQTH / situation de handicap
+  disabilityNeeds      String?           @db.Text // Aménagements souhaités
+  updatedAt            DateTime          @updatedAt
+}
+
+enum ApplicationStatus {
+  DRAFT // En cours de saisie par l'apprenant
+  SUBMITTED // Déposé, en attente de vérification
+  UNDER_REVIEW // En cours d'instruction par l'OF
+  INCOMPLETE // Compléments demandés à l'apprenant
+  ACCEPTED // Validé par l'OF, en attente d'inscription définitive
+  ENROLLED // Inscrit définitivement
+  REJECTED // Refusé
+  WITHDRAWN // Retiré par l'apprenant
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  number           String            @unique // N° de dossier
+  userId           String
+  user             User              @relation("ApplicationLearner", fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sessionId        String?
+  session          TrainingSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  status           ApplicationStatus @default(DRAFT)
+  fundingType      FundingType?
+  fundingReference String?
+  fundingDetails   String?           @db.Text
+  motivation       String?           @db.Text
+  expectations     String?           @db.Text
+  experience       String?           @db.Text
+  prerequisitesOk  Boolean           @default(false)
+  availability     String?
+  consentRgpd      Boolean           @default(false)
+  consentTerms     Boolean           @default(false) // CGV + règlement intérieur
+  consentAt        DateTime?
+  profileSnapshot  Json? // Copie du profil au moment du dépôt
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  reviewedById     String?
+  reviewedBy       User?             @relation("ApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  decisionReason   String?           @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  documents  ApplicationDocument[]
+  events     ApplicationEvent[]
+  enrollment Enrollment?
+
+  @@index([courseId, status])
+  @@index([userId])
+}
+
+enum DocumentStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
+model ApplicationDocument {
+  id            String         @id @default(cuid())
+  applicationId String
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          String // Code du justificatif (ID, CV, FT_ATTESTATION…)
+  fileName      String
+  fileType      String
+  size          Int
+  data          Bytes
+  status        DocumentStatus @default(PENDING)
+  comment       String?
+  uploadedAt    DateTime       @default(now())
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewedBy    User?          @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+}
+
+enum ApplicationEventType {
+  STATUS // Changement de statut
+  MESSAGE // Message visible par l'apprenant
+  NOTE // Note interne OF
+  DOCUMENT // Dépôt / vérification de justificatif
+}
+
+model ApplicationEvent {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String?
+  author        User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  type          ApplicationEventType
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus?
+  message       String?              @db.Text
+  createdAt     DateTime             @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+model TrainingSession {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  capacity  Int?
+  location  String? // Lieu ou « À distance »
+  open      Boolean  @default(true) // Ouverte aux candidatures
+  createdAt DateTime @default(now())
+
+  applications Application[]
+  enrollments  Enrollment[]
+  slots        AttendanceSlot[]
+}
+
+// ─────────────────────────────── Traçabilité (contrôles OPCO / France Travail / Qualiopi) ───────────────────────────────
+
+enum LoginEventType {
+  LOGIN
+  LOGOUT
+  FAILED
+  LOCKED
+}
+
+model LoginEvent {
+  id        String         @id @default(cuid())
+  userId    String?
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  type      LoginEventType
+  ip        String?
+  userAgent String?
+  createdAt DateTime       @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Session de connexion effective (temps actif mesuré par battements de cœur, pauses d'inactivité exclues)
+model ActivitySession {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt     DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+  endedAt       DateTime?
+  activeSeconds Int       @default(0)
+  ip            String?
+  userAgent     String?
+
+  timeLogs TimeLog[]
+
+  @@index([userId, startedAt])
+}
+
+/// Temps actif passé sur une leçon, par segment continu
+model TimeLog {
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId          String
+  lesson            Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  courseId          String
+  course            Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  activitySessionId String?
+  activitySession   ActivitySession? @relation(fields: [activitySessionId], references: [id], onDelete: SetNull)
+  startedAt         DateTime         @default(now())
+  endedAt           DateTime         @default(now())
+  seconds           Int              @default(0)
+
+  @@index([userId, courseId, startedAt])
+  @@index([lessonId])
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  actorId        String?
+  actor          User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  action         String // ex : application.accept, enrollment.create, export.connections
+  entityType     String?
+  entityId       String?
+  details        String?       @db.Text
+  ip             String?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+// ─────────────────────────────── Émargement, satisfaction, réclamations ───────────────────────────────
+
+model AttendanceSlot {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  date      DateTime // Jour
+  label     String // Matin, Après-midi, Classe virtuelle…
+  startTime String // "09:00"
+  endTime   String // "12:30"
+  createdAt DateTime        @default(now())
+
+  signatures AttendanceSignature[]
+
+  @@index([sessionId, date])
+}
+
+model AttendanceSignature {
+  id        String         @id @default(cuid())
+  slotId    String
+  slot      AttendanceSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signature String         @db.Text // Image PNG (data URL) de la signature
+  signedAt  DateTime       @default(now())
+  ip        String?
+  userAgent String?
+
+  @@unique([slotId, userId])
+}
+
+model SatisfactionResponse {
+  id           String     @id @default(cuid())
+  enrollmentId String     @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers      Json // { questionCode: note 1-5 }
+  globalScore  Float
+  recommend    Boolean?
+  comment      String?    @db.Text
+  createdAt    DateTime   @default(now())
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model Complaint {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation("ComplaintAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  courseId       String?
+  course         Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  category       String // Réclamation, question pédagogique, technique, administrative…
+  subject        String
+  message        String          @db.Text
+  status         ComplaintStatus @default(OPEN)
+  response       String?         @db.Text
+  handledById    String?
+  handledBy      User?           @relation("ComplaintHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  resolvedAt     DateTime?
 }

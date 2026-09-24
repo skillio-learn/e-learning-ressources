@@ -44,20 +44,17 @@ export async function completeLessonAction(lessonId: string, score?: number | nu
   if (lesson.type === "QUIZ" || lesson.type === "ASSIGNMENT") {
     throw new Error("Cette étape se valide en répondant au quiz / en remettant le devoir");
   }
+  if (lesson.minTimeSec) {
+    const p = await db.lessonProgress.findUnique({ where: { userId_lessonId: { userId: user.id, lessonId } }, select: { timeSpentSec: true } });
+    // Tolérance de 45 s (battement d'activité en cours d'envoi)
+    if ((p?.timeSpentSec ?? 0) + 45 < lesson.minTimeSec) {
+      throw new Error("Le temps minimum de consultation de cette étape n'est pas encore atteint.");
+    }
+  }
   const s = typeof score === "number" && Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null;
   await completeLesson(user.id, lessonId, s);
   revalidatePath(`/learn/${slug}`, "layout");
   return { ok: true };
-}
-
-export async function trackTimeAction(lessonId: string, seconds: number) {
-  const user = await requireUser();
-  const sec = Math.max(0, Math.min(3600, Math.round(seconds)));
-  if (!sec) return;
-  await db.lessonProgress.updateMany({
-    where: { userId: user.id, lessonId },
-    data: { timeSpentSec: { increment: sec } },
-  });
 }
 
 // ─────────────── Quiz ───────────────

@@ -112,7 +112,7 @@ export function ActivityTracker({ timeoutMin, interactiveTimeoutMin }: { timeout
 
   if (!idle) return null;
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/20 p-4 backdrop-blur-md">
       <div className="card max-w-md p-6 text-center">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-100 text-brand-500 ring-1 ring-brand-200"><Pause className="h-6 w-6" strokeWidth={1.75} /></div>
         <h2 className="mt-2">Êtes-vous toujours là ?</h2>

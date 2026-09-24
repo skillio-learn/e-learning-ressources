@@ -39,7 +39,7 @@ export function OutlineNav({ slug, modules }: { slug: string; modules: OutlineMo
                     <span
                       className={cn(
                         "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold tabular-nums transition",
-                        l.completed ? "bg-emerald-500 text-black" : active ? "bg-brand-600 text-white shadow-[0_0_12px_rgba(10,132,255,0.6)]" : "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+                        l.completed ? "bg-emerald-500 text-white" : active ? "bg-brand-600 text-white shadow-[0_0_12px_rgba(10,132,255,0.6)]" : "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
                       )}
                     >
                       {l.completed ? <Check className="h-3 w-3" strokeWidth={3} /> : l.locked ? <Lock className="h-2.5 w-2.5" strokeWidth={2.5} /> : j + 1}

@@ -50,10 +50,10 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
   return (
     <main>
-      <section className="relative isolate overflow-hidden border-b border-white/[0.06]">
+      <section className="relative isolate overflow-hidden border-b border-black/[0.06]">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] animate-aurora rounded-full bg-[#2997ff]/20 blur-[110px]" />
-          <div className="absolute -top-20 right-0 h-[26rem] w-[26rem] animate-aurora rounded-full bg-[#bf5af2]/15 blur-[110px] [animation-delay:-8s]" />
+          <div className="absolute -left-40 -top-40 h-[30rem] w-[30rem] animate-aurora rounded-full bg-[#0071e3]/10 blur-[110px]" />
+          <div className="absolute -top-20 right-0 h-[26rem] w-[26rem] animate-aurora rounded-full bg-[#bf5af2]/[0.08] blur-[110px] [animation-delay:-8s]" />
           <div className="bg-grid mask-fade-b absolute inset-0" />
         </div>
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1fr_360px]">
@@ -78,7 +78,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                   ...(course.certificateEnabled ? [[Award, "Certificat"]] : []),
                 ] as [typeof Layers, string][]
               ).map(([Icon, label]) => (
-                <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur">
+                <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-surface/80 px-3 py-1.5 shadow-[0_1px_2px_rgb(0_0_0/0.04)] backdrop-blur">
                   <Icon className="h-3.5 w-3.5 text-brand-500" strokeWidth={2} /> {label}
                 </span>
               ))}

@@ -25,9 +25,11 @@ export default {
         display: ['"Inter Variable"', "-apple-system", "BlinkMacSystemFont", '"SF Pro Display"', '"Segoe UI"', "sans-serif"],
       },
       letterSpacing: { tightest: "-0.035em" },
+      // Graisses allégées : l'esprit SF Pro (titres fins, texte aéré).
+      fontWeight: { medium: "480", semibold: "560", bold: "620", extrabold: "660" },
       boxShadow: {
-        glow: "0 0 0 1px rgb(255 255 255 / 0.06), 0 20px 60px -20px rgb(41 151 255 / 0.35)",
-        card: "0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 8px 30px -12px rgb(0 0 0 / 0.6)",
+        glow: "0 1px 2px rgb(0 0 0 / 0.04), 0 22px 48px -18px rgb(0 0 0 / 0.18)",
+        card: "0 1px 2px rgb(0 0 0 / 0.03), 0 6px 24px -12px rgb(0 0 0 / 0.08)",
       },
       keyframes: {
         "fade-up": { "0%": { opacity: "0", transform: "translateY(14px)" }, "100%": { opacity: "1", transform: "none" } },

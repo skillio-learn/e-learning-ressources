@@ -22,7 +22,7 @@ export function PageHeader({
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tightest md:text-4xl">{title}</h1>
+          <h1 className="text-3xl font-medium tracking-tightest md:text-4xl">{title}</h1>
           {subtitle && <p className="mt-2 text-[15px] text-slate-500">{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -39,7 +39,7 @@ export function Stat({ label, value, hint }: { label: string; value: React.React
   return (
     <div className="card p-5">
       <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</div>
-      <div className="mt-2 font-display text-3xl font-semibold tracking-tight text-slate-900">{value}</div>
+      <div className="mt-2 font-display text-3xl font-medium tracking-tight text-slate-900">{value}</div>
       {hint && <div className="mt-1 text-xs text-slate-500">{hint}</div>}
     </div>
   );

@@ -24,7 +24,7 @@ export default async function OfLayout({ children }: { children: React.ReactNode
   ]);
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col lg:flex-row">
-      <aside className="no-print border-b border-white/[0.08] lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+      <aside className="no-print border-b border-black/[0.08] lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <div className="px-5 pb-2 pt-6">
           <div className="eyebrow">Espace OF</div>
           <div className="mt-1 truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
@@ -36,12 +36,12 @@ export default async function OfLayout({ children }: { children: React.ReactNode
           {manager && <SideLink href="/of/applications" icon={<Inbox strokeWidth={1.75} />} count={pendingApps}>Dossiers d&apos;inscription</SideLink>}
           <SideLink href="/of/learners" icon={<Users strokeWidth={1.75} />}>Apprenants</SideLink>
           <SideLink href="/of/messages" icon={<MessagesSquare strokeWidth={1.75} />} count={unreadMessages}>Messagerie</SideLink>
-          <div className="mx-3 my-2 hidden h-px bg-white/[0.06] lg:block" />
+          <div className="mx-3 my-2 hidden h-px bg-black/[0.06] lg:block" />
           <SideLink href="/of/courses" icon={<BookOpen strokeWidth={1.75} />}>Formations</SideLink>
           <SideLink href="/of/sessions" icon={<CalendarDays strokeWidth={1.75} />}>Sessions & émargement</SideLink>
           <SideLink href="/of/grading" icon={<PenLine strokeWidth={1.75} />} count={pendingGrading}>Corrections</SideLink>
           <SideLink href="/of/rubrics" icon={<ClipboardList strokeWidth={1.75} />}>Grilles d&apos;évaluation</SideLink>
-          {manager && <div className="mx-3 my-2 hidden h-px bg-white/[0.06] lg:block" />}
+          {manager && <div className="mx-3 my-2 hidden h-px bg-black/[0.06] lg:block" />}
           {manager && <SideLink href="/of/reports" icon={<BarChart3 strokeWidth={1.75} />}>Rapports & traçabilité</SideLink>}
           {manager && <SideLink href="/of/quality" icon={<Star strokeWidth={1.75} />}>Qualité & réclamations</SideLink>}
           {manager && <SideLink href="/of/audit" icon={<ScrollText strokeWidth={1.75} />}>Journal d&apos;audit</SideLink>}

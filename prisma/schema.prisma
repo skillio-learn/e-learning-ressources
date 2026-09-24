@@ -1,0 +1,403 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL") // Supabase : pooler « Transaction » (port 6543, ?pgbouncer=true)
+  directUrl = env("DIRECT_URL") // Supabase : connexion directe / « Session » (port 5432), utilisée par les migrations
+}
+
+// ─────────────────────────────── Utilisateurs & rôles ───────────────────────────────
+
+enum Role {
+  ADMIN // Administrateur : gère la plateforme, les utilisateurs, les paramètres
+  TRAINER // Formateur : crée les formations, quiz, grilles et évalue
+  LEARNER // Apprenant : suit les formations
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(LEARNER)
+  active       Boolean   @default(true)
+  bio          String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  coursesAuthored   Course[]         @relation("CourseAuthor")
+  coTeaching        CourseTrainer[]
+  enrollments       Enrollment[]
+  lessonProgress    LessonProgress[]
+  quizAttempts      QuizAttempt[]
+  submissions       Submission[]     @relation("SubmissionLearner")
+  gradedSubmissions Submission[]     @relation("SubmissionGrader")
+  rubrics           Rubric[]
+  certificates      Certificate[]
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+// ─────────────────────────────── Formations ───────────────────────────────
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentPolicy {
+  OPEN // Inscription libre depuis le catalogue
+  INVITE // Inscription uniquement par le formateur / l'admin
+}
+
+model Course {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  title              String
+  subtitle           String?
+  description        String?          @db.Text
+  objectives         String?          @db.Text
+  prerequisites      String?          @db.Text
+  audience           String?          @db.Text
+  category           String?
+  level              CourseLevel      @default(BEGINNER)
+  durationHours      Float?
+  coverUrl           String?
+  status             CourseStatus     @default(DRAFT)
+  enrollmentPolicy   EnrollmentPolicy @default(INVITE)
+  sequential         Boolean          @default(true) // Parcours étape par étape : chaque leçon débloque la suivante
+  certificateEnabled Boolean          @default(true)
+  passingScore       Int              @default(70) // % moyen minimum aux quiz notés pour valider la formation
+  authorId           String
+  author             User             @relation("CourseAuthor", fields: [authorId], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  trainers     CourseTrainer[]
+  modules      Module[]
+  enrollments  Enrollment[]
+  certificates Certificate[]
+  rubrics      Rubric[]
+}
+
+model CourseTrainer {
+  courseId String
+  userId   String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, userId])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  position    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons Lesson[]
+
+  @@index([courseId, position])
+}
+
+enum LessonType {
+  INTERACTIVE // Module interactif HTML (URL intégrée ou HTML importé)
+  CONTENT // Contenu texte (Markdown)
+  VIDEO // Vidéo (YouTube, Vimeo, MP4…)
+  QUIZ // Quiz noté / auto-évaluation
+  ASSIGNMENT // Devoir / mise en situation évalué(e) avec une grille
+  RESOURCE // Ressource téléchargeable / lien
+}
+
+model Lesson {
+  id          String     @id @default(cuid())
+  moduleId    String
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?    @db.Text
+  type        LessonType @default(CONTENT)
+  position    Int
+  durationMin Int?
+  required    Boolean    @default(true)
+  published   Boolean    @default(true)
+
+  content        String?        @db.Text // Markdown (CONTENT, consignes ASSIGNMENT, description RESOURCE…)
+  embedUrl       String? // INTERACTIVE : URL du module interactif
+  htmlContent    String?        @db.Text // INTERACTIVE : HTML importé (servi en bac à sable)
+  completionMode CompletionMode @default(MANUAL)
+  videoUrl       String?
+  resourceUrl    String?
+
+  rubricId String? // ASSIGNMENT : grille d'évaluation utilisée
+  rubric   Rubric? @relation(fields: [rubricId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quiz        Quiz?
+  progress    LessonProgress[]
+  submissions Submission[]
+
+  @@index([moduleId, position])
+}
+
+enum CompletionMode {
+  MANUAL // L'apprenant clique "Marquer comme terminé"
+  AUTO // Le module interactif signale la fin via postMessage (lms-bridge.js)
+  ON_VIEW // Terminé dès l'ouverture
+}
+
+// ─────────────────────────────── Quiz ───────────────────────────────
+
+enum QuestionType {
+  SINGLE // QCM à réponse unique
+  MULTIPLE // QCM à réponses multiples
+  TRUE_FALSE // Vrai / Faux
+  SHORT // Réponse courte (correction automatique par mots acceptés)
+  OPEN // Question ouverte (correction manuelle par le formateur)
+}
+
+model Quiz {
+  id               String  @id @default(cuid())
+  lessonId         String  @unique
+  lesson           Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  instructions     String? @db.Text
+  passingScore     Int     @default(70)
+  maxAttempts      Int? // null = illimité
+  timeLimitMin     Int?
+  shuffleQuestions Boolean @default(false)
+  showCorrection   Boolean @default(true)
+  graded           Boolean @default(true) // Compte dans la validation de la formation
+
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+model Question {
+  id              String           @id @default(cuid())
+  quizId          String
+  quiz            Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type            QuestionType
+  text            String           @db.Text
+  explanation     String?          @db.Text
+  points          Float            @default(1)
+  position        Int
+  acceptedAnswers String[]         @default([]) // SHORT
+  options         QuestionOption[]
+  answers         Answer[]
+
+  @@index([quizId, position])
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+  position   Int
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  PENDING_REVIEW // Contient des questions ouvertes à corriger
+  GRADED
+}
+
+model QuizAttempt {
+  id          String        @id @default(cuid())
+  quizId      String
+  quiz        Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      AttemptStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  submittedAt DateTime?
+  score       Float         @default(0)
+  maxScore    Float         @default(0)
+  percent     Float         @default(0)
+  passed      Boolean       @default(false)
+  feedback    String?       @db.Text
+
+  answers Answer[]
+
+  @@index([quizId, userId])
+}
+
+model Answer {
+  id                String      @id @default(cuid())
+  attemptId         String
+  attempt           QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId        String
+  question          Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionIds String[]    @default([])
+  text              String?     @db.Text
+  pointsAwarded     Float       @default(0)
+  isCorrect         Boolean?
+  needsReview       Boolean     @default(false)
+  feedback          String?     @db.Text
+
+  @@unique([attemptId, questionId])
+}
+
+// ─────────────────────────────── Grilles d'évaluation ───────────────────────────────
+
+model Rubric {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?  @db.Text
+  courseId     String? // null = grille réutilisable dans toutes les formations
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id])
+  passingScore Int      @default(50) // % minimum pour valider
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  criteria RubricCriterion[]
+  lessons  Lesson[]
+}
+
+model RubricCriterion {
+  id          String  @id @default(cuid())
+  rubricId    String
+  rubric      Rubric  @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  title       String
+  description String? @db.Text
+  weight      Float   @default(1)
+  position    Int
+
+  levels RubricLevel[]
+  scores RubricScore[]
+}
+
+model RubricLevel {
+  id          String          @id @default(cuid())
+  criterionId String
+  criterion   RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  label       String // ex : Insuffisant, À améliorer, Satisfaisant, Excellent
+  description String?         @db.Text
+  points      Float
+  position    Int
+
+  scores RubricScore[]
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  GRADED
+  NEEDS_REVISION
+}
+
+model Submission {
+  id          String           @id @default(cuid())
+  lessonId    String
+  lesson      Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation("SubmissionLearner", fields: [userId], references: [id], onDelete: Cascade)
+  text        String?          @db.Text
+  linkUrl     String?
+  fileName    String?
+  fileData    Bytes?
+  fileType    String?
+  status      SubmissionStatus @default(SUBMITTED)
+  submittedAt DateTime         @default(now())
+  score       Float?
+  maxScore    Float?
+  percent     Float?
+  passed      Boolean?
+  feedback    String?          @db.Text
+  gradedAt    DateTime?
+  gradedById  String?
+  gradedBy    User?            @relation("SubmissionGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  rubricScores RubricScore[]
+
+  @@index([lessonId, userId])
+}
+
+model RubricScore {
+  id           String          @id @default(cuid())
+  submissionId String
+  submission   Submission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  criterionId  String
+  criterion    RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  levelId      String?
+  level        RubricLevel?    @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  points       Float           @default(0)
+  comment      String?         @db.Text
+
+  @@unique([submissionId, criterionId])
+}
+
+// ─────────────────────────────── Inscriptions & progression ───────────────────────────────
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+}
+
+model Enrollment {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status         EnrollmentStatus @default(ACTIVE)
+  enrolledAt     DateTime         @default(now())
+  completedAt    DateTime?
+  lastActivityAt DateTime?
+
+  @@unique([userId, courseId])
+}
+
+enum ProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model LessonProgress {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status       ProgressStatus @default(IN_PROGRESS)
+  score        Float? // score remonté par le module interactif (0-100)
+  startedAt    DateTime       @default(now())
+  completedAt  DateTime?
+  timeSpentSec Int            @default(0)
+
+  @@unique([userId, lessonId])
+}
+
+model Certificate {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  issuedAt   DateTime @default(now())
+  finalScore Float?
+
+  @@unique([userId, courseId])
+}

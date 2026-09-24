@@ -26,7 +26,7 @@ export default async function LearnLayout({ children, params }: { children: Reac
             </div>
           )}
           {manager && (
-            <Link href={`/trainer/courses/${course.id}`} className="mt-2 inline-block text-xs text-brand-600 hover:underline">
+            <Link href={`/of/courses/${course.id}`} className="mt-2 inline-block text-xs text-brand-600 hover:underline">
               ✏️ Modifier cette formation
             </Link>
           )}

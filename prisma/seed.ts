@@ -2,7 +2,8 @@
  * Données de démonstration.
  *   npm run db:seed
  * Comptes créés (mot de passe : Skillio2026!) :
- *   admin@skillio.fr (Administrateur) · formateur@skillio.fr (Formateur) · apprenant@skillio.fr (Apprenant)
+ *   admin@skillio.fr (Super admin) · of@skillio.fr (Responsable OF) · formateur@skillio.fr (Formateur)
+ *   apprenant@skillio.fr (Apprenant inscrit) · candidat@skillio.fr (Apprenant sans inscription : test du dossier)
  */
 import { PrismaClient, type LessonType } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -14,13 +15,40 @@ const MODULE_URL =
 
 async function main() {
   const hash = await bcrypt.hash(PASSWORD, 10);
-  const upsertUser = (email: string, name: string, role: "ADMIN" | "TRAINER" | "LEARNER") =>
-    db.user.upsert({ where: { email }, create: { email, name, role, passwordHash: hash }, update: {} });
+  const org = await db.organization.upsert({
+    where: { slug: "skillio-formation" },
+    create: {
+      id: "org_skillio_default",
+      slug: "skillio-formation",
+      name: "Skillio Formation",
+      legalName: "Skillio Formation SAS",
+      siret: "12345678900012",
+      nda: "11755555575",
+      ndaRegion: "Île-de-France",
+      qualiopiNumber: "QUALIOPI-2026-0001",
+      address: "10 rue de la Formation",
+      postalCode: "75010",
+      city: "Paris",
+      email: "contact@skillio.fr",
+      phone: "01 23 45 67 89",
+      managerName: "Responsable de l'organisme (démo)",
+      managerTitle: "Directeur",
+      requiredDocuments: ["ID", "CV", "PROOF_ADDRESS"],
+    },
+    update: {},
+  });
+  const upsertUser = (email: string, name: string, role: "ADMIN" | "OF_ADMIN" | "TRAINER" | "LEARNER") =>
+    db.user.upsert({
+      where: { email },
+      create: { email, name, role, passwordHash: hash, organizationId: role === "ADMIN" ? null : org.id, consentAt: new Date() },
+      update: {},
+    });
 
-  const admin = await upsertUser("admin@skillio.fr", "Admin Skillio", "ADMIN");
+  await upsertUser("admin@skillio.fr", "Admin Skillio", "ADMIN");
+  await upsertUser("of@skillio.fr", "Sophie Responsable OF", "OF_ADMIN");
   const trainer = await upsertUser("formateur@skillio.fr", "Camille Formatrice", "TRAINER");
   const learner = await upsertUser("apprenant@skillio.fr", "Alex Apprenant", "LEARNER");
-  void admin;
+  await upsertUser("candidat@skillio.fr", "Chris Candidat", "LEARNER");
 
   const slug = "production-de-contenus-audiovisuels-sur-les-reseaux-sociaux";
   if (await db.course.findUnique({ where: { slug } })) {
@@ -43,7 +71,12 @@ async function main() {
       level: "BEGINNER",
       durationHours: 14,
       status: "PUBLISHED",
-      enrollmentPolicy: "OPEN",
+      enrollmentPolicy: "APPLICATION",
+      organizationId: org.id,
+      modality: "FOAD",
+      rncpCode: "RS5063",
+      cpfEligible: true,
+      price: 1490,
       sequential: true,
       passingScore: 60,
       authorId: trainer.id,
@@ -54,9 +87,9 @@ async function main() {
   const m1 = await db.module.create({
     data: { courseId: course.id, title: "Bienvenue & fondamentaux", position: 0, description: "Découvrir les formats et les codes de chaque réseau." },
   });
-  const lessons: { title: string; type: LessonType; embedUrl?: string; content?: string; durationMin?: number }[] = [
+  const lessons: { title: string; type: LessonType; embedUrl?: string; content?: string; durationMin?: number; minTimeSec?: number }[] = [
     { title: "Bienvenue dans la formation", type: "INTERACTIVE", embedUrl: MODULE_URL, durationMin: 10 },
-    { title: "Pourquoi la vidéo sur les réseaux sociaux ?", type: "CONTENT", content: "## La vidéo, format roi\n\nPlus de **80 %** du trafic internet est constitué de vidéo…", durationMin: 8 },
+    { title: "Pourquoi la vidéo sur les réseaux sociaux ?", type: "CONTENT", minTimeSec: 120, content: "## La vidéo, format roi\n\nPlus de **80 %** du trafic internet est constitué de vidéo…", durationMin: 8 },
     { title: "Panorama des plateformes", type: "CONTENT", content: "## Instagram, TikTok, LinkedIn, YouTube\n\n| Réseau | Format | Durée idéale |\n|---|---|---|\n| TikTok | 9:16 | 15–45 s |\n| Reels | 9:16 | 15–30 s |\n| LinkedIn | 1:1 / 4:5 | 30–90 s |", durationMin: 12 },
     { title: "Les formats verticaux", type: "CONTENT", content: "Le format **9:16** occupe tout l'écran du smartphone.", durationMin: 6 },
     { title: "Définir sa cible", type: "CONTENT", content: "Construisez votre **persona** : âge, usages, attentes, freins.", durationMin: 10 },
@@ -80,6 +113,7 @@ async function main() {
         embedUrl: l.embedUrl ?? null,
         content: l.content ?? null,
         durationMin: l.durationMin,
+        minTimeSec: l.minTimeSec ?? null,
         videoUrl: l.type === "VIDEO" ? "https://www.youtube.com/watch?v=dQw4w9WgXcQ" : null,
         resourceUrl: l.type === "RESOURCE" ? "https://example.com/fiche-memo.pdf" : null,
       },
@@ -161,7 +195,28 @@ async function main() {
     await db.lesson.create({ data: { moduleId: m.id, position: 0, title: `Introduction – ${title}`, type: "CONTENT", content: `Contenu du module **${title}** à compléter.` } });
   }
 
-  await db.enrollment.create({ data: { userId: learner.id, courseId: course.id } });
+  const now = new Date();
+  const session = await db.trainingSession.create({
+    data: {
+      courseId: course.id,
+      name: "Session d'automne",
+      startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+      endDate: new Date(now.getFullYear(), now.getMonth() + 2, 28),
+      capacity: 20,
+      location: "À distance",
+    },
+  });
+  await db.enrollment.create({
+    data: {
+      userId: learner.id,
+      courseId: course.id,
+      sessionId: session.id,
+      startDate: session.startDate,
+      endDate: session.endDate,
+      plannedHours: 14,
+      fundingType: "CPF",
+    },
+  });
   console.log("✅ Données de démonstration créées. Mot de passe des comptes :", PASSWORD);
 }
 

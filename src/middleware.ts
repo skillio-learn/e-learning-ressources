@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
-const PROTECTED = ["/dashboard", "/learn", "/trainer", "/admin", "/profile"];
+const PROTECTED = ["/dashboard", "/learn", "/of", "/admin", "/profile", "/applications", "/apply", "/attendance", "/support", "/notifications"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -16,12 +16,15 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
   }
-  if (pathname.startsWith("/trainer") && session.role === "LEARNER") {
+  if ((pathname === "/of" || pathname.startsWith("/of/")) && session.role === "LEARNER") {
     return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
   }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/learn/:path*", "/trainer/:path*", "/admin/:path*", "/profile/:path*"],
+  matcher: [
+    "/dashboard/:path*", "/learn/:path*", "/of/:path*", "/of", "/admin/:path*", "/admin", "/profile/:path*",
+    "/applications/:path*", "/apply/:path*", "/attendance/:path*", "/support/:path*", "/notifications/:path*",
+  ],
 };

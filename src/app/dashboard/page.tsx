@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { manageableCoursesWhere } from "@/lib/permissions";
 import { getCourseOutline } from "@/lib/progress";
 import { Container, Empty, PageHeader, ProgressBar, Stat } from "@/components/ui";
 import { formatDate, pct } from "@/lib/utils";
+import { APPLICATION_STATUS } from "@/lib/labels";
+import { Badge } from "@/components/ui";
 
 export const metadata = { title: "Tableau de bord" };
 export const dynamic = "force-dynamic";
@@ -12,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const user = await requireUser();
   const { denied } = await searchParams;
+  if (user.role !== "LEARNER" && !denied) redirect("/of");
   return (
     <Container>
       {denied && (
@@ -20,12 +23,28 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </p>
       )}
       <PageHeader title={`Bonjour ${user.name.split(" ")[0]} 👋`} subtitle="Voici un aperçu de votre activité." />
-      {user.role === "LEARNER" ? <LearnerDashboard userId={user.id} /> : <StaffDashboard user={user} />}
+      <LearnerDashboard userId={user.id} />
     </Container>
   );
 }
 
 async function LearnerDashboard({ userId }: { userId: string }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [applications, todaySlots] = await Promise.all([
+    db.application.findMany({
+      where: { userId, status: { notIn: ["ENROLLED", "WITHDRAWN"] } },
+      orderBy: { updatedAt: "desc" },
+      include: { course: { select: { title: true } } },
+    }),
+    db.attendanceSlot.findMany({
+      where: {
+        date: { gte: new Date(today), lt: new Date(new Date(today).getTime() + 86400000) },
+        session: { enrollments: { some: { userId } } },
+        signatures: { none: { userId } },
+      },
+      select: { id: true },
+    }),
+  ]);
   const [enrollments, certificates, attempts] = await Promise.all([
     db.enrollment.findMany({
       where: { userId, status: { not: "SUSPENDED" } },
@@ -50,6 +69,27 @@ async function LearnerDashboard({ userId }: { userId: string }) {
         <Stat label="Formations terminées" value={enrollments.filter((e) => e.status === "COMPLETED").length} />
         <Stat label="Certificats obtenus" value={certificates} />
       </div>
+      {todaySlots.length > 0 && (
+        <Link href="/attendance" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:shadow">
+          ✍️ Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui → Signer maintenant
+        </Link>
+      )}
+      {applications.length > 0 && (
+        <section>
+          <h2 className="mb-3">Mes dossiers de candidature</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {applications.map((a) => (
+              <Link key={a.id} href={`/applications/${a.id}`} className="card flex items-center justify-between gap-3 p-4 hover:shadow-md">
+                <div>
+                  <div className="text-xs text-slate-400">{a.number}</div>
+                  <div className="font-medium">{a.course.title}</div>
+                </div>
+                <Badge tone={APPLICATION_STATUS[a.status].tone}>{APPLICATION_STATUS[a.status].label}</Badge>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       <section>
         <h2 className="mb-3">Reprendre mes formations</h2>
         {withProgress.length === 0 ? (
@@ -102,67 +142,6 @@ async function LearnerDashboard({ userId }: { userId: string }) {
           </div>
         </section>
       )}
-    </div>
-  );
-}
-
-async function StaffDashboard({ user }: { user: { id: string; role: "ADMIN" | "TRAINER" | "LEARNER"; email: string; name: string; active: boolean } }) {
-  const where = manageableCoursesWhere(user);
-  const courses = await db.course.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    include: { _count: { select: { enrollments: true, modules: true } } },
-  });
-  const courseIds = courses.map((c) => c.id);
-  const [learners, pendingSubs, pendingQuiz, completions, users] = await Promise.all([
-    db.enrollment.count({ where: { courseId: { in: courseIds } } }),
-    db.submission.count({ where: { status: "SUBMITTED", lesson: { module: { courseId: { in: courseIds } } } } }),
-    db.quizAttempt.count({ where: { status: "PENDING_REVIEW", quiz: { lesson: { module: { courseId: { in: courseIds } } } } } }),
-    db.enrollment.count({ where: { courseId: { in: courseIds }, status: "COMPLETED" } }),
-    user.role === "ADMIN" ? db.user.count() : Promise.resolve(null),
-  ]);
-  return (
-    <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Formations" value={courses.length} hint={`${courses.filter((c) => c.status === "PUBLISHED").length} publiée(s)`} />
-        <Stat label="Inscriptions" value={learners} hint={`${completions} terminée(s)`} />
-        <Stat label="À corriger" value={pendingSubs + pendingQuiz} hint={`${pendingSubs} devoir(s) · ${pendingQuiz} quiz`} />
-        {users !== null ? <Stat label="Utilisateurs" value={users} /> : <Stat label="Taux de réussite" value={learners ? pct((completions / learners) * 100) : "—"} />}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Link href="/trainer/courses/new" className="btn-primary">+ Nouvelle formation</Link>
-        <Link href="/trainer/rubrics/new" className="btn-secondary">+ Nouvelle grille d&apos;évaluation</Link>
-        <Link href="/trainer/grading" className="btn-secondary">Corrections en attente</Link>
-        {user.role === "ADMIN" && <Link href="/admin/users" className="btn-secondary">Gérer les utilisateurs</Link>}
-      </div>
-      <section>
-        <h2 className="mb-3">Mes formations</h2>
-        {courses.length === 0 ? (
-          <Empty title="Aucune formation">Créez votre première formation pour commencer.</Empty>
-        ) : (
-          <div className="card overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr><th>Formation</th><th>Statut</th><th>Modules</th><th>Inscrits</th><th>Mise à jour</th><th></th></tr>
-              </thead>
-              <tbody>
-                {courses.map((c) => (
-                  <tr key={c.id}>
-                    <td className="font-medium">{c.title}</td>
-                    <td>{c.status === "PUBLISHED" ? "🟢 Publiée" : c.status === "DRAFT" ? "🟡 Brouillon" : "⚪ Archivée"}</td>
-                    <td>{c._count.modules}</td>
-                    <td>{c._count.enrollments}</td>
-                    <td>{formatDate(c.updatedAt)}</td>
-                    <td className="text-right">
-                      <Link href={`/trainer/courses/${c.id}`} className="text-brand-600 hover:underline">Gérer</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
     </div>
   );
 }

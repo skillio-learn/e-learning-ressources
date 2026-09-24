@@ -9,6 +9,9 @@
  *   LMS.complete(85);          // étape terminée avec un score (0-100)
  *   LMS.resize();              // ajuste la hauteur de l'iframe au contenu
  *
+ * Le script signale aussi automatiquement l'activité de l'apprenant (clics, clavier, défilement)
+ * pour que le temps passé dans le module soit comptabilisé sans mise en pause d'inactivité.
+ *
  * Complétion automatique facultative :
  *   <body data-lms-complete-on="#bouton-fin">   → termine au clic sur cet élément
  *   <body data-lms-complete-at-end>             → termine quand l'apprenant atteint le bas de la page
@@ -30,6 +33,17 @@
     resize: function () { send({ type: "lms:resize", height: document.documentElement.scrollHeight }); },
     isEmbedded: inFrame,
   };
+  // Signale l'activité de l'apprenant dans le module (évite la mise en pause pour inactivité)
+  var lastPing = 0;
+  ["mousedown", "keydown", "touchstart", "scroll", "mousemove"].forEach(function (ev) {
+    window.addEventListener(ev, function () {
+      var now = Date.now();
+      if (now - lastPing > 20000) {
+        lastPing = now;
+        send({ type: "lms:activity" });
+      }
+    }, { passive: true, capture: true });
+  });
   document.addEventListener("DOMContentLoaded", function () {
     var b = document.body;
     var sel = b && b.getAttribute("data-lms-complete-on");

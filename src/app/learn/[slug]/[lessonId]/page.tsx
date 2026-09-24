@@ -8,7 +8,7 @@ import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS, safeUrl, videoEmbed } from "@/li
 import { Badge } from "@/components/ui";
 import { InteractivePlayer } from "@/components/learn/InteractivePlayer";
 import { AutoComplete, CompleteButton } from "@/components/learn/CompleteButton";
-import { LessonTimer } from "@/components/learn/LessonTimer";
+import { LessonClock } from "@/components/tracking/LessonClock";
 import { QuizPanel } from "@/components/learn/QuizPanel";
 import { AssignmentPanel } from "@/components/learn/AssignmentPanel";
 
@@ -36,6 +36,10 @@ export default async function LessonPage({
   });
   if (!lesson) notFound();
   if (!preview) await markLessonStarted(user.id, lesson.id);
+  const progress = preview
+    ? null
+    : await db.lessonProgress.findUnique({ where: { userId_lessonId: { userId: user.id, lessonId: lesson.id } }, select: { timeSpentSec: true } });
+  const spent = progress?.timeSpentSec ?? 0;
 
   const moduleIndex = outline.modules.findIndex((m) => m.lessons.some((l) => l.id === lessonId));
   const prev = outline.flat[idx - 1];
@@ -44,7 +48,6 @@ export default async function LessonPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 lg:px-10">
-      {!preview && <LessonTimer lessonId={lesson.id} />}
       <div className="mb-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           Module {moduleIndex + 1} · {lesson.module.title} — Étape {entry.index}/{outline.total}
@@ -59,6 +62,11 @@ export default async function LessonPage({
           {!lesson.required && <Badge>Facultative</Badge>}
         </div>
         {lesson.summary && <p className="mt-2 text-slate-600">{lesson.summary}</p>}
+        {!preview && (
+          <div className="mt-3">
+            <LessonClock initialSeconds={spent} minTimeSec={lesson.minTimeSec} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -98,9 +106,15 @@ export default async function LessonPage({
           <AssignmentPanel lessonId={lesson.id} userId={user.id} preview={preview} content={lesson.content} />
         )}
 
-        {canComplete && lesson.completionMode === "ON_VIEW" && !entry.completed && <AutoComplete lessonId={lesson.id} />}
+        {canComplete && lesson.completionMode === "ON_VIEW" && !entry.completed && <AutoComplete lessonId={lesson.id} minTimeSec={lesson.minTimeSec} initialSeconds={spent} />}
         {canComplete && lesson.completionMode !== "ON_VIEW" && (
-          <CompleteButton lessonId={lesson.id} completed={entry.completed} nextHref={next ? `/learn/${slug}/${next.id}` : `/learn/${slug}`} />
+          <CompleteButton
+            lessonId={lesson.id}
+            completed={entry.completed}
+            nextHref={next ? `/learn/${slug}/${next.id}` : `/learn/${slug}`}
+            minTimeSec={lesson.minTimeSec}
+            initialSeconds={spent}
+          />
         )}
       </div>
 

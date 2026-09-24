@@ -4,15 +4,18 @@ import { getLearnContext } from "@/lib/learn";
 import { getLearnerResults } from "@/lib/progress";
 import { Badge, Stat } from "@/components/ui";
 import { pct } from "@/lib/utils";
+import { submitSatisfactionAction } from "@/app/actions/learner-extra";
+import { SatisfactionForm } from "@/components/learn/SatisfactionForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function CourseHome({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, course, outline, enrollment, preview } = await getLearnContext(slug);
-  const [{ results, average }, certificate] = await Promise.all([
+  const [{ results, average }, certificate, satisfaction] = await Promise.all([
     getLearnerResults(user.id, course.id),
     db.certificate.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } }),
+    enrollment ? db.satisfactionResponse.findUnique({ where: { enrollmentId: enrollment.id }, select: { id: true } }) : null,
   ]);
   const first = outline.flat[0];
   return (
@@ -43,10 +46,27 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         ) : (
           <p className="text-slate-500">Cette formation ne contient pas encore de leçon.</p>
         )}
+        {enrollment && !preview && (
+          <>
+            <Link href={`/documents/assiduite/${enrollment.id}`} className="btn-secondary">📄 Attestation d&apos;assiduité</Link>
+            <Link href={`/documents/releve/${enrollment.id}`} className="btn-secondary">🕒 Relevé de connexions</Link>
+            {enrollment.status === "COMPLETED" && (
+              <Link href={`/documents/realisation/${enrollment.id}`} className="btn-secondary">🧾 Certificat de réalisation</Link>
+            )}
+          </>
+        )}
         {certificate && (
           <Link href={`/certificates/${certificate.code}`} className="btn-secondary">🏅 Voir mon certificat</Link>
         )}
       </div>
+
+      {enrollment && !preview && !satisfaction && (enrollment.status === "COMPLETED" || outline.percent >= 80) && (
+        <section className="card border-brand-200 p-6 ring-2 ring-brand-100">
+          <h2 className="mb-1">⭐ Votre avis compte</h2>
+          <p className="mb-4 text-sm text-slate-500">Questionnaire de satisfaction (2 minutes) — il nous aide à améliorer la formation.</p>
+          <SatisfactionForm action={submitSatisfactionAction.bind(null, enrollment.id)} />
+        </section>
+      )}
 
       {results.length > 0 && (
         <section>

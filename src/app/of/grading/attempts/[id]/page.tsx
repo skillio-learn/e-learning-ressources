@@ -42,11 +42,11 @@ export default async function GradeAttempt({ params, searchParams }: { params: P
           </>
         }
       />
-      {saved && <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">✅ Correction enregistrée.</p>}
+      {saved && <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">Correction enregistrée.</p>}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Score" value={pct(attempt.percent)} hint={`${attempt.score} / ${attempt.maxScore} pt`} />
         <Stat label="Seuil" value={`${attempt.quiz.passingScore} %`} />
-        <Stat label="Statut" value={attempt.status === "PENDING_REVIEW" ? "⏳ À corriger" : attempt.passed ? "✅ Réussi" : "❌ Non validé"} />
+        <Stat label="Statut" value={attempt.status === "PENDING_REVIEW" ? "À corriger" : attempt.passed ? "Réussi" : "Non validé"} />
       </div>
       <form action={gradeAttemptAction.bind(null, attempt.id)} className="space-y-4">
         <AttemptReview

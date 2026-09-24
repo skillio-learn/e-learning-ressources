@@ -6,7 +6,8 @@ import { getCourseOutline, getLearnerResults } from "@/lib/progress";
 import { forceCompleteLessonAction, resetQuizAttemptsAction } from "@/app/actions/of";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Badge, Stat } from "@/components/ui";
-import { formatDate, LESSON_TYPE_ICONS, pct } from "@/lib/utils";
+import { formatDate, pct } from "@/lib/utils";
+import { LessonTypeIcon } from "@/components/LessonTypeIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function LearnerDetail({ params }: { params: Promise<{ id: 
           <h2 className="mt-1 text-xl">{enrollment.user.name}</h2>
           <div className="text-sm text-slate-500">{enrollment.user.email} · inscrit le {formatDate(enrollment.enrolledAt)}</div>
         </div>
-        {certificate && <Link href={`/certificates/${certificate.code}`} className="btn-secondary">🏅 Certificat</Link>}
+        {certificate && <Link href={`/certificates/${certificate.code}`} className="btn-secondary">Certificat</Link>}
       </div>
       <div className="grid gap-4 sm:grid-cols-4">
         <Stat label="Progression" value={`${outline?.percent ?? 0} %`} />
@@ -60,7 +61,7 @@ export default async function LearnerDetail({ params }: { params: Promise<{ id: 
                   const quizId = quizByLesson.get(l.id);
                   return (
                     <tr key={l.id}>
-                      <td>{LESSON_TYPE_ICONS[l.type]} {l.title}</td>
+                      <td><span className="inline-flex items-center gap-2"><LessonTypeIcon type={l.type} /> {l.title}</span></td>
                       <td>
                         {l.completed ? <Badge tone="green">Terminée</Badge> : p ? <Badge tone="blue">Commencée</Badge> : <Badge>Non commencée</Badge>}
                         {r?.pending && <Badge tone="amber">À corriger</Badge>}

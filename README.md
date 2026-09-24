@@ -1,10 +1,15 @@
-# Skillio LMS
+# Vylia
 
 Plateforme e-learning full stack pour créer des formations en **parcours étape par étape**, intégrer vos **modules interactifs HTML**, faire passer des **quiz** et évaluer les apprenants avec des **grilles d'évaluation critériées**.
 
 **Stack** : Next.js 15 (App Router, Server Actions) · TypeScript · Prisma · PostgreSQL (**Supabase**) · Tailwind CSS.
 
 ---
+
+## Identité & design
+
+Thème sombre inspiré d'Apple : police Inter Variable, palette pilotée par variables CSS (`src/app/globals.css`), boutons « pilule », verre dépoli, halos animés (respect de `prefers-reduced-motion`). Les documents officiels (conventions, attestations, relevés, certificats) restent sur fond blanc via `.theme-paper` et s'impriment toujours en clair.
+Logo : `src/components/brand/Logo.tsx`, `public/brand/` ; favicon `src/app/icon.svg`, icône Apple et miniature de partage (`opengraph-image.png`).
 
 ## Fonctionnalités
 

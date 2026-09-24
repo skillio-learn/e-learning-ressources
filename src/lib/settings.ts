@@ -3,14 +3,14 @@ import { cache } from "react";
 import { db } from "./db";
 
 export const DEFAULT_SETTINGS = {
-  platformName: "Skillio Academy",
-  tagline: "Des formations interactives, étape par étape.",
+  platformName: "Vylia",
+  tagline: "Apprendre, pas à pas. Prouver chaque minute.",
   allowRegistration: "true",
   supportEmail: "",
   certificateSignature: "L'équipe pédagogique",
   legalMentions: `## Éditeur de la plateforme
 
-**Skillio** — plateforme de formation en ligne.
+**Vylia** — plateforme de formation en ligne.
 Adresse, SIRET et directeur de la publication : à compléter dans Administration → Paramètres.
 
 ## Hébergement
@@ -38,7 +38,7 @@ Suivre personnellement la formation, ne pas partager ses accès, fournir des inf
 Les contenus pédagogiques restent la propriété de leurs auteurs et ne peuvent être reproduits sans autorisation.`,
   privacy: `## Responsable de traitement
 
-L'organisme de formation auprès duquel vous candidatez ou êtes inscrit est responsable des traitements liés à votre formation. Skillio agit en qualité de sous-traitant.
+L'organisme de formation auprès duquel vous candidatez ou êtes inscrit est responsable des traitements liés à votre formation. Vylia agit en qualité de sous-traitant.
 
 ## Données traitées et finalités
 

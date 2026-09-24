@@ -67,9 +67,9 @@ export function InteractivePlayer({
   }
 
   return (
-    <div ref={wrapper} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div ref={wrapper} className="overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 text-sm">
-        <span className="font-medium text-slate-700">✨ Module interactif</span>
+        <span className="font-medium text-slate-700">Module interactif</span>
         <div className="flex items-center gap-3">
           {progress !== null && <span className="text-xs text-slate-500">Progression : {progress} %</span>}
           {completionMode === "AUTO" && !done && (
@@ -82,7 +82,7 @@ export function InteractivePlayer({
             className="btn-ghost btn-sm"
             onClick={() => wrapper.current?.requestFullscreen?.()}
           >
-            ⛶ Plein écran
+            Plein écran
           </button>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function InteractivePlayer({
         ref={frame}
         src={src}
         title={title}
-        className={height ? "block w-full bg-white" : "block h-[75vh] min-h-[520px] w-full bg-white"}
+        className={height ? "block w-full bg-surface" : "block h-[75vh] min-h-[520px] w-full bg-surface"}
         style={height ? { height } : undefined}
         allow="autoplay; fullscreen; clipboard-write; encrypted-media; microphone; camera"
         allowFullScreen

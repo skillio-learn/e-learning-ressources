@@ -38,7 +38,7 @@ export default async function MyCourses() {
       )}
       {certificates.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3">🏅 Mes certificats</h2>
+          <h2 className="mb-3">Mes certificats</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {certificates.map((c) => (
               <Link key={c.id} href={`/certificates/${c.code}`} className="card flex items-center justify-between p-4 hover:shadow-md">

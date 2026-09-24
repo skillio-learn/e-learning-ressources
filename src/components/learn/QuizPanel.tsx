@@ -55,9 +55,9 @@ export async function QuizPanel({
           </div>
           <div className="mt-3 font-semibold">
             {shown.status === "PENDING_REVIEW"
-              ? "⏳ Certaines réponses doivent être corrigées par votre formateur. Vous pouvez poursuivre le parcours."
+              ? "Certaines réponses doivent être corrigées par votre formateur. Vous pouvez poursuivre le parcours."
               : shown.passed
-                ? "🎉 Bravo, quiz réussi !"
+                ? "Bravo, quiz réussi !"
                 : "Quiz non validé."}
           </div>
           {shown.feedback && <p className="mt-2 text-sm">{shown.feedback}</p>}
@@ -107,7 +107,7 @@ export async function QuizPanel({
           <Badge tone="blue">{quiz.questions.length} question(s)</Badge>
           <Badge>{totalPoints} point(s)</Badge>
           <Badge>Réussite : {quiz.passingScore} %</Badge>
-          {quiz.timeLimitMin && <Badge tone="amber">⏱ {quiz.timeLimitMin} min</Badge>}
+          {quiz.timeLimitMin && <Badge tone="amber">{quiz.timeLimitMin} min</Badge>}
           <Badge>{quiz.maxAttempts ? `${quiz.maxAttempts} tentative(s) max` : "Tentatives illimitées"}</Badge>
           {!quiz.graded && <Badge tone="purple">Auto-évaluation (non notée)</Badge>}
         </div>
@@ -141,7 +141,7 @@ export async function QuizPanel({
                   <td>{done.length - i}</td>
                   <td>{formatDate(a.submittedAt, true)}</td>
                   <td className="font-semibold">{pct(a.percent)}</td>
-                  <td>{a.status === "PENDING_REVIEW" ? "⏳ En correction" : a.passed ? "✅ Réussi" : "❌ Non validé"}</td>
+                  <td>{a.status === "PENDING_REVIEW" ? "En correction" : a.passed ? "Réussi" : "Non validé"}</td>
                   <td className="text-right">
                     <Link href={`/learn/${slug}/${lessonId}?attempt=${a.id}`} className="text-brand-600 hover:underline">Détail</Link>
                   </td>

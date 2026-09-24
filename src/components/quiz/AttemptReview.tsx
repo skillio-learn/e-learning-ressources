@@ -76,7 +76,7 @@ export function AttemptReview({
             )}
             {showCorrection && q.explanation && (
               <div className="mt-3 rounded-md bg-brand-50 p-3 text-sm text-brand-900">
-                💡 <span className="prose-lms [&>p]:inline" dangerouslySetInnerHTML={{ __html: renderMarkdown(q.explanation) }} />
+                <span className="font-semibold text-amber-600">Explication :</span> <span className="prose-lms [&>p]:inline" dangerouslySetInnerHTML={{ __html: renderMarkdown(q.explanation) }} />
               </div>
             )}
             {a?.feedback && (

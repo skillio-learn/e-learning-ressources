@@ -13,9 +13,9 @@ export function LessonClock({ initialSeconds, minTimeSec }: { initialSeconds: nu
   const { seconds, idle } = useLessonSeconds(initialSeconds);
   const pct = minTimeSec ? Math.min(100, Math.round((seconds / minTimeSec) * 100)) : null;
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm">
       <span className={idle ? "text-amber-600" : "text-slate-700"}>
-        ⏱ Temps sur cette étape : <b className="tabular-nums">{formatDuration(seconds)}</b>
+        Temps sur cette étape : <b className="tabular-nums">{formatDuration(seconds)}</b>
         {idle && " (en pause)"}
       </span>
       {minTimeSec ? (

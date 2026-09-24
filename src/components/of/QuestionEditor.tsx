@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteQuestionAction, moveQuestionAction, saveQuestionAction, type QuestionInput } from "@/app/actions/of";
 import { QUESTION_TYPE_LABELS } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 
 type QType = keyof typeof QUESTION_TYPE_LABELS;
 export type EditableQuestion = {
@@ -68,7 +69,7 @@ export function QuestionEditor({ quizId, questions }: { quizId: string; question
                   if (confirm("Supprimer cette question ?")) start(async () => { await deleteQuestionAction(q.id); router.refresh(); });
                 }}
               >
-                🗑
+                <Trash2 className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </div>
           </div>

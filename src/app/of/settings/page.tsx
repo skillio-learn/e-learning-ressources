@@ -24,7 +24,7 @@ export default async function OfSettings() {
         {org.signatureImage ? (
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={org.signatureImage} alt="Signature" className="h-20 rounded border bg-white" />
+            <img src={org.signatureImage} alt="Signature" className="paper-sign h-20" />
             <form action={clearOrgSignatureAction.bind(null, org.id)}><SubmitButton className="btn-ghost btn-sm text-red-600">Supprimer</SubmitButton></form>
           </div>
         ) : (

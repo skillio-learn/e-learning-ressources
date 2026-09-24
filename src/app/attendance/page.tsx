@@ -47,7 +47,7 @@ export default async function Attendance() {
                         <div className="flex items-center gap-3">
                           <Badge tone="green">✓ Signé le {formatDate(s.signatures[0].signedAt, true)}</Badge>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={s.signatures[0].signature} alt="Signature" className="h-12 rounded border" />
+                          <img src={s.signatures[0].signature} alt="Signature" className="paper-sign h-12" />
                         </div>
                       ) : (
                         <SignaturePad onSign={signAttendanceAction.bind(null, s.id)} label="Je signe ma présence" />

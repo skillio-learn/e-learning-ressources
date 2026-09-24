@@ -35,7 +35,7 @@ export async function AssignmentPanel({
     <div className="space-y-6">
       {content && (
         <section className="card p-6">
-          <h2 className="mb-2">📋 Consignes</h2>
+          <h2 className="mb-2">Consignes</h2>
           <div className="prose-lms" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
         </section>
       )}
@@ -59,10 +59,10 @@ export async function AssignmentPanel({
           </div>
           {submission.text && <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{submission.text}</div>}
           {submission.linkUrl && (
-            <p className="mt-2 text-sm">🔗 <a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">{submission.linkUrl}</a></p>
+            <p className="mt-2 text-sm"><a href={submission.linkUrl} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">{submission.linkUrl}</a></p>
           )}
           {submission.fileName && (
-            <p className="mt-2 text-sm">📎 <a href={`/api/submissions/${submission.id}/file`} className="text-brand-600 underline">{submission.fileName}</a></p>
+            <p className="mt-2 text-sm"><a href={`/api/submissions/${submission.id}/file`} className="text-brand-600 underline">{submission.fileName}</a></p>
           )}
           {(submission.status === "GRADED" || submission.status === "NEEDS_REVISION") && (
             <div className="mt-4 rounded-lg bg-brand-50 p-4">

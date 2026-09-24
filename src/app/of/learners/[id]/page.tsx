@@ -64,7 +64,7 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                 subtitle={`${learner.email}${p?.phone ? ` · ${p.phone}` : ""} · compte créé le ${formatDate(learner.createdAt)}`}
         actions={
           manager ? (
-            <StateForm action={ofResetLearnerPasswordAction.bind(null, id)} submitLabel="🔑 Réinitialiser le mot de passe" submitClassName="btn-secondary btn-sm" className="max-w-xs space-y-2">
+            <StateForm action={ofResetLearnerPasswordAction.bind(null, id)} submitLabel="Réinitialiser le mot de passe" submitClassName="btn-secondary btn-sm" className="max-w-xs space-y-2">
               <></>
             </StateForm>
           ) : null
@@ -122,14 +122,14 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                 {e.conventionSignedAt ? (
-                  <Badge tone="green">✍️ Convention signée le {formatDate(e.conventionSignedAt, true)}</Badge>
+                  <Badge tone="green">Convention signée le {formatDate(e.conventionSignedAt, true)}</Badge>
                 ) : (
                   <Badge tone="amber">Convention non signée</Badge>
                 )}
-                {e.convocationSentAt ? <Badge tone="green">📨 Convocation envoyée le {formatDate(e.convocationSentAt)}</Badge> : <Badge>Convocation non envoyée</Badge>}
+                {e.convocationSentAt ? <Badge tone="green">Convocation envoyée le {formatDate(e.convocationSentAt)}</Badge> : <Badge>Convocation non envoyée</Badge>}
                 {manager && (
                   <form action={sendConvocationAction.bind(null, e.id)} className="inline">
-                    <SubmitButton className="btn-ghost btn-sm" pendingLabel="Envoi…">{e.convocationSentAt ? "Renvoyer la convocation" : "📨 Envoyer la convocation"}</SubmitButton>
+                    <SubmitButton className="btn-ghost btn-sm" pendingLabel="Envoi…">{e.convocationSentAt ? "Renvoyer la convocation" : "Envoyer la convocation"}</SubmitButton>
                   </form>
                 )}
               </div>
@@ -155,12 +155,12 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                 </div>
               )}
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href={`/documents/convention/${e.id}`} className="btn-secondary btn-sm">✍️ Convention / contrat</Link>
-                <Link href={`/documents/convocation/${e.id}`} className="btn-secondary btn-sm">📨 Convocation</Link>
-                <Link href={`/of/messages/${e.id}`} className="btn-secondary btn-sm">💬 Messages</Link>
-                <Link href={`/documents/releve/${e.id}`} className="btn-secondary btn-sm">🕒 Relevé de connexions</Link>
-                <Link href={`/documents/assiduite/${e.id}`} className="btn-secondary btn-sm">📄 Attestation d&apos;assiduité</Link>
-                <Link href={`/documents/realisation/${e.id}`} className="btn-secondary btn-sm">🧾 Certificat de réalisation</Link>
+                <Link href={`/documents/convention/${e.id}`} className="btn-secondary btn-sm">Convention / contrat</Link>
+                <Link href={`/documents/convocation/${e.id}`} className="btn-secondary btn-sm">Convocation</Link>
+                <Link href={`/of/messages/${e.id}`} className="btn-secondary btn-sm">Messages</Link>
+                <Link href={`/documents/releve/${e.id}`} className="btn-secondary btn-sm">Relevé de connexions</Link>
+                <Link href={`/documents/assiduite/${e.id}`} className="btn-secondary btn-sm">Attestation d&apos;assiduité</Link>
+                <Link href={`/documents/realisation/${e.id}`} className="btn-secondary btn-sm">Certificat de réalisation</Link>
                 <a href={`/api/of/reports/timelogs?enrollment=${e.id}`} className="btn-secondary btn-sm">⬇ Détail des temps (CSV)</a>
                 <Link href={`/of/courses/${e.courseId}/learners/${id}`} className="btn-ghost btn-sm">Détail pédagogique →</Link>
               </div>
@@ -212,7 +212,7 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                   <summary className="cursor-pointer text-sm font-medium">Évaluations qualité (à froid, financeur, entreprise)</summary>
                   <div className="mt-3 flex flex-wrap items-start gap-4">
                     <form action={requestColdEvaluationAction.bind(null, e.id)}>
-                      <SubmitButton className="btn-secondary btn-sm" pendingLabel="Envoi…">❄️ Demander l&apos;évaluation à froid</SubmitButton>
+                      <SubmitButton className="btn-secondary btn-sm" pendingLabel="Envoi…">Demander l&apos;évaluation à froid</SubmitButton>
                     </form>
                     <StateForm action={createFunderFeedbackAction.bind(null, e.id)} submitLabel="Générer le lien" submitClassName="btn-secondary btn-sm" className="flex flex-wrap items-center gap-2">
                       <select name="respondentType" className="input w-auto py-1 text-sm">
@@ -262,7 +262,7 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
             <div>{p.employmentStatus ? EMPLOYMENT_STATUS[p.employmentStatus] : "—"}{p.franceTravailId ? ` · FT ${p.franceTravailId}` : ""}</div>
             <div>{p.educationLevel ?? "—"}</div>
             <div>{p.employerName ? `Employeur : ${p.employerName} (${p.employerSiret ?? "—"})` : ""}</div>
-            <div>{p.disability ? `♿ Aménagements : ${p.disabilityNeeds ?? "à définir"}` : ""}</div>
+            <div>{p.disability ? `Aménagements : ${p.disabilityNeeds ?? "à définir"}` : ""}</div>
           </div>
         </section>
       )}

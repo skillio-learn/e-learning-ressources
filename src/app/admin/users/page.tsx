@@ -5,6 +5,7 @@ import { StateForm } from "@/components/StateForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Badge, PageHeader, Stat } from "@/components/ui";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 
 export const metadata = { title: "Utilisateurs" };
 export const dynamic = "force-dynamic";
@@ -79,11 +80,11 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                         <form action={toggleUserActiveAction.bind(null, u.id)}>
                           <button className="btn-ghost btn-sm">{u.active ? "Désactiver" : "Activer"}</button>
                         </form>
-                        <StateForm action={resetPasswordAction} submitLabel="🔑 Réinit. MDP" submitClassName="btn-ghost btn-sm" className="max-w-[220px]">
+                        <StateForm action={resetPasswordAction} submitLabel="Réinit. MDP" submitClassName="btn-ghost btn-sm" className="max-w-[220px]">
                           <input type="hidden" name="userId" value={u.id} />
                         </StateForm>
                         <form action={deleteUserAction.bind(null, u.id)}>
-                          <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer définitivement ${u.email} et toutes ses données ?`}>🗑</SubmitButton>
+                          <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer définitivement ${u.email} et toutes ses données ?`}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></SubmitButton>
                         </form>
                       </div>
                     )}
@@ -112,7 +113,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
         </div>
         <div className="card space-y-2 p-4 text-sm text-slate-600">
           <h2 className="text-base">Rôles</h2>
-          <p><b>Super admin Skillio</b> : gère la plateforme, tous les organismes et tous les comptes.</p>
+          <p><b>Super admin Vylia</b> : gère la plateforme, tous les organismes et tous les comptes.</p>
           <p><b>Responsable OF</b> : gère son organisme : dossiers d&apos;inscription, apprenants, rapports, équipe et paramètres.</p>
           <p><b>Formateur</b> : crée et anime ses formations, quiz et grilles ; corrige et suit ses apprenants.</p>
           <p><b>Apprenant</b> : suit les formations auxquelles il est inscrit, passe les quiz et remet ses devoirs.</p>

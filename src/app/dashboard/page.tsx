@@ -22,7 +22,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           Vous n&apos;avez pas les droits nécessaires pour accéder à cette page.
         </p>
       )}
-      <PageHeader title={`Bonjour ${user.name.split(" ")[0]} 👋`} subtitle="Voici un aperçu de votre activité." />
+      <PageHeader title={`Bonjour ${user.name.split(" ")[0]}`} subtitle="Voici un aperçu de votre activité." />
       <LearnerDashboard userId={user.id} />
     </Container>
   );
@@ -71,7 +71,7 @@ async function LearnerDashboard({ userId }: { userId: string }) {
       </div>
       {todaySlots.length > 0 && (
         <Link href="/attendance" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:shadow">
-          ✍️ Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui → Signer maintenant
+          Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui → Signer maintenant
         </Link>
       )}
       {applications.length > 0 && (
@@ -106,7 +106,7 @@ async function LearnerDashboard({ userId }: { userId: string }) {
                 </div>
                 <ProgressBar value={outline?.percent ?? 0} />
                 <div className="text-sm text-slate-500">
-                  {outline?.next ? <>Prochaine étape : <b>{outline.next.title}</b></> : "Toutes les étapes sont terminées 🎉"}
+                  {outline?.next ? <>Prochaine étape : <b>{outline.next.title}</b></> : "Toutes les étapes sont terminées"}
                 </div>
                 <Link
                   href={outline?.next ? `/learn/${e.course.slug}/${outline.next.id}` : `/learn/${e.course.slug}`}
@@ -134,7 +134,7 @@ async function LearnerDashboard({ userId }: { userId: string }) {
                     <td className="text-slate-500">{a.quiz.lesson.module.course.title}</td>
                     <td>{formatDate(a.submittedAt, true)}</td>
                     <td className="font-semibold">{pct(a.percent)}</td>
-                    <td>{a.status === "PENDING_REVIEW" ? "⏳ En correction" : a.passed ? "✅ Réussi" : "❌ Non validé"}</td>
+                    <td>{a.status === "PENDING_REVIEW" ? "En correction" : a.passed ? "Réussi" : "Non validé"}</td>
                   </tr>
                 ))}
               </tbody>

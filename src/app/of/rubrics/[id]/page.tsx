@@ -42,7 +42,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
         subtitle={rubric.course ? `Formation : ${rubric.course.title}` : "Grille partagée"}
         actions={
           <>
-            <PrintButton label="🖨 Imprimer la grille vierge" />
+            <PrintButton label="Imprimer la grille vierge" />
             <form action={duplicateRubricAction.bind(null, id)}><SubmitButton className="btn-secondary">⧉ Dupliquer</SubmitButton></form>
             {editable && (
               <form action={deleteRubricAction.bind(null, id)}>

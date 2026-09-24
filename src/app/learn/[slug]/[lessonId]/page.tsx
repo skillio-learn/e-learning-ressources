@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { getLearnContext } from "@/lib/learn";
 import { markLessonStarted } from "@/lib/progress";
 import { renderMarkdown } from "@/lib/markdown";
-import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS, safeUrl, videoEmbed } from "@/lib/utils";
+import { LessonTypeIcon } from "@/components/LessonTypeIcon";
+import { LESSON_TYPE_LABELS, safeUrl, videoEmbed } from "@/lib/utils";
 import { Badge } from "@/components/ui";
 import { InteractivePlayer } from "@/components/learn/InteractivePlayer";
 import { AutoComplete, CompleteButton } from "@/components/learn/CompleteButton";
@@ -55,7 +56,7 @@ export default async function LessonPage({
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1>{lesson.title}</h1>
           <Badge tone="blue">
-            {LESSON_TYPE_ICONS[lesson.type]} {LESSON_TYPE_LABELS[lesson.type]}
+            <LessonTypeIcon type={lesson.type} className="text-brand-500" /> {LESSON_TYPE_LABELS[lesson.type]}
           </Badge>
           {lesson.durationMin ? <Badge>{lesson.durationMin} min</Badge> : null}
           {entry.completed && <Badge tone="green">✓ Terminée</Badge>}
@@ -94,7 +95,7 @@ export default async function LessonPage({
 
         {lesson.type === "RESOURCE" && safeUrl(lesson.resourceUrl) && (
           <a href={safeUrl(lesson.resourceUrl)!} target="_blank" rel="noopener noreferrer" className="btn-primary">
-            📎 Ouvrir / télécharger la ressource
+            Ouvrir / télécharger la ressource
           </a>
         )}
 
@@ -127,7 +128,7 @@ export default async function LessonPage({
         {next ? (
           next.locked && !entry.completed ? (
             <span className="btn-secondary cursor-not-allowed opacity-60" title="Terminez cette étape pour continuer">
-              🔒 {next.title}
+              {next.title}
             </span>
           ) : (
             <Link href={`/learn/${slug}/${next.id}`} className="btn-primary">{next.title} →</Link>

@@ -44,8 +44,8 @@ export function QuizForm({ attemptId, questions, deadline }: { attemptId: string
       }}
     >
       {left !== null && (
-        <div className={`sticky top-16 z-10 ml-auto w-fit rounded-full px-4 py-1.5 text-sm font-semibold shadow ${left < 60000 ? "bg-red-600 text-white" : "bg-white text-slate-700"}`}>
-          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+        <div className={`sticky top-16 z-10 ml-auto w-fit rounded-full px-4 py-1.5 text-sm font-semibold shadow ${left < 60000 ? "bg-red-600 text-white" : "bg-surface text-slate-700"}`}>
+          {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
         </div>
       )}
       {questions.map((q, i) => (

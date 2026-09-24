@@ -26,10 +26,10 @@ export default async function CourseAdminLayout({ children, params }: { children
           </Badge>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/learn/${course.slug}`} className="btn-secondary">👁 Prévisualiser</Link>
+          <Link href={`/learn/${course.slug}`} className="btn-secondary">Prévisualiser</Link>
           {course.status !== "PUBLISHED" ? (
             <form action={setCourseStatusAction.bind(null, course.id, "PUBLISHED")}>
-              <SubmitButton className="btn-primary">🚀 Publier</SubmitButton>
+              <SubmitButton className="btn-primary">Publier</SubmitButton>
             </form>
           ) : (
             <form action={setCourseStatusAction.bind(null, course.id, "DRAFT")}>

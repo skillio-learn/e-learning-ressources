@@ -12,7 +12,8 @@ import {
 } from "@/app/actions/of";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Badge, Empty } from "@/components/ui";
-import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS } from "@/lib/utils";
+import { LESSON_TYPE_LABELS } from "@/lib/utils";
+import { LessonTypeIcon } from "@/components/LessonTypeIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
               <details className="group flex-1">
                 <summary className="cursor-pointer list-none">
                   <span className="font-semibold">Module {mi + 1} · {m.title}</span>
-                  <span className="ml-2 text-xs text-slate-400 group-open:hidden">✏️ modifier</span>
+                  <span className="ml-2 text-xs text-slate-400 group-open:hidden">modifier</span>
                 </summary>
                 <form action={updateModuleAction.bind(null, m.id)} className="mt-3 space-y-2">
                   <input name="title" defaultValue={m.title} className="input" />
@@ -66,7 +67,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
                 <form action={moveModuleAction.bind(null, m.id, -1)}><button className="btn-ghost btn-sm" disabled={mi === 0} title="Monter">↑</button></form>
                 <form action={moveModuleAction.bind(null, m.id, 1)}><button className="btn-ghost btn-sm" disabled={mi === modules.length - 1} title="Descendre">↓</button></form>
                 <form action={deleteModuleAction.bind(null, m.id)}>
-                  <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer le module « ${m.title} » et ses ${m.lessons.length} leçon(s) ?`}>🗑</SubmitButton>
+                  <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer le module « ${m.title} » et ses ${m.lessons.length} leçon(s) ?`}></SubmitButton>
                 </form>
               </div>
             </div>
@@ -75,7 +76,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
               {m.lessons.map((l, li) => (
                 <li key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 hover:bg-slate-50">
                   <span className="w-10 text-xs font-medium text-slate-400">{mi + 1}.{li + 1}</span>
-                  <span title={LESSON_TYPE_LABELS[l.type]}>{LESSON_TYPE_ICONS[l.type]}</span>
+                  <LessonTypeIcon type={l.type} />
                   <Link href={`/of/courses/${id}/lessons/${l.id}`} className="min-w-0 flex-1 truncate font-medium hover:text-brand-700">
                     {l.title}
                   </Link>
@@ -101,12 +102,12 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
               <form action={addLessonAction.bind(null, m.id)} className="flex flex-wrap gap-2">
                 <input name="title" placeholder="Titre de la nouvelle leçon" className="input min-w-0 flex-1" required />
                 <select name="type" className="input w-auto">
-                  {TYPES.map(([v, label]) => <option key={v} value={v}>{LESSON_TYPE_ICONS[v]} {label}</option>)}
+                  {TYPES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
                 </select>
                 <SubmitButton className="btn-primary" pendingLabel="…">+ Leçon</SubmitButton>
               </form>
               <details>
-                <summary className="cursor-pointer text-sm font-medium text-brand-700">⚡ Ajouter plusieurs leçons d&apos;un coup</summary>
+                <summary className="cursor-pointer text-sm font-medium text-brand-700">Ajouter plusieurs leçons d&apos;un coup</summary>
                 <form action={bulkAddLessonsAction.bind(null, m.id)} className="mt-2 space-y-2">
                   <textarea
                     name="lines"
@@ -135,11 +136,11 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
           <SubmitButton className="btn-primary w-full">+ Ajouter le module</SubmitButton>
         </form>
         <div className="card space-y-2 p-4 text-sm text-slate-600">
-          <h2 className="text-base">💡 Types d&apos;étapes</h2>
-          <p><b>✨ Module interactif</b> : intégrez l&apos;URL de vos modules HTML (Vercel…) ou importez un fichier HTML.</p>
-          <p><b>❓ Quiz</b> : QCM, vrai/faux, réponse courte, question ouverte. Correction automatique + manuelle.</p>
-          <p><b>📝 Devoir évalué</b> : l&apos;apprenant remet un travail, vous l&apos;évaluez avec une grille critériée.</p>
-          <p><b>📄 Contenu / 🎬 Vidéo / 📎 Ressource</b> : cours texte, vidéos YouTube/Vimeo, documents.</p>
+          <h2 className="text-base">Types d&apos;étapes</h2>
+          <p><b>Module interactif</b> : intégrez l&apos;URL de vos modules HTML (Vercel…) ou importez un fichier HTML.</p>
+          <p><b>Quiz</b> : QCM, vrai/faux, réponse courte, question ouverte. Correction automatique + manuelle.</p>
+          <p><b>Devoir évalué</b> : l&apos;apprenant remet un travail, vous l&apos;évaluez avec une grille critériée.</p>
+          <p><b>Contenu / Vidéo / Ressource</b> : cours texte, vidéos YouTube/Vimeo, documents.</p>
         </div>
       </aside>
     </div>

@@ -28,7 +28,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
         <a href={`${base}/gradebook`} className="btn-primary">⬇ Carnet de notes (CSV)</a>
         <a href={`${base}/attempts`} className="btn-secondary">⬇ Réponses détaillées aux quiz (CSV)</a>
         <a href={`${base}/rubrics`} className="btn-secondary">⬇ Grilles d&apos;évaluation remplies (CSV)</a>
-        <Link href={`/of/grading?course=${id}`} className="btn-secondary">📝 Corrections de cette formation</Link>
+        <Link href={`/of/grading?course=${id}`} className="btn-secondary">Corrections de cette formation</Link>
       </div>
 
       <section>
@@ -44,7 +44,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
                   <th>Progression</th>
                   {evaluations.map((e) => (
                     <th key={e.id} className="min-w-[110px] normal-case" title={e.title}>
-                      {e.type === "QUIZ" ? "❓" : "📝"} {e.title.length > 24 ? e.title.slice(0, 22) + "…" : e.title}
+                      {e.title.length > 24 ? e.title.slice(0, 22) + "…" : e.title}
                     </th>
                   ))}
                   <th>Moyenne</th>
@@ -54,7 +54,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.user.id}>
-                    <td className="sticky left-0 bg-white">
+                    <td className="sticky left-0 bg-surface">
                       <Link href={`/of/courses/${id}/learners/${r.user.id}`} className="font-medium hover:text-brand-700">{r.user.name}</Link>
                     </td>
                     <td>{r.progress} %</td>
@@ -65,7 +65,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
                       return (
                         <td key={e.id}>
                           <Link href={href} className={res.pending ? "text-amber-600" : res.passed ? "text-emerald-700" : "text-red-600"}>
-                            {res.pending ? "⏳ " : ""}{pct(res.percent)}
+                            {res.pending ? "" : ""}{pct(res.percent)}
                           </Link>
                         </td>
                       );
@@ -85,7 +85,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
           <h2>Analyse des quiz (taux de réussite par question)</h2>
           {quizzes.map((q) => (
             <details key={q.id} className="card p-4">
-              <summary className="cursor-pointer font-semibold">❓ {q.lesson.title}</summary>
+              <summary className="cursor-pointer font-semibold">{q.lesson.title}</summary>
               <table className="table mt-3">
                 <thead>
                   <tr><th>Question</th><th>Réponses</th><th>Réussite</th><th>Score moyen</th></tr>

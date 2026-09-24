@@ -1,6 +1,9 @@
 import { requireStaff, isOfManager } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { NavLink } from "@/components/NavLink";
+import {
+  BarChart3, BookOpen, CalendarDays, ClipboardList, Home, Inbox, MessagesSquare, PenLine, ScrollText, Settings, Star, Users, UserCog,
+} from "lucide-react";
+import { SideLink } from "@/components/NavLink";
 
 export default async function OfLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
@@ -19,35 +22,31 @@ export default async function OfLayout({ children }: { children: React.ReactNode
       where: { fromStaff: false, readAt: null, ...(user.role === "ADMIN" ? {} : { enrollment: { course: { organizationId: user.organizationId ?? "__" } } }) },
     }),
   ]);
-  const Item = ({ href, children, count }: { href: string; children: React.ReactNode; count?: number }) => (
-    <div className="relative">
-      <NavLink href={href}>{children}</NavLink>
-      {count ? (
-        <span className="pointer-events-none absolute right-2 top-1.5 rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{count}</span>
-      ) : null}
-    </div>
-  );
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col lg:flex-row">
-      <aside className="no-print border-b border-slate-200 bg-white lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Espace OF</div>
-          <div className="text-sm font-semibold text-slate-800">{user.role === "ADMIN" ? "Tous les organismes" : org?.name ?? "—"}</div>
+      <aside className="no-print border-b border-white/[0.08] lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="px-5 pb-2 pt-6">
+          <div className="eyebrow">Espace OF</div>
+          <div className="mt-1 truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
+            {user.role === "ADMIN" ? "Tous les organismes" : org?.name ?? "—"}
+          </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto p-2 text-sm lg:flex-col [&_a]:block">
-          <Item href="/of/home">🏠 Tableau de bord</Item>
-          {manager && <Item href="/of/applications" count={pendingApps}>📥 Dossiers d&apos;inscription</Item>}
-                    <Item href="/of/learners">👥 Apprenants</Item>
-          <Item href="/of/messages" count={unreadMessages}>💬 Messagerie pédagogique</Item>
-          <Item href="/of/courses">📚 Formations</Item>
-          <Item href="/of/sessions">📅 Sessions & émargement</Item>
-          <Item href="/of/grading" count={pendingGrading}>📝 Corrections</Item>
-          <Item href="/of/rubrics">📋 Grilles d&apos;évaluation</Item>
-          {manager && <Item href="/of/reports">📊 Rapports & traçabilité</Item>}
-          {manager && <Item href="/of/quality">⭐ Qualité & réclamations</Item>}
-          {manager && <Item href="/of/audit">🔍 Journal d&apos;audit</Item>}
-          {manager && <Item href="/of/team">🧑‍🏫 Équipe</Item>}
-          {manager && user.role !== "ADMIN" && <Item href="/of/settings">⚙️ Paramètres de l&apos;OF</Item>}
+        <nav className="flex gap-0.5 overflow-x-auto p-3 lg:flex-col">
+          <SideLink href="/of/home" icon={<Home strokeWidth={1.75} />}>Tableau de bord</SideLink>
+          {manager && <SideLink href="/of/applications" icon={<Inbox strokeWidth={1.75} />} count={pendingApps}>Dossiers d&apos;inscription</SideLink>}
+          <SideLink href="/of/learners" icon={<Users strokeWidth={1.75} />}>Apprenants</SideLink>
+          <SideLink href="/of/messages" icon={<MessagesSquare strokeWidth={1.75} />} count={unreadMessages}>Messagerie</SideLink>
+          <div className="mx-3 my-2 hidden h-px bg-white/[0.06] lg:block" />
+          <SideLink href="/of/courses" icon={<BookOpen strokeWidth={1.75} />}>Formations</SideLink>
+          <SideLink href="/of/sessions" icon={<CalendarDays strokeWidth={1.75} />}>Sessions & émargement</SideLink>
+          <SideLink href="/of/grading" icon={<PenLine strokeWidth={1.75} />} count={pendingGrading}>Corrections</SideLink>
+          <SideLink href="/of/rubrics" icon={<ClipboardList strokeWidth={1.75} />}>Grilles d&apos;évaluation</SideLink>
+          {manager && <div className="mx-3 my-2 hidden h-px bg-white/[0.06] lg:block" />}
+          {manager && <SideLink href="/of/reports" icon={<BarChart3 strokeWidth={1.75} />}>Rapports & traçabilité</SideLink>}
+          {manager && <SideLink href="/of/quality" icon={<Star strokeWidth={1.75} />}>Qualité & réclamations</SideLink>}
+          {manager && <SideLink href="/of/audit" icon={<ScrollText strokeWidth={1.75} />}>Journal d&apos;audit</SideLink>}
+          {manager && <SideLink href="/of/team" icon={<UserCog strokeWidth={1.75} />}>Équipe</SideLink>}
+          {manager && user.role !== "ADMIN" && <SideLink href="/of/settings" icon={<Settings strokeWidth={1.75} />}>Paramètres de l&apos;OF</SideLink>}
         </nav>
       </aside>
       <div className="min-w-0 flex-1">{children}</div>

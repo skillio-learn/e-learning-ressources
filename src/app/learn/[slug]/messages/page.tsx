@@ -20,7 +20,7 @@ export default async function LearnerMessages({ params }: { params: Promise<{ sl
   });
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 lg:px-10">
-      <h1>💬 Messagerie avec votre formateur</h1>
+      <h1>Messagerie avec votre formateur</h1>
       <p className="mb-6 mt-1 text-sm text-slate-500">
         Une question sur un contenu, un exercice ou un problème technique ? Votre formateur vous répond sous 48 h ouvrées. Les échanges sont conservés.
       </p>

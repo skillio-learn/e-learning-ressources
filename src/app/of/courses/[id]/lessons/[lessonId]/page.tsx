@@ -41,7 +41,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Link href={`/of/courses/${id}`} className="text-sm text-slate-500 hover:text-brand-600">← Parcours</Link>
-          <Link href={`/learn/${course.slug}/${lesson.id}`} className="btn-secondary btn-sm">👁 Voir comme l&apos;apprenant</Link>
+          <Link href={`/learn/${course.slug}/${lesson.id}`} className="btn-secondary btn-sm">Voir comme l&apos;apprenant</Link>
         </div>
 
         <LessonForm
@@ -71,7 +71,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
         {lesson.type === "QUIZ" && quiz && (
           <>
             <section className="card p-6">
-              <h2 className="mb-4">⚙️ Paramètres du quiz</h2>
+              <h2 className="mb-4">Paramètres du quiz</h2>
               <form action={updateQuizSettingsAction.bind(null, quiz.id)} className="space-y-4">
                 <Field label="Consignes affichées avant de commencer">
                   <textarea name="instructions" rows={3} defaultValue={quiz.instructions ?? ""} className="input" />
@@ -97,7 +97,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
             </section>
 
             <section className="space-y-3">
-              <h2>❓ Questions ({quiz.questions.length} · {quiz.questions.reduce((s, q) => s + q.points, 0)} pt)</h2>
+              <h2>Questions ({quiz.questions.length} · {quiz.questions.reduce((s, q) => s + q.points, 0)} pt)</h2>
               <QuestionEditor
                 quizId={quiz.id}
                 questions={quiz.questions.map((q) => ({
@@ -113,7 +113,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
             </section>
 
             <details className="card p-6">
-              <summary className="cursor-pointer font-semibold">⚡ Importer des questions en texte</summary>
+              <summary className="cursor-pointer font-semibold">Importer des questions en texte</summary>
               <form action={importQuestionsAction.bind(null, quiz.id)} className="mt-4 space-y-3">
                 <pre className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{`? Quel format est le plus adapté à TikTok ?
 - 16:9 horizontal

@@ -337,7 +337,7 @@ export async function setApplicationStatusAction(applicationId: string, _: Actio
   const titles: Partial<Record<ApplicationStatus, string>> = {
     UNDER_REVIEW: "Votre dossier est en cours d'instruction",
     INCOMPLETE: "Des compléments sont demandés sur votre dossier",
-    ACCEPTED: "Votre dossier est validé 🎉",
+    ACCEPTED: "Votre dossier est validé",
     REJECTED: "Décision sur votre dossier",
   };
   await notify(app.userId, `${titles[to] ?? "Mise à jour de votre dossier"} (${app.number})`, message || null, `/applications/${app.id}`);

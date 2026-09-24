@@ -17,7 +17,7 @@ function escapeHtml(s: string) {
 
 /**
  * Envoi d'email transactionnel via Resend (https://resend.com).
- * Variables : RESEND_API_KEY, EMAIL_FROM (ex. « Skillio <notifications@votre-domaine.fr> »).
+ * Variables : RESEND_API_KEY, EMAIL_FROM (ex. « Vylia <notifications@votre-domaine.fr> »).
  * Sans clé, l'envoi est ignoré (les notifications restent disponibles dans l'application).
  */
 export async function sendEmail(to: string, subject: string, text: string, link?: string | null) {
@@ -33,7 +33,7 @@ export async function sendEmail(to: string, subject: string, text: string, link?
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "Skillio <onboarding@resend.dev>",
+        from: process.env.EMAIL_FROM || "Vylia <onboarding@resend.dev>",
         to: [to],
         subject,
         text: url ? `${text}\n\n${url}` : text,

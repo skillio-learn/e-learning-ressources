@@ -42,7 +42,7 @@ export default async function GradeSubmission({ params, searchParams }: { params
     <Container className="max-w-6xl">
       <div className="no-print mb-2 flex items-center justify-between">
         <Link href="/of/grading" className="text-sm text-slate-500 hover:text-brand-600">← Corrections</Link>
-        <PrintButton label="🖨 Imprimer / PDF de la grille" />
+        <PrintButton label="Imprimer / PDF de la grille" />
       </div>
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Grille d&apos;évaluation · {sub.lesson.module.course.title}</div>
@@ -58,15 +58,15 @@ export default async function GradeSubmission({ params, searchParams }: { params
         </div>
         {sub.gradedAt && <div className="text-xs text-slate-500">Évalué par {sub.gradedBy?.name} le {formatDate(sub.gradedAt, true)}</div>}
       </div>
-      {saved && <p className="no-print mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">✅ Évaluation enregistrée.</p>}
+      {saved && <p className="no-print mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">Évaluation enregistrée.</p>}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <section className="space-y-4">
           <div className="card p-5">
             <h2 className="mb-2">Travail rendu</h2>
             {sub.text ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{sub.text}</div> : <p className="text-sm text-slate-400">Pas de texte.</p>}
-            {sub.linkUrl && <p className="mt-3 text-sm">🔗 <a href={sub.linkUrl} target="_blank" rel="noopener noreferrer" className="break-all text-brand-600 underline">{sub.linkUrl}</a></p>}
-            {sub.fileName && <p className="mt-3 text-sm">📎 <a href={`/api/submissions/${sub.id}/file`} className="text-brand-600 underline">{sub.fileName}</a></p>}
+            {sub.linkUrl && <p className="mt-3 text-sm"><a href={sub.linkUrl} target="_blank" rel="noopener noreferrer" className="break-all text-brand-600 underline">{sub.linkUrl}</a></p>}
+            {sub.fileName && <p className="mt-3 text-sm"><a href={`/api/submissions/${sub.id}/file`} className="text-brand-600 underline">{sub.fileName}</a></p>}
           </div>
           {sub.lesson.content && (
             <details className="card no-print p-5">

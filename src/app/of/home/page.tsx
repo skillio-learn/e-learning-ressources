@@ -52,7 +52,7 @@ export default async function OfHome() {
         actions={
           <>
             <Link href="/of/courses/new" className="btn-primary">+ Nouvelle formation</Link>
-            {manager && <Link href="/of/reports" className="btn-secondary">📊 Rapports OPCO / France Travail</Link>}
+            {manager && <Link href="/of/reports" className="btn-secondary">Rapports OPCO / France Travail</Link>}
           </>
         }
       />
@@ -75,7 +75,7 @@ export default async function OfHome() {
               <Link href="/of/applications" className="text-sm text-brand-600 hover:underline">Tout voir →</Link>
             </div>
             {recentApps.length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun dossier en attente 🎉</p>
+              <p className="text-sm text-slate-500">Aucun dossier en attente</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {recentApps.map((a) => (
@@ -94,7 +94,7 @@ export default async function OfHome() {
           </section>
         )}
         <section className="card p-5">
-          <h2 className="mb-3">⚠️ Risque de décrochage (aucune activité depuis 7 jours)</h2>
+          <h2 className="mb-3">Risque de décrochage (aucune activité depuis 7 jours)</h2>
           {idle.length === 0 ? (
             <p className="text-sm text-slate-500">Tous les apprenants sont actifs.</p>
           ) : (

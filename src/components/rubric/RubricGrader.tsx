@@ -95,7 +95,7 @@ export function RubricGrader({
             {Math.round(total * 100) / 100} / {max} pt · {percent} %
           </div>
         </div>
-        <div className="text-sm font-medium">{percent >= rubric.passingScore ? "✅ Validé" : `Seuil de validation : ${rubric.passingScore} %`}</div>
+        <div className="text-sm font-medium">{percent >= rubric.passingScore ? "Validé" : `Seuil de validation : ${rubric.passingScore} %`}</div>
       </div>
     </div>
   );

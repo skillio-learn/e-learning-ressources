@@ -29,7 +29,7 @@ export async function enrollmentTrace(enrollmentId: string) {
   if (!enrollment) return null;
   const { userId, courseId } = enrollment;
 
-  const [logs, outline, results, logins, sessions, progress, signatures] = await Promise.all([
+    const [logs, outline, results, logins, sessions, progress, signatures, messages] = await Promise.all([
     db.timeLog.findMany({
       where: { userId, courseId },
       orderBy: { startedAt: "asc" },
@@ -44,9 +44,10 @@ export async function enrollmentTrace(enrollmentId: string) {
       ? db.attendanceSignature.findMany({
           where: { userId, slot: { sessionId: enrollment.sessionId } },
           include: { slot: true },
-          orderBy: { signedAt: "asc" },
+                    orderBy: { signedAt: "asc" },
         })
       : Promise.resolve([]),
+    db.pedagogicalMessage.findMany({ where: { enrollmentId }, orderBy: { createdAt: "asc" }, include: { author: { select: { name: true } } } }),
   ]);
 
   const byDay = new Map<string, DayLine>();
@@ -100,7 +101,8 @@ export async function enrollmentTrace(enrollmentId: string) {
     results,
     logins: loginsInPeriod,
     sessions: sessionsInPeriod,
-    signatures,
+        signatures,
+    messages,
     periodStart,
     periodEnd,
   };

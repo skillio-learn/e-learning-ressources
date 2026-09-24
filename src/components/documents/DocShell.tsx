@@ -42,9 +42,14 @@ export function Signature({ org, place }: { org: Organization; place?: string | 
         Fait à {place || org.city || "…………"}, le {formatDate(new Date())}
       </div>
       <div className="text-right">
-        <div className="font-semibold">{org.managerName || "Le responsable de l'organisme"}</div>
+                <div className="font-semibold">{org.managerName || "Le responsable de l'organisme"}</div>
         <div className="text-xs text-slate-500">{org.managerTitle || "Représentant légal"}</div>
-        <div className="mt-10 text-xs text-slate-400">Signature et cachet de l&apos;organisme</div>
+        {org.signatureImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={org.signatureImage} alt="Signature de l'organisme" className="ml-auto mt-2 h-16" />
+        ) : (
+          <div className="mt-10 text-xs text-slate-400">Signature et cachet de l&apos;organisme</div>
+        )}
       </div>
     </div>
   );

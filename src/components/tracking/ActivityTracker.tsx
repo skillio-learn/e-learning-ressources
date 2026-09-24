@@ -10,7 +10,7 @@ const BEAT_MS = 30_000;
  * toutes les 30 s. Au-delà du délai d'inactivité de l'OF, le chronomètre est suspendu et une
  * confirmation de présence est demandée.
  */
-export function ActivityTracker({ timeoutMin }: { timeoutMin: number }) {
+export function ActivityTracker({ timeoutMin, interactiveTimeoutMin }: { timeoutMin: number; interactiveTimeoutMin: number }) {
   const path = usePathname();
   const seg = path.split("/");
   const lessonId = seg[1] === "learn" && seg.length >= 4 ? seg[3] : null;
@@ -18,7 +18,8 @@ export function ActivityTracker({ timeoutMin }: { timeoutMin: number }) {
   const pending = useRef(0);
   const lastInteraction = useRef(Date.now());
   const [idle, setIdle] = useState(false);
-  const timeoutMs = Math.max(1, timeoutMin) * 60_000;
+    const timeoutMs = Math.max(1, timeoutMin) * 60_000;
+  const interactiveMs = Math.max(timeoutMs, Math.max(1, interactiveTimeoutMin) * 60_000);
 
   // Changement de page : on envoie le temps accumulé sur la page précédente
   useEffect(() => {
@@ -73,8 +74,9 @@ export function ActivityTracker({ timeoutMin }: { timeoutMin: number }) {
       const dt = (now - last) / 1000;
       last = now;
       const visible = document.visibilityState === "visible";
+            // Dans un module interactif (iframe), l'activité n'est pas visible par la page : délai plus long
       const inIframe = document.activeElement?.tagName === "IFRAME";
-      const recent = now - lastInteraction.current < timeoutMs;
+      const recent = now - lastInteraction.current < (inIframe ? interactiveMs : timeoutMs);
       if (!recent && !activityStore.get().idle) {
         activityStore.set({ idle: true });
         setIdle(true);
@@ -104,8 +106,8 @@ export function ActivityTracker({ timeoutMin }: { timeoutMin: number }) {
       clearInterval(beat);
       flush(lessonRef.current, true);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeoutMs]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeoutMs, interactiveMs]);
 
   if (!idle) return null;
   return (

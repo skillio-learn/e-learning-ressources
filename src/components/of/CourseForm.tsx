@@ -70,6 +70,13 @@ export function CourseForm({
         <Field label="Objectifs pédagogiques" hint="Un objectif par ligne, en commençant par « - ».">
           <textarea name="objectives" rows={5} defaultValue={course?.objectives ?? ""} className="input" placeholder={"- Concevoir une ligne éditoriale\n- Tourner une vidéo verticale\n- …"} />
         </Field>
+                <Field label="Compétences visées (une par ligne)" hint="Servent au positionnement d'entrée du candidat et à son auto-évaluation de fin de formation (Qualiopi, indicateur 8).">
+          <textarea name="skills" rows={4} defaultValue={course?.skills?.join("\n") ?? ""} className="input" placeholder={"Concevoir une ligne éditoriale\nTourner une vidéo verticale\nMonter et sous-titrer une vidéo"} />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Méthodes et moyens pédagogiques"><textarea name="pedagogicalMethods" rows={3} defaultValue={course?.pedagogicalMethods ?? ""} className="input" /></Field>
+          <Field label="Modalités d'évaluation"><textarea name="evaluationMethods" rows={3} defaultValue={course?.evaluationMethods ?? ""} className="input" /></Field>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Prérequis">
             <textarea name="prerequisites" rows={3} defaultValue={course?.prerequisites ?? ""} className="input" />

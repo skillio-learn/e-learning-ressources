@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useState } from "react";
 import type { ActionState } from "@/app/actions/applications";
+import { useFormFlow } from "./useFormFlow";
 import { SubmitButton } from "@/components/SubmitButton";
 import { EDUCATION_LEVELS, EMPLOYMENT_STATUS } from "@/lib/labels";
 
@@ -45,20 +46,25 @@ function F({ label, children, className }: { label: string; children: React.Reac
 
 export function ProfileForm({
   action,
-  profile,
+    profile,
   disabled,
+  nextHref,
+  submitLabel = "Enregistrer mes informations",
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
   profile: ProfileData | null;
   disabled?: boolean;
+  nextHref?: string;
+  submitLabel?: string;
 }) {
   const [state, formAction] = useActionState(action, undefined);
+  const flow = useFormFlow(state?.ok, nextHref);
   const [status, setStatus] = useState(profile?.employmentStatus ?? "");
   const [disability, setDisability] = useState(!!profile?.disability);
   const p = profile ?? {};
   const showEmployer = status === "EMPLOYEE" || status === "CIVIL_SERVANT" || status === "SELF_EMPLOYED";
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} onChange={flow.onChange} className="space-y-5">
       <fieldset disabled={disabled} className="space-y-5">
         <div>
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Identité</h3>
@@ -156,7 +162,7 @@ export function ProfileForm({
       </fieldset>
       {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
       {state?.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.ok}</p>}
-      {!disabled && <SubmitButton>Enregistrer mes informations</SubmitButton>}
+      {!disabled && <SubmitButton>{submitLabel}</SubmitButton>}
     </form>
   );
 }

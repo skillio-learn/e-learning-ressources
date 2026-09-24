@@ -34,6 +34,8 @@ async function main() {
       managerName: "Responsable de l'organisme (démo)",
       managerTitle: "Directeur",
       requiredDocuments: ["ID", "CV", "PROOF_ADDRESS"],
+      referentHandicap: "Camille Formatrice – handicap@skillio.fr – 01 23 45 67 89",
+      mediatorInfo: "Médiateur de la consommation (à compléter par l'OF)",
     },
     update: {},
   });
@@ -80,6 +82,9 @@ async function main() {
       sequential: true,
       passingScore: 60,
       authorId: trainer.id,
+      skills: ["Concevoir une ligne éditoriale", "Tourner une vidéo verticale", "Monter et sous-titrer une vidéo", "Analyser les statistiques"],
+      pedagogicalMethods: "Modules interactifs, vidéos, études de cas, mises en situation et accompagnement par messagerie.",
+      evaluationMethods: "Quiz de validation par module, mise en situation évaluée par grille critériée.",
     },
   });
 

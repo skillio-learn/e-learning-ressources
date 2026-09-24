@@ -1,6 +1,6 @@
 import { loadTraceForViewer } from "@/lib/document-access";
 import { DocShell, Signature } from "@/components/documents/DocShell";
-import { formatHours } from "@/lib/labels";
+import { EXIT_REASONS, formatHours } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -36,13 +36,19 @@ export default async function Realisation({ params }: { params: Promise<{ id: st
       </ul>
       <p className="mt-4">
         qui s&apos;est déroulée du <b>{formatDate(e.startDate ?? trace.firstActivity ?? e.enrolledAt)}</b> au{" "}
-        <b>{formatDate(e.completedAt ?? e.endDate ?? trace.lastActivity)}</b>
+        <b>{formatDate(e.exitDate ?? e.completedAt ?? e.endDate ?? trace.lastActivity)}</b>
         {e.plannedHours ? <> pour une durée prévue de <b>{e.plannedHours} heures</b></> : null}.
       </p>
       <p className="mt-3">
         Durée réalisée : <b>{hours.toLocaleString("fr-FR")} heures</b> ({formatHours(trace.totalSeconds)}),{" "}
         {e.course.modality === "FOAD" ? "à distance (FOAD), temps mesuré par la plateforme" : "selon les feuilles d'émargement et le temps mesuré en ligne"}.
       </p>
+            {e.exitDate && (
+        <p className="mt-3 rounded bg-slate-50 p-2">
+          Le stagiaire a interrompu la formation le <b>{formatDate(e.exitDate)}</b> (motif : {EXIT_REASONS[e.exitCategory ?? ""] ?? e.exitCategory}). La durée réalisée ci-dessus
+          correspond aux heures effectivement suivies avant cette date.
+        </p>
+      )}
       {e.fundingReference && <p className="mt-3">Référence du dossier de financement : <b>{e.fundingReference}</b></p>}
       <p className="mt-6 text-xs text-slate-500">
         Sans préjudice des délais imposés par les règles fiscales, comptables ou commerciales, je m&apos;engage à conserver l&apos;ensemble des

@@ -56,11 +56,14 @@ export async function signAttendanceAction(slotId: string, signature: string) {
 
 // ─────────────── Satisfaction ───────────────
 
-export async function submitSatisfactionAction(enrollmentId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+export async function submitSatisfactionAction(enrollmentId: string, kind: "HOT" | "COLD", _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
-  const enrollment = await db.enrollment.findUnique({ where: { id: enrollmentId }, include: { satisfaction: true, course: { select: { organizationId: true, title: true } } } });
+  const enrollment = await db.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: { satisfactions: { where: { kind } }, course: { select: { organizationId: true, title: true } } },
+  });
   if (!enrollment || enrollment.userId !== user.id) return { error: "Inscription introuvable." };
-  if (enrollment.satisfaction) return { error: "Vous avez déjà répondu à ce questionnaire. Merci !" };
+  if (enrollment.satisfactions.length) return { error: "Vous avez déjà répondu à ce questionnaire. Merci !" };
   const answers: Record<string, number> = {};
   for (const q of SATISFACTION_QUESTIONS) {
     const v = Number(fd.get(q.code));
@@ -70,8 +73,9 @@ export async function submitSatisfactionAction(enrollmentId: string, _: ActionSt
   const globalScore = Math.round((Object.values(answers).reduce((a, b) => a + b, 0) / SATISFACTION_QUESTIONS.length) * 100) / 100;
   const rec = str(fd, "recommend");
   await db.satisfactionResponse.create({
-    data: {
+        data: {
       enrollmentId,
+      kind,
       userId: user.id,
       answers,
       globalScore,
@@ -79,7 +83,7 @@ export async function submitSatisfactionAction(enrollmentId: string, _: ActionSt
       comment: optStr(fd, "comment"),
     },
   });
-  await notifyOrgManagers(enrollment.course.organizationId, "Nouveau questionnaire de satisfaction", `${user.name} · ${enrollment.course.title} · ${globalScore}/5`, "/of/quality");
+  await notifyOrgManagers(enrollment.course.organizationId, kind === "COLD" ? "Nouvelle évaluation à froid" : "Nouveau questionnaire de satisfaction", `${user.name} · ${enrollment.course.title} · ${globalScore}/5`, "/of/quality");
   revalidatePath("/learn");
   return { ok: "Merci pour votre retour !" };
 }

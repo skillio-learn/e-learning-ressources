@@ -5,7 +5,7 @@ import { canManageCourse } from "@/lib/permissions";
 import { getGradebook } from "@/lib/gradebook";
 import { formatDate, slugify, toCsv } from "@/lib/utils";
 
-const statusFr = { ACTIVE: "En cours", COMPLETED: "Validée", SUSPENDED: "Suspendu" } as const;
+const statusFr = { ACTIVE: "En cours", COMPLETED: "Validée", SUSPENDED: "Interrompue", ABANDONED: "Abandon" } as const;
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string; kind: string }> }) {
   const { id, kind } = await params;

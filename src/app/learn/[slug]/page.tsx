@@ -6,16 +6,23 @@ import { Badge, Stat } from "@/components/ui";
 import { pct } from "@/lib/utils";
 import { submitSatisfactionAction } from "@/app/actions/learner-extra";
 import { SatisfactionForm } from "@/components/learn/SatisfactionForm";
+import { ExitAssessmentForm } from "@/components/learn/ExitAssessmentForm";
+import { saveExitAssessmentAction } from "@/app/actions/compliance";
 
 export const dynamic = "force-dynamic";
 
 export default async function CourseHome({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { user, course, outline, enrollment, preview } = await getLearnContext(slug);
+    const [fullCourse, application] = await Promise.all([
+    db.course.findUniqueOrThrow({ where: { id: course.id }, select: { skills: true } }),
+    enrollment?.applicationId ? db.application.findUnique({ where: { id: enrollment.applicationId }, select: { positioning: true } }) : null,
+  ]);
+  const entryPositioning = (application?.positioning ?? {}) as Record<string, number>;
   const [{ results, average }, certificate, satisfaction] = await Promise.all([
     getLearnerResults(user.id, course.id),
     db.certificate.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } }),
-    enrollment ? db.satisfactionResponse.findUnique({ where: { enrollmentId: enrollment.id }, select: { id: true } }) : null,
+    enrollment ? db.satisfactionResponse.findUnique({ where: { enrollmentId_kind: { enrollmentId: enrollment.id, kind: "HOT" } }, select: { id: true } }) : null,
   ]);
   const first = outline.flat[0];
   return (
@@ -48,6 +55,8 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         )}
         {enrollment && !preview && (
           <>
+                        <Link href={`/learn/${course.slug}/messages`} className="btn-secondary">💬 Contacter mon formateur</Link>
+            <Link href={`/documents/convention/${enrollment.id}`} className="btn-secondary">✍️ Ma convention</Link>
             <Link href={`/documents/assiduite/${enrollment.id}`} className="btn-secondary">📄 Attestation d&apos;assiduité</Link>
             <Link href={`/documents/releve/${enrollment.id}`} className="btn-secondary">🕒 Relevé de connexions</Link>
             {enrollment.status === "COMPLETED" && (
@@ -60,11 +69,24 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         )}
       </div>
 
+            {enrollment && !preview && !enrollment.conventionSignedAt && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          ✍️ Votre convention / contrat de formation n&apos;est pas encore signé(e).
+          <Link href={`/documents/convention/${enrollment.id}`} className="btn-primary btn-sm ml-auto">Lire et signer</Link>
+        </div>
+      )}
+      {enrollment && !preview && fullCourse.skills.length > 0 && !enrollment.exitAssessment && (enrollment.status === "COMPLETED" || outline.percent >= 80) && (
+        <section className="card p-6">
+          <h2 className="mb-1">🧭 Auto-évaluation de fin de formation</h2>
+          <p className="mb-4 text-sm text-slate-500">Où en êtes-vous sur chaque compétence visée ? Elle sera comparée à votre positionnement d&apos;entrée.</p>
+          <ExitAssessmentForm action={saveExitAssessmentAction.bind(null, enrollment.id)} skills={fullCourse.skills} entry={entryPositioning} />
+        </section>
+      )}
       {enrollment && !preview && !satisfaction && (enrollment.status === "COMPLETED" || outline.percent >= 80) && (
         <section className="card border-brand-200 p-6 ring-2 ring-brand-100">
           <h2 className="mb-1">⭐ Votre avis compte</h2>
           <p className="mb-4 text-sm text-slate-500">Questionnaire de satisfaction (2 minutes) — il nous aide à améliorer la formation.</p>
-          <SatisfactionForm action={submitSatisfactionAction.bind(null, enrollment.id)} />
+          <SatisfactionForm action={submitSatisfactionAction.bind(null, enrollment.id, "HOT")} />
         </section>
       )}
 

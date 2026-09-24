@@ -1,6 +1,6 @@
 import { loadTraceForViewer } from "@/lib/document-access";
 import { DocShell } from "@/components/documents/DocShell";
-import { formatDuration, formatHours, MODALITY_LABELS } from "@/lib/labels";
+import { EXIT_REASONS, formatDuration, formatHours, MODALITY_LABELS } from "@/lib/labels";
 import { LESSON_TYPE_LABELS, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -24,13 +24,16 @@ export default async function Releve({ params }: { params: Promise<{ id: string 
           <tr><td className="py-0.5 text-slate-500">Période</td><td>du {formatDate(e.startDate ?? e.enrolledAt)} au {formatDate(e.endDate)}</td></tr>
           {e.application && <tr><td className="py-0.5 text-slate-500">Dossier</td><td>{e.application.number}{e.fundingReference ? ` · prise en charge ${e.fundingReference}` : ""}</td></tr>}
           <tr><td className="py-0.5 text-slate-500">Temps actif total sur la formation</td><td className="font-bold">{formatHours(trace.totalSeconds)} ({formatDuration(trace.totalSeconds)}){e.plannedHours ? ` / ${e.plannedHours} h prévues` : ""}</td></tr>
-          <tr><td className="py-0.5 text-slate-500">Progression</td><td>{trace.completedSteps}/{trace.totalSteps} étapes ({trace.percent} %)</td></tr>
+                    <tr><td className="py-0.5 text-slate-500">Progression</td><td>{trace.completedSteps}/{trace.totalSteps} étapes ({trace.percent} %)</td></tr>
+          {e.exitDate && (
+            <tr><td className="py-0.5 text-slate-500">Sortie anticipée</td><td className="font-medium text-red-700">le {formatDate(e.exitDate)} – {EXIT_REASONS[e.exitCategory ?? ""] ?? e.exitCategory}</td></tr>
+          )}
         </tbody>
       </table>
       <p className="mb-4 rounded bg-slate-50 p-2 text-xs text-slate-600">
         Méthode de mesure : le temps est enregistré automatiquement par la plateforme par signaux d&apos;activité toutes les 30 secondes,
         uniquement lorsque la page de formation est affichée et que le stagiaire est actif. Les périodes d&apos;inactivité au-delà de{" "}
-        {org.inactivityTimeoutMin} minutes sont exclues.
+        {org.inactivityTimeoutMin} minutes ({org.interactiveTimeoutMin} minutes dans un module interactif) sont exclues.
       </p>
 
       <h2 className="mb-2 mt-6 text-base font-semibold">1. Temps de formation par jour</h2>
@@ -113,6 +116,26 @@ export default async function Releve({ params }: { params: Promise<{ id: string 
           ))}
         </tbody>
       </table>
+
+            {trace.messages.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-6 text-base font-semibold">Assistance pédagogique : échanges avec le formateur</h2>
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-100"><th className="border px-2 py-1 text-left">Date</th><th className="border px-2 py-1">Émetteur</th><th className="border px-2 py-1 text-left">Message</th></tr>
+            </thead>
+            <tbody>
+              {trace.messages.map((m) => (
+                <tr key={m.id}>
+                  <td className="border px-2 py-1 whitespace-nowrap">{formatDate(m.createdAt, true)}</td>
+                  <td className="border px-2 py-1 text-center">{m.fromStaff ? `Formateur (${m.author.name})` : "Stagiaire"}</td>
+                  <td className="border px-2 py-1">{m.body.length > 180 ? m.body.slice(0, 180) + "…" : m.body}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
 
       {trace.signatures.length > 0 && (
         <>

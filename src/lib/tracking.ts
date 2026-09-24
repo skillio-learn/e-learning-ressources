@@ -5,6 +5,18 @@ export const HEARTBEAT_SEC = 30;
 const MAX_BEAT_SEC = HEARTBEAT_SEC * 2 + 10;
 const DEFAULT_TIMEOUT_MIN = 15;
 
+/** Délais d'inactivité (minutes) : standard et dans un module interactif. */
+export async function timeoutsFor(userId: string) {
+  const u = await db.user.findUnique({
+    where: { id: userId },
+    select: { organization: { select: { inactivityTimeoutMin: true, interactiveTimeoutMin: true } } },
+  });
+  return {
+    standard: u?.organization?.inactivityTimeoutMin ?? DEFAULT_TIMEOUT_MIN,
+    interactive: u?.organization?.interactiveTimeoutMin ?? 45,
+  };
+}
+
 export async function inactivityTimeoutFor(userId: string) {
   const u = await db.user.findUnique({
     where: { id: userId },
@@ -34,7 +46,8 @@ export async function recordHeartbeat(
 ) {
   const seconds = Math.max(0, Math.min(MAX_BEAT_SEC, Math.round(input.seconds)));
   const now = new Date();
-  const timeoutMs = (await inactivityTimeoutFor(userId)) * 60_000;
+    const t = await timeoutsFor(userId);
+  const timeoutMs = Math.max(t.standard, t.interactive) * 60_000;
 
   // 1. Session de connexion
   let session = await db.activitySession.findFirst({ where: { userId, endedAt: null }, orderBy: { lastSeenAt: "desc" } });

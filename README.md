@@ -36,6 +36,19 @@ Skillio héberge plusieurs **organismes de formation (OF)**. Chacun a son espace
 - **Journal d'audit** : décisions sur les dossiers, vérification des pièces, inscriptions, notes, téléchargements de justificatifs, exports, paramètres, rôles.
 - Détection du **décrochage** (aucune activité depuis 7 jours) sur le tableau de bord OF.
 
+### Contractualisation et conformité (lot 2)
+
+- **Assistant de candidature en 4 étapes** (informations, projet/financement/positionnement, justificatifs multi-fichiers, vérification & dépôt) ; pièces exigées affichées dès la fiche formation.
+- **Positionnement d'entrée et auto-évaluation de sortie** par compétence visée, comparés sur la fiche apprenant (évolution).
+- **Convention / contrat de formation** généré automatiquement (contrat L.6353-3 avec rétractation 10 jours pour un financement personnel/CPF, convention sinon), **signature électronique** de l'apprenant (horodatage + IP) et signature de l'OF (Paramètres de l'OF).
+- **Convocation** et **programme** imprimables en PDF.
+- **Abandon / interruption** : date de sortie, motif et précisions, reportés dans les attestations, relevés et exports CSV.
+- **Messagerie pédagogique** (assistance D.6313-3-1) avec délai moyen de réponse et fils en attente.
+- **Évaluations à froid** et **évaluations financeur / entreprise** via lien public, synthèse sur la page Qualité.
+- **Émargement formateur** signé par créneau.
+- **Mot de passe oublié** (lien par email) et réinitialisation par l'OF.
+- **Temps sur les modules interactifs** : délai d'inactivité spécifique (paramétrable par OF) quand l'apprenant travaille dans un module embarqué.
+
 ### Qualité et RGPD
 - Questionnaire de **satisfaction** à chaud (6 critères + recommandation + commentaire), avec statistiques par critère (Qualiopi, indicateur 30).
 - **Réclamations et demandes** avec suivi du traitement et réponse notifiée (Qualiopi, indicateur 31).
@@ -116,6 +129,7 @@ npm run dev                 # http://localhost:3000
 ### Déploiement sur Vercel
 1. Importez le dépôt GitHub dans Vercel.
 2. Ajoutez `DATABASE_URL`, `DIRECT_URL` et `AUTH_SECRET` dans les variables d'environnement.
+   Pour l'envoi d'emails (notifications, mot de passe oublié) : `RESEND_API_KEY`, `EMAIL_FROM` (ex. `Skillio <noreply@votre-domaine.fr>`) et, facultativement, `APP_URL`. Sans clé, les notifications restent dans la plateforme et les demandes de mot de passe sont transmises à l'OF.
 3. Déployez : le build lance `prisma generate && next build`.
 
 ### Comptes de démonstration

@@ -155,8 +155,14 @@ export async function saveApplicationDetailsAction(applicationId: string, _: Act
     if (!s || s.courseId !== app.courseId || !s.open) return { error: "Session invalide ou fermée." };
     if (s.capacity && s._count.enrollments >= s.capacity) return { error: "Cette session est complète, choisissez-en une autre." };
   }
-  const fundingType = (str(fd, "fundingType") || null) as FundingType | null;
+    const fundingType = (str(fd, "fundingType") || null) as FundingType | null;
   if (fundingType && !(fundingType in FUNDING_TYPES)) return { error: "Financement invalide." };
+  const course = await db.course.findUnique({ where: { id: app.courseId }, select: { skills: true } });
+  const positioning: Record<string, number> = {};
+  (course?.skills ?? []).forEach((skill, i) => {
+    const v = str(fd, `skill_${i}`);
+    if (v !== "") positioning[skill] = Math.max(0, Math.min(4, Number(v)));
+  });
   await db.application.update({
     where: { id: applicationId },
     data: {
@@ -168,7 +174,8 @@ export async function saveApplicationDetailsAction(applicationId: string, _: Act
       expectations: optStr(fd, "expectations"),
       experience: optStr(fd, "experience"),
       availability: optStr(fd, "availability"),
-      prerequisitesOk: bool(fd, "prerequisitesOk"),
+            prerequisitesOk: bool(fd, "prerequisitesOk"),
+      positioning,
     },
   });
   revalidateApp(applicationId);
@@ -187,8 +194,9 @@ export async function uploadDocumentAction(applicationId: string, _: ActionState
   const mime = file.type || "application/octet-stream";
   if (!ALLOWED_UPLOAD_TYPES.includes(mime)) return { error: "Format non accepté (PDF, JPG, PNG, WEBP, HEIC, DOC, DOCX, ODT)." };
 
-  // Remplace un justificatif du même type non validé
-  await db.applicationDocument.deleteMany({ where: { applicationId, type, status: { not: "VALIDATED" } } });
+    // Plusieurs fichiers possibles par justificatif (ex. recto / verso), 5 maximum
+  const count = await db.applicationDocument.count({ where: { applicationId, type, status: { not: "REJECTED" } } });
+  if (count >= 5) return { error: "5 fichiers maximum pour ce justificatif." };
   await db.applicationDocument.create({
     data: {
       applicationId,

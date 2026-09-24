@@ -20,6 +20,11 @@ export default async function LearnLayout({ children, params }: { children: Reac
           <div className="mt-1 text-xs text-slate-500">
             {outline.completed}/{outline.total} étapes terminées
           </div>
+                    {!preview && (
+            <Link href={`/learn/${course.slug}/messages`} className="mt-3 inline-block text-xs font-medium text-brand-600 hover:underline">
+              💬 Contacter mon formateur
+            </Link>
+          )}
           {preview && (
             <div className="mt-3 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">
               Mode aperçu formateur : la progression n&apos;est pas enregistrée.

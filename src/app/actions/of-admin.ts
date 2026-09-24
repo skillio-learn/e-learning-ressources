@@ -28,8 +28,12 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
   if (siret && !/^\d{14}$/.test(siret)) return { error: "Le SIRET doit comporter 14 chiffres." };
   const nda = str(fd, "nda").replace(/\s/g, "");
   if (nda && !/^\d{11}$/.test(nda)) return { error: "Le numéro de déclaration d'activité comporte 11 chiffres." };
-  const timeout = optInt(fd, "inactivityTimeoutMin") ?? 15;
+    const timeout = optInt(fd, "inactivityTimeoutMin") ?? 15;
   if (timeout < 2 || timeout > 120) return { error: "Délai d'inactivité : entre 2 et 120 minutes." };
+  const interactiveTimeout = optInt(fd, "interactiveTimeoutMin") ?? 45;
+  if (interactiveTimeout < timeout || interactiveTimeout > 180) {
+    return { error: "Délai d'inactivité des modules interactifs : entre le délai standard et 180 minutes." };
+  }
   const data = {
     name: str(fd, "name") || "Organisme",
     legalName: optStr(fd, "legalName"),
@@ -50,7 +54,10 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
     internalRulesUrl: safeUrl(str(fd, "internalRulesUrl")),
     cgvUrl: safeUrl(str(fd, "cgvUrl")),
     requiredDocuments: fd.getAll("requiredDocuments").map(String).filter((c) => c in DOCUMENT_TYPES),
-    inactivityTimeoutMin: timeout,
+        inactivityTimeoutMin: timeout,
+    interactiveTimeoutMin: interactiveTimeout,
+    referentHandicap: optStr(fd, "referentHandicap"),
+    mediatorInfo: optStr(fd, "mediatorInfo"),
   };
   await db.organization.update({ where: { id: orgId }, data });
   await audit("organization.update", { actorId: user.id, organizationId: orgId, entityType: "Organization", entityId: orgId });
@@ -204,8 +211,15 @@ export async function updateEnrollmentAction(enrollmentId: string, _: ActionStat
   const startDate = dateOrNull(str(fd, "startDate"));
   const endDate = dateOrNull(str(fd, "endDate"));
   if (startDate && endDate && endDate < startDate) return { error: "La date de fin doit suivre la date de début." };
-  const status = str(fd, "status") as EnrollmentStatus;
-  if (!["ACTIVE", "COMPLETED", "SUSPENDED"].includes(status)) return { error: "Statut invalide." };
+    const status = str(fd, "status") as EnrollmentStatus;
+  if (!["ACTIVE", "COMPLETED", "SUSPENDED", "ABANDONED"].includes(status)) return { error: "Statut invalide." };
+  const exitDate = dateOrNull(str(fd, "exitDate"));
+  const exitCategory = optStr(fd, "exitCategory");
+  const exitReason = optStr(fd, "exitReason");
+  if ((status === "ABANDONED" || status === "SUSPENDED") && (!exitDate || !exitCategory)) {
+    return { error: "Pour une interruption ou un abandon, la date de sortie et le motif sont obligatoires." };
+  }
+  if (exitDate && startDate && exitDate < startDate) return { error: "La date de sortie ne peut précéder le début de la formation." };
   const sessionId = optStr(fd, "sessionId");
   const data = {
     startDate,
@@ -214,8 +228,11 @@ export async function updateEnrollmentAction(enrollmentId: string, _: ActionStat
     fundingType: (str(fd, "fundingType") || null) as FundingType | null,
     fundingReference: optStr(fd, "fundingReference"),
     sessionId,
-    status,
+        status,
     completedAt: status === "COMPLETED" ? e.completedAt ?? new Date() : status === "ACTIVE" ? null : e.completedAt,
+    exitDate: status === "ABANDONED" || status === "SUSPENDED" ? exitDate : null,
+    exitCategory: status === "ABANDONED" || status === "SUSPENDED" ? exitCategory : null,
+    exitReason: status === "ABANDONED" || status === "SUSPENDED" ? exitReason : null,
   };
   await db.enrollment.update({ where: { id: enrollmentId }, data });
   await audit(status !== e.status ? "enrollment.status" : "enrollment.update", {
@@ -226,7 +243,7 @@ export async function updateEnrollmentAction(enrollmentId: string, _: ActionStat
     details: { ...data, previousStatus: e.status },
   });
   if (status !== e.status) {
-    const labels = { ACTIVE: "réactivée", COMPLETED: "clôturée", SUSPENDED: "suspendue" };
+        const labels = { ACTIVE: "réactivée", COMPLETED: "clôturée", SUSPENDED: "interrompue", ABANDONED: "clôturée (abandon)" };
     await notify(e.userId, `Votre inscription à « ${e.course.title} » est ${labels[status]}`, null, "/learn");
   }
   revalidatePath(`/of/learners/${e.userId}`);

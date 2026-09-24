@@ -7,6 +7,8 @@ import { addSlotAction, deleteSessionAction, deleteSlotAction, generateSlotsActi
 import { StateForm } from "@/components/StateForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PrintButton } from "@/components/PrintButton";
+import { SignaturePad } from "@/components/SignaturePad";
+import { signSlotAsTrainerAction } from "@/app/actions/compliance";
 import { Badge, Container } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 
@@ -97,6 +99,21 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+            {/* Signature du formateur pour les créneaux du jour */}
+      {s.slots.some((sl) => iso(sl.date) === today && !sl.trainerSignature) && (
+        <section className="no-print mt-6 card p-4">
+          <h2 className="mb-2 text-base">✍️ Signature du formateur – créneaux du jour</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {s.slots.filter((sl) => iso(sl.date) === today && !sl.trainerSignature).map((sl) => (
+              <div key={sl.id}>
+                <div className="mb-1 text-sm font-medium">{sl.label} ({sl.startTime}–{sl.endTime})</div>
+                <SignaturePad onSign={signSlotAsTrainerAction.bind(null, sl.id)} label="Signer en tant que formateur" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Feuille d'émargement (écran + impression) */}
       <section className="mt-8">
         <div className="hidden print:mb-4 print:block">
@@ -159,8 +176,15 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                   );
                 })}
                 <tr>
-                  <td className="sticky left-0 border bg-slate-50 px-2 py-1 font-medium">Formateur</td>
-                  {s.slots.map((sl) => <td key={sl.id} className="h-12 border" />)}
+                                    <td className="sticky left-0 border bg-slate-50 px-2 py-1 font-medium">Formateur</td>
+                  {s.slots.map((sl) => (
+                    <td key={sl.id} className="h-12 border px-1 text-center">
+                      {sl.trainerSignature && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={sl.trainerSignature} alt="Signature formateur" title={`${sl.trainerName} · ${formatDate(sl.trainerSignedAt, true)}`} className="mx-auto h-9" />
+                      )}
+                    </td>
+                  ))}
                   <td className="border" />
                 </tr>
               </tbody>

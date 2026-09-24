@@ -2,14 +2,18 @@
 import { useActionState, useState } from "react";
 import type { ActionState } from "@/app/actions/applications";
 import { SubmitButton } from "@/components/SubmitButton";
-import { FUNDING_TYPES } from "@/lib/labels";
+import { FUNDING_TYPES, SKILL_LEVELS } from "@/lib/labels";
+import { useFormFlow } from "./useFormFlow";
 
 export function DetailsForm({
   action,
   app,
   sessions,
-  prerequisites,
+    prerequisites,
   disabled,
+  skills = [],
+  positioning,
+  nextHref,
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
   app: {
@@ -24,10 +28,14 @@ export function DetailsForm({
     prerequisitesOk: boolean;
   };
   sessions: { id: string; label: string; full: boolean }[];
-  prerequisites: string | null;
+    prerequisites: string | null;
   disabled?: boolean;
+  skills?: string[];
+  positioning?: Record<string, number> | null;
+  nextHref?: string;
 }) {
   const [state, formAction] = useActionState(action, undefined);
+  const flow = useFormFlow(state?.ok, nextHref);
   const [funding, setFunding] = useState(app.fundingType ?? "");
   const refLabel: Record<string, string> = {
     CPF: "N° de dossier Mon Compte Formation *",
@@ -37,7 +45,7 @@ export function DetailsForm({
     REGION: "Référence du dispositif régional",
   };
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} onChange={flow.onChange} className="space-y-4">
       <fieldset disabled={disabled} className="space-y-4">
         {sessions.length > 0 && (
           <label className="block">
@@ -92,6 +100,23 @@ export function DetailsForm({
           <span className="label">Disponibilités (jours, créneaux, heures par semaine)</span>
           <input name="availability" defaultValue={app.availability ?? ""} className="input" />
         </label>
+                {skills.length > 0 && (
+          <div className="rounded-lg border border-slate-200 p-3">
+            <div className="mb-1 text-sm font-medium">Positionnement : évaluez votre niveau actuel sur chaque compétence visée *</div>
+            <p className="mb-2 text-xs text-slate-500">Cette auto-évaluation permet à l&apos;organisme d&apos;adapter votre parcours ; elle sera comparée à votre niveau en fin de formation.</p>
+            <div className="space-y-2">
+              {skills.map((skill, i) => (
+                <div key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-50 pb-2 text-sm">
+                  <span>{skill}</span>
+                  <select name={`skill_${i}`} defaultValue={positioning?.[skill] ?? ""} className="input w-auto py-1 text-sm">
+                    <option value="">—</option>
+                    {SKILL_LEVELS.map((l, v) => <option key={v} value={v}>{v} – {l}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {prerequisites && (
           <div className="rounded-lg bg-slate-50 p-3 text-sm">
             <div className="font-medium">Prérequis de la formation :</div>
@@ -105,7 +130,7 @@ export function DetailsForm({
       </fieldset>
       {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
       {state?.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.ok}</p>}
-      {!disabled && <SubmitButton>Enregistrer mon projet</SubmitButton>}
+      {!disabled && <SubmitButton>{nextHref ? "Enregistrer et continuer →" : "Enregistrer mon projet"}</SubmitButton>}
     </form>
   );
 }

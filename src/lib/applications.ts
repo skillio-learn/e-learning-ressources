@@ -77,7 +77,7 @@ export async function applicationBlockers(applicationId: string) {
     where: { id: applicationId },
     include: {
       documents: true,
-      course: { select: { requiredDocuments: true, organization: { select: { requiredDocuments: true } }, sessions: { where: { open: true }, select: { id: true } } } },
+            course: { select: { skills: true, requiredDocuments: true, organization: { select: { requiredDocuments: true } }, sessions: { where: { open: true }, select: { id: true } } } },
       user: { select: { profile: true } },
     },
   });
@@ -88,7 +88,10 @@ export async function applicationBlockers(applicationId: string) {
   if (app.fundingType === "CPF" && !app.fundingReference) blockers.push("Numéro de dossier CPF non renseigné");
   if (!app.motivation || app.motivation.trim().length < 30) blockers.push("Motivation à détailler (30 caractères minimum)");
   if (!app.prerequisitesOk) blockers.push("Attestation du respect des prérequis non cochée");
-  if (app.course.sessions.length > 0 && !app.sessionId) blockers.push("Session de formation non choisie");
+    if (app.course.sessions.length > 0 && !app.sessionId) blockers.push("Session de formation non choisie");
+  const pos = (app.positioning ?? {}) as Record<string, number>;
+  const missingSkills = app.course.skills.filter((s) => pos[s] === undefined);
+  if (missingSkills.length) blockers.push(`Positionnement incomplet (${missingSkills.length} compétence(s) à évaluer)`);
   const required = requiredDocumentsFor(app.course, app.fundingType);
   for (const code of required) {
     const docs = app.documents.filter((d) => d.type === code && d.status !== "REJECTED");

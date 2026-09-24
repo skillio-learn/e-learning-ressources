@@ -42,6 +42,8 @@ model User {
   applicationEvents    ApplicationEvent[]
   reviewedDocuments    ApplicationDocument[]
   loginEvents          LoginEvent[]
+  resetTokens          PasswordResetToken[]
+  pedagogicalMessages  PedagogicalMessage[]
   activitySessions     ActivitySession[]
   timeLogs             TimeLog[]
   notifications        Notification[]
@@ -120,6 +122,9 @@ model Course {
   cpfEligible        Boolean          @default(false)
   price              Float? // Tarif HT
   requiredDocuments  String[]         @default([]) // Justificatifs exigés pour candidater (vide = réglage de l'OF)
+  skills             String[]         @default([]) // Compétences visées (positionnement d'entrée / de sortie)
+  evaluationMethods  String?          @db.Text // Modalités d'évaluation (programme)
+  pedagogicalMethods String?          @db.Text // Méthodes et moyens pédagogiques (programme)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -395,7 +400,8 @@ model RubricScore {
 enum EnrollmentStatus {
   ACTIVE
   COMPLETED
-  SUSPENDED
+  SUSPENDED // Interruption temporaire
+  ABANDONED // Abandon / sortie anticipée
 }
 
 model Enrollment {
@@ -422,7 +428,23 @@ model Enrollment {
   enrolledById     String?
   enrolledBy       User?            @relation("EnrolledBy", fields: [enrolledById], references: [id], onDelete: SetNull)
 
-  satisfaction SatisfactionResponse?
+  // Sortie anticipée (abandon, interruption) — exigée par les OPCO / France Travail
+  exitDate     DateTime?
+  exitCategory String? // Code motif (voir EXIT_REASONS)
+  exitReason   String?   @db.Text
+
+  // Convention / contrat de formation signé électroniquement par l'apprenant
+  conventionSignedAt  DateTime?
+  conventionSignature String?   @db.Text
+  conventionSignedIp  String?
+  convocationSentAt   DateTime?
+
+  // Auto-évaluation de sortie sur les compétences visées (positionnement de sortie)
+  exitAssessment Json?
+
+  satisfactions SatisfactionResponse[]
+  messages      PedagogicalMessage[]
+  feedbacks     FunderFeedback[]
 
   @@unique([userId, courseId])
 }
@@ -463,33 +485,38 @@ model Certificate {
 // ─────────────────────────────── Organismes de formation ───────────────────────────────
 
 model Organization {
-  id                   String    @id @default(cuid())
-  slug                 String    @unique
-  name                 String // Nom commercial
-  legalName            String? // Raison sociale
-  siret                String?
-  nda                  String? // Numéro de déclaration d'activité
-  ndaRegion            String? // Région / préfecture d'enregistrement
-  qualiopiNumber       String?
-  qualiopiDate         DateTime?
-  address              String?
-  postalCode           String?
-  city                 String?
-  phone                String?
-  email                String?
-  website              String?
-  logoUrl              String?
-  managerName          String? // Signataire des attestations
-  managerTitle         String?
-  internalRulesUrl     String? // Règlement intérieur
-  cgvUrl               String?
-  requiredDocuments    String[]  @default(["ID", "CV"]) // Justificatifs demandés par défaut
-  inactivityTimeoutMin Int       @default(15) // Minutes sans activité avant arrêt du chronomètre
-  active               Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  slug                  String    @unique
+  name                  String // Nom commercial
+  legalName             String? // Raison sociale
+  siret                 String?
+  nda                   String? // Numéro de déclaration d'activité
+  ndaRegion             String? // Région / préfecture d'enregistrement
+  qualiopiNumber        String?
+  qualiopiDate          DateTime?
+  address               String?
+  postalCode            String?
+  city                  String?
+  phone                 String?
+  email                 String?
+  website               String?
+  logoUrl               String?
+  managerName           String? // Signataire des attestations
+  managerTitle          String?
+  internalRulesUrl      String? // Règlement intérieur
+  cgvUrl                String?
+  requiredDocuments     String[]  @default(["ID", "CV"]) // Justificatifs demandés par défaut
+  inactivityTimeoutMin  Int       @default(15) // Minutes sans activité avant arrêt du chronomètre
+  interactiveTimeoutMin Int       @default(45) // Idem quand l'apprenant travaille dans un module interactif (iframe)
+  signatureImage        String?   @db.Text // Signature / cachet de l'OF (PNG data URL) apposé sur les documents
+  referentHandicap      String? // Nom / contact du référent handicap
+  mediatorInfo          String?   @db.Text // Médiateur de la consommation (contrats particuliers)
+  active                Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   users      User[]
+  feedbacks  FunderFeedback[]
   courses    Course[]
   auditLogs  AuditLog[]
   complaints Complaint[]
@@ -582,6 +609,7 @@ model Application {
   consentRgpd      Boolean           @default(false)
   consentTerms     Boolean           @default(false) // CGV + règlement intérieur
   consentAt        DateTime?
+  positioning      Json? // Positionnement d'entrée : { compétence: niveau 0-4 }
   profileSnapshot  Json? // Copie du profil au moment du dépôt
   submittedAt      DateTime?
   reviewedAt       DateTime?
@@ -765,6 +793,10 @@ model AttendanceSlot {
 
   signatures AttendanceSignature[]
 
+  trainerName      String?
+  trainerSignature String?   @db.Text
+  trainerSignedAt  DateTime?
+
   @@index([sessionId, date])
 }
 
@@ -784,7 +816,8 @@ model AttendanceSignature {
 
 model SatisfactionResponse {
   id           String     @id @default(cuid())
-  enrollmentId String     @unique
+  kind         String     @default("HOT") // HOT = à chaud, COLD = à froid
+  enrollmentId String
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   userId       String
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -793,6 +826,8 @@ model SatisfactionResponse {
   recommend    Boolean?
   comment      String?    @db.Text
   createdAt    DateTime   @default(now())
+
+  @@unique([enrollmentId, kind])
 }
 
 enum ComplaintStatus {
@@ -818,4 +853,48 @@ model Complaint {
   handledBy      User?           @relation("ComplaintHandler", fields: [handledById], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   resolvedAt     DateTime?
+}
+
+// ─────────────────────────────── Lot 2 ───────────────────────────────
+
+/// Échanges apprenant ↔ formateur/OF pendant la formation (assistance pédagogique FOAD, art. D.6313-3-1)
+model PedagogicalMessage {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  fromStaff    Boolean    @default(false)
+  body         String     @db.Text
+  readAt       DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([enrollmentId, createdAt])
+}
+
+/// Évaluation par un financeur ou une entreprise (Qualiopi indicateur 30), via lien sécurisé
+model FunderFeedback {
+  id             String       @id @default(cuid())
+  token          String       @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enrollmentId   String?
+  enrollment     Enrollment?  @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  respondentType String // EMPLOYER, OPCO, FRANCE_TRAVAIL, OTHER
+  respondentName String?
+  answers        Json?
+  globalScore    Float?
+  comment        String?      @db.Text
+  createdAt      DateTime     @default(now())
+  answeredAt     DateTime?
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }

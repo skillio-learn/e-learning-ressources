@@ -6,7 +6,8 @@ import { canManageCourse } from "@/lib/permissions";
 import { renderMarkdown } from "@/lib/markdown";
 import { enrollAction } from "@/app/actions/learner";
 import { startApplicationAction } from "@/app/actions/applications";
-import { MODALITY_LABELS } from "@/lib/labels";
+import { DOCUMENT_TYPES, MODALITY_LABELS } from "@/lib/labels";
+import { requiredDocumentsFor } from "@/lib/applications";
 import { Badge, Container } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS, LEVEL_LABELS } from "@/lib/utils";
@@ -20,7 +21,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     where: { slug },
     include: {
       author: { select: { name: true, bio: true } },
-      organization: { select: { name: true, nda: true, qualiopiNumber: true, city: true } },
+      organization: { select: { name: true, nda: true, qualiopiNumber: true, city: true, requiredDocuments: true, referentHandicap: true } },
       sessions: { where: { open: true, endDate: { gte: new Date() } }, orderBy: { startDate: "asc" } },
       trainers: { include: { user: { select: { name: true } } } },
       modules: {
@@ -170,6 +171,27 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           </section>
         </div>
         <aside className="space-y-4">
+                    {course.enrollmentPolicy === "APPLICATION" && (
+            <div className="card p-5">
+              <h2 className="mb-2 text-base">📎 Pièces à prévoir pour votre dossier</h2>
+              <ul className="list-disc space-y-0.5 pl-5 text-sm">
+                {requiredDocumentsFor(course, null).map((c) => <li key={c}>{DOCUMENT_TYPES[c].label}</li>)}
+              </ul>
+              <p className="mt-2 text-xs text-slate-500">
+                Selon votre financement : récapitulatif CPF, attestation France Travail ou accord de prise en charge employeur/OPCO. Formats PDF, photo ou Word.
+              </p>
+            </div>
+          )}
+          {course.skills.length > 0 && (
+            <div className="card p-5">
+              <h2 className="mb-2 text-base">🧭 Compétences visées</h2>
+              <ul className="list-disc space-y-0.5 pl-5 text-sm">{course.skills.map((s) => <li key={s}>{s}</li>)}</ul>
+            </div>
+          )}
+          <a href={`/documents/programme/${course.id}`} target="_blank" className="btn-secondary w-full">📄 Programme détaillé (PDF)</a>
+          {course.organization.referentHandicap && (
+            <p className="text-xs text-slate-500">♿ Référent handicap : {course.organization.referentHandicap}</p>
+          )}
           {course.prerequisites && (
             <div className="card p-5">
               <h2 className="mb-2 text-base">Prérequis</h2>

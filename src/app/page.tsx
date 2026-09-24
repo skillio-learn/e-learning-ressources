@@ -44,14 +44,14 @@ export default async function Home() {
       {/* ── Hero ── */}
       <section className="relative isolate">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-[70%] animate-aurora rounded-full bg-[#2997ff]/25 blur-[120px]" />
-          <div className="absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-[5%] animate-aurora rounded-full bg-[#bf5af2]/20 blur-[120px] [animation-delay:-9s]" />
+          <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-[70%] animate-aurora rounded-full bg-[#0071e3]/[0.12] blur-[120px]" />
+          <div className="absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-[5%] animate-aurora rounded-full bg-[#bf5af2]/[0.10] blur-[120px] [animation-delay:-9s]" />
           <div className="bg-grid mask-fade-b absolute inset-0" />
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-20 pt-24 text-center md:pt-32">
           <Link
             href="/courses"
-            className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3 text-xs text-slate-600 backdrop-blur transition hover:border-white/20 hover:text-slate-900"
+            className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-black/[0.08] bg-black/[0.04] py-1 pl-1 pr-3 text-xs text-slate-600 backdrop-blur transition hover:border-black/[0.12] hover:text-slate-900"
           >
             <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">Nouveau</span>
             Traçabilité OPCO & France Travail intégrée
@@ -78,22 +78,22 @@ export default async function Home() {
 
         {/* Aperçu produit */}
         <div className="relative mx-auto max-w-5xl animate-fade-up px-4 pb-24 delay-500">
-          <div className="absolute inset-x-10 -top-6 bottom-20 -z-10 rounded-[2.5rem] bg-gradient-to-r from-[#2997ff]/30 via-[#7b61ff]/25 to-[#bf5af2]/30 blur-3xl" />
-          <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#0c0c0f]/90 shadow-2xl ring-1 ring-black backdrop-blur">
-            <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
+          <div className="absolute inset-x-10 -top-6 bottom-20 -z-10 rounded-[2.5rem] bg-gradient-to-r from-[#0071e3]/15 via-[#5e5ce6]/10 to-[#bf5af2]/15 blur-3xl" />
+          <div className="overflow-hidden rounded-[1.75rem] border border-black/[0.08] bg-white/90 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.25)] ring-1 ring-black/[0.04] backdrop-blur">
+            <div className="flex items-center gap-2 border-b border-black/[0.06] px-5 py-3">
               <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
               <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
               <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-              <span className="ml-3 truncate rounded-full bg-white/[0.05] px-3 py-1 text-[11px] text-slate-500">vylia.app/learn</span>
+              <span className="ml-3 truncate rounded-full bg-black/[0.05] px-3 py-1 text-[11px] text-slate-500">vylia.app/learn</span>
             </div>
             <div className="grid gap-0 md:grid-cols-[240px_1fr]">
-              <aside className="hidden border-r border-white/[0.06] p-5 text-left md:block">
+              <aside className="hidden border-r border-black/[0.06] p-5 text-left md:block">
                 <div className="eyebrow">Module 1</div>
                 <ul className="mt-3 space-y-1 text-[13px]">
                   {["Bienvenue", "Les formats verticaux", "La ligne éditoriale", "Quiz – fondamentaux", "Mise en situation"].map((l, i) => (
                     <li
                       key={l}
-                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${i === 2 ? "bg-white/[0.06] text-slate-900" : "text-slate-500"}`}
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${i === 2 ? "bg-black/[0.06] text-slate-900" : "text-slate-500"}`}
                     >
                       {i < 2 ? (
                         <BadgeCheck className="h-4 w-4 text-emerald-500" strokeWidth={2} />
@@ -109,9 +109,9 @@ export default async function Home() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="eyebrow">Leçon 3 sur 13</div>
-                    <div className="mt-1 font-display text-2xl font-semibold tracking-tight text-slate-900">La ligne éditoriale</div>
+                    <div className="mt-1 font-display text-2xl font-medium tracking-tight text-slate-900">La ligne éditoriale</div>
                   </div>
-                  <div className="flex items-center gap-2 rounded-full bg-white/[0.05] px-3 py-1.5 text-xs text-slate-600 ring-1 ring-white/10">
+                  <div className="flex items-center gap-2 rounded-full bg-black/[0.05] px-3 py-1.5 text-xs text-slate-600 ring-1 ring-black/[0.06]">
                     <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -125,13 +125,13 @@ export default async function Home() {
                     ["Quiz", "18 / 20"],
                     ["Assiduité", "100 %"],
                   ].map(([k, v]) => (
-                    <div key={k} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                    <div key={k} className="rounded-2xl border border-black/[0.06] bg-black/[0.03] p-4">
                       <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">{k}</div>
-                      <div className="mt-1 font-display text-2xl font-semibold text-slate-900">{v}</div>
+                      <div className="mt-1 font-display text-2xl font-medium text-slate-900">{v}</div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
                   <div className="h-full w-[46%] rounded-full bg-[linear-gradient(90deg,#2997ff,#7b61ff,#bf5af2)]" />
                 </div>
               </div>
@@ -144,7 +144,7 @@ export default async function Home() {
       <section className="mx-auto max-w-6xl px-4 py-20">
         <div className="mx-auto max-w-2xl text-center">
           <div className="eyebrow text-brand-500">Tout-en-un</div>
-          <h2 className="mt-3 font-display text-4xl font-semibold tracking-tightest md:text-5xl">
+          <h2 className="mt-3 font-display text-4xl font-medium tracking-tightest md:text-5xl">
             Pensé pour les apprenants.
             <br />
             <span className="text-slate-500">Taillé pour les contrôles.</span>
@@ -154,13 +154,13 @@ export default async function Home() {
           {FEATURES.map(({ icon: Icon, title, text, className }) => (
             <div
               key={title}
-              className={`group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-7 transition duration-500 hover:border-white/15 ${className ?? ""}`}
+              className={`group relative overflow-hidden rounded-3xl border border-black/[0.07] bg-surface p-7 shadow-card transition duration-500 hover:border-black/[0.12] ${className ?? ""}`}
             >
-              <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#2997ff]/0 blur-3xl transition duration-700 group-hover:bg-[#2997ff]/20" />
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/[0.06] ring-1 ring-white/10">
+              <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#2997ff]/0 blur-3xl transition duration-700 group-hover:bg-[#0071e3]/10" />
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-black/[0.06] ring-1 ring-black/[0.06]">
                 <Icon className="h-5 w-5 text-brand-500" strokeWidth={1.75} />
               </div>
-              <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">{title}</h3>
+              <h3 className="mt-5 font-display text-xl font-medium tracking-tight">{title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-slate-500">{text}</p>
             </div>
           ))}
@@ -173,7 +173,7 @@ export default async function Home() {
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
               <div className="eyebrow">Catalogue</div>
-              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tightest">Formations à la une</h2>
+              <h2 className="mt-2 font-display text-3xl font-medium tracking-tightest">Formations à la une</h2>
             </div>
             <Link href="/courses" className="link inline-flex items-center gap-1 text-sm font-medium">
               Tout voir <ArrowRight className="h-4 w-4" />
@@ -189,10 +189,10 @@ export default async function Home() {
 
       {/* ── Appel à l'action ── */}
       <section className="px-4 py-24">
-        <div className="relative isolate mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 px-6 py-16 text-center">
-          <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_50%_0%,rgba(41,151,255,0.28),transparent_70%)]" />
+        <div className="relative isolate mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-black/[0.08] px-6 py-16 text-center">
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_50%_0%,rgba(0,113,227,0.10),transparent_70%)] bg-surface" />
           <LogoMark className="mx-auto h-12 w-12 animate-float" />
-          <h2 className="mt-6 font-display text-4xl font-semibold tracking-tightest md:text-5xl">Votre prochaine formation commence ici.</h2>
+          <h2 className="mt-6 font-display text-4xl font-medium tracking-tightest md:text-5xl">Votre prochaine formation commence ici.</h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-slate-500">Déposez votre dossier en quelques minutes, l&apos;organisme s&apos;occupe du reste.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/courses" className="btn-primary btn-lg">

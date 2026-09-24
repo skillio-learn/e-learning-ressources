@@ -24,7 +24,7 @@ export async function Navbar() {
     .join("");
 
   return (
-    <header className="no-print glass sticky top-0 z-40 border-b border-white/[0.08]">
+    <header className="no-print glass sticky top-0 z-40 border-b border-black/[0.08]">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:gap-6">
         <Link href={user ? (staff ? "/of" : "/dashboard") : "/"} className="shrink-0 transition-opacity hover:opacity-80" aria-label={settings.platformName}>
           <Logo name={settings.platformName} />
@@ -49,7 +49,7 @@ export async function Navbar() {
             >
               <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
               {unread > 0 && (
-                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[9px] font-semibold text-white ring-2 ring-black">
+                <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[9px] font-semibold text-white ring-2 ring-white">
                   {unread > 99 ? "99+" : unread}
                 </span>
               )}

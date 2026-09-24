@@ -1,31 +1,49 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import "@fontsource-variable/inter";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { timeoutsFor } from "@/lib/tracking";
 import { Navbar } from "@/components/Navbar";
+import { Logo } from "@/components/brand/Logo";
 import { ActivityTracker } from "@/components/tracking/ActivityTracker";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
-  return { title: { default: s.platformName, template: `%s · ${s.platformName}` }, description: s.tagline };
+  const base = process.env.APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+  return {
+    metadataBase: new URL(base),
+    title: { default: s.platformName, template: `%s · ${s.platformName}` },
+    description: s.tagline,
+    applicationName: s.platformName,
+    openGraph: { title: s.platformName, description: s.tagline, siteName: s.platformName, locale: "fr_FR", type: "website" },
+    twitter: { card: "summary_large_image", title: s.platformName, description: s.tagline },
+  };
 }
 
+export const viewport: Viewport = { themeColor: "#000000", colorScheme: "dark" };
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-    const timeouts = user ? await timeoutsFor(user.id) : { standard: 15, interactive: 45 };
+  const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
+  const timeouts = user ? await timeoutsFor(user.id) : { standard: 15, interactive: 45 };
   return (
-    <html lang="fr">
+    <html lang="fr" className="bg-black">
       <body className="flex min-h-screen flex-col">
         <Navbar />
         {user && <ActivityTracker timeoutMin={timeouts.standard} interactiveTimeoutMin={timeouts.interactive} />}
-        <div className="flex-1">{children}</div>
-        <footer className="no-print border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
-          <Link href="/legal/mentions-legales" className="hover:underline">Mentions légales</Link> ·{" "}
-          <Link href="/legal/cgu" className="hover:underline">CGU</Link> ·{" "}
-          <Link href="/legal/confidentialite" className="hover:underline">Confidentialité & RGPD</Link> ·{" "}
-          <Link href="/legal/accessibilite" className="hover:underline">Accessibilité & handicap</Link>
+        <div className="flex-1 animate-fade-in">{children}</div>
+        <footer className="no-print border-t border-white/[0.08]">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 sm:flex-row">
+            <Logo name={settings.platformName} className="scale-90 opacity-70" />
+            <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+              <Link href="/legal/mentions-legales" className="transition hover:text-slate-900">Mentions légales</Link>
+              <Link href="/legal/cgu" className="transition hover:text-slate-900">CGU</Link>
+              <Link href="/legal/confidentialite" className="transition hover:text-slate-900">Confidentialité & RGPD</Link>
+              <Link href="/legal/accessibilite" className="transition hover:text-slate-900">Accessibilité & handicap</Link>
+            </nav>
+            <span>© {new Date().getFullYear()} {settings.platformName}</span>
+          </div>
         </footer>
       </body>
     </html>

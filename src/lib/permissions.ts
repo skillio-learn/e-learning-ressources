@@ -6,7 +6,7 @@ import type { CurrentUser } from "./auth";
 
 /**
  * Règles d'accès :
- * - ADMIN (Skillio) : tout.
+ * - ADMIN (Vylia) : tout.
  * - OF_ADMIN : toutes les formations et données de son organisme.
  * - TRAINER : formations de son organisme dont il est auteur ou co-formateur.
  */

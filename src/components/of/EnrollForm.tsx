@@ -21,7 +21,7 @@ export function EnrollForm({ action }: { action: (prev: EnrollResult, fd: FormDa
       <SubmitButton className="btn-primary w-full" pendingLabel="Inscription…">Inscrire</SubmitButton>
       {state && (
         <div className="space-y-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
-          <div>✅ {state.enrolled} apprenant(s) inscrit(s).</div>
+          <div>{state.enrolled} apprenant(s) inscrit(s).</div>
           {state.notFound.length > 0 && <div className="text-amber-800">Comptes introuvables : {state.notFound.join(", ")}</div>}
           {state.created.length > 0 && (
             <div>

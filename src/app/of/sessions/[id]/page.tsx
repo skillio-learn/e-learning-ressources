@@ -40,7 +40,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <h1>{s.name}</h1>
             <p className="text-sm text-slate-500">{s.course.title} · du {formatDate(s.startDate)} au {formatDate(s.endDate)} · {s.enrollments.length}{s.capacity ? `/${s.capacity}` : ""} inscrit(s)</p>
           </div>
-          <PrintButton label="🖨 Feuille d'émargement (PDF)" />
+          <PrintButton label="Feuille d'émargement (PDF)" />
         </div>
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           <div className="card p-4">
@@ -102,7 +102,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             {/* Signature du formateur pour les créneaux du jour */}
       {s.slots.some((sl) => iso(sl.date) === today && !sl.trainerSignature) && (
         <section className="no-print mt-6 card p-4">
-          <h2 className="mb-2 text-base">✍️ Signature du formateur – créneaux du jour</h2>
+          <h2 className="mb-2 text-base">Signature du formateur – créneaux du jour</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {s.slots.filter((sl) => iso(sl.date) === today && !sl.trainerSignature).map((sl) => (
               <div key={sl.id}>
@@ -150,7 +150,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                   const signed = s.slots.filter((sl) => sl.signatures.some((x) => x.userId === e.userId)).length;
                   return (
                     <tr key={e.id}>
-                      <td className="sticky left-0 border bg-white px-2 py-1 font-medium">
+                      <td className="sticky left-0 border bg-surface px-2 py-1 font-medium">
                         <Link href={`/of/learners/${e.user.id}`} className="hover:underline">{e.user.name}</Link>
                       </td>
                       {s.slots.map((sl) => {
@@ -160,7 +160,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                           <td key={sl.id} className="h-12 border px-1 text-center">
                             {sig ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={sig.signature} alt="✓" title={`Signé le ${formatDate(sig.signedAt, true)}`} className="mx-auto h-9" />
+                              <img src={sig.signature} alt="✓" title={`Signé le ${formatDate(sig.signedAt, true)}`} className="paper-sign mx-auto h-9" />
                             ) : d < today ? (
                               <span className="text-red-500">Absent</span>
                             ) : d === today ? (
@@ -181,7 +181,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                     <td key={sl.id} className="h-12 border px-1 text-center">
                       {sl.trainerSignature && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={sl.trainerSignature} alt="Signature formateur" title={`${sl.trainerName} · ${formatDate(sl.trainerSignedAt, true)}`} className="mx-auto h-9" />
+                        <img src={sl.trainerSignature} alt="Signature formateur" title={`${sl.trainerName} · ${formatDate(sl.trainerSignedAt, true)}`} className="paper-sign mx-auto h-9" />
                       )}
                     </td>
                   ))}

@@ -104,7 +104,7 @@ export const LESSON_TYPE_ICONS = {
   RESOURCE: "📎",
 } as const;
 
-export const ROLE_LABELS = { ADMIN: "Super admin Skillio", OF_ADMIN: "Responsable OF", TRAINER: "Formateur", LEARNER: "Apprenant" } as const;
+export const ROLE_LABELS = { ADMIN: "Super admin Vylia", OF_ADMIN: "Responsable OF", TRAINER: "Formateur", LEARNER: "Apprenant" } as const;
 export const LEVEL_LABELS = { BEGINNER: "Débutant", INTERMEDIATE: "Intermédiaire", ADVANCED: "Avancé" } as const;
 export const STATUS_LABELS = { DRAFT: "Brouillon", PUBLISHED: "Publiée", ARCHIVED: "Archivée" } as const;
 export const QUESTION_TYPE_LABELS = {

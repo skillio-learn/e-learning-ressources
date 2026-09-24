@@ -7,10 +7,10 @@ export function CourseTabs({ courseId }: { courseId: string }) {
   const path = usePathname();
   const base = `/of/courses/${courseId}`;
   const tabs = [
-    { href: base, label: "🧱 Parcours", match: (p: string) => p === base || p.startsWith(`${base}/lessons`) },
-    { href: `${base}/settings`, label: "⚙️ Paramètres" },
-    { href: `${base}/learners`, label: "👥 Apprenants" },
-    { href: `${base}/results`, label: "📊 Résultats & grilles" },
+    { href: base, label: "Parcours", match: (p: string) => p === base || p.startsWith(`${base}/lessons`) },
+    { href: `${base}/settings`, label: "Paramètres" },
+    { href: `${base}/learners`, label: "Apprenants" },
+    { href: `${base}/results`, label: "Résultats & grilles" },
   ];
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-slate-200">

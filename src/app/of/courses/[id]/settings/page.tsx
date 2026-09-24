@@ -26,7 +26,7 @@ export default async function CourseSettings({ params }: { params: Promise<{ id:
       <CourseForm action={updateCourseAction.bind(null, id)} course={course} organizations={organizations} />
       <aside className="space-y-4">
         <div className="card space-y-3 p-4">
-          <h2 className="text-base">👩‍🏫 Équipe pédagogique</h2>
+          <h2 className="text-base">Équipe pédagogique</h2>
           <div className="text-sm">
             <div className="font-medium">{course.author.name}</div>
             <div className="text-xs text-slate-500">Auteur · {course.author.email}</div>
@@ -54,7 +54,7 @@ export default async function CourseSettings({ params }: { params: Promise<{ id:
           </form>
           {course.status !== "ARCHIVED" ? (
             <form action={setCourseStatusAction.bind(null, id, "ARCHIVED")}>
-              <SubmitButton className="btn-secondary w-full">🗄 Archiver</SubmitButton>
+              <SubmitButton className="btn-secondary w-full">Archiver</SubmitButton>
             </form>
           ) : (
             <form action={setCourseStatusAction.bind(null, id, "DRAFT")}>

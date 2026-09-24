@@ -40,7 +40,7 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         <Stat label="Moyenne aux évaluations" value={pct(average)} hint={`Seuil de validation : ${course.passingScore} %`} />
         <Stat
           label="Statut"
-          value={enrollment?.status === "COMPLETED" ? "✅ Validée" : preview ? "Aperçu" : "En cours"}
+          value={enrollment?.status === "COMPLETED" ? "Validée" : preview ? "Aperçu" : "En cours"}
         />
       </div>
       <div className="flex flex-wrap gap-3">
@@ -55,36 +55,36 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         )}
         {enrollment && !preview && (
           <>
-                        <Link href={`/learn/${course.slug}/messages`} className="btn-secondary">💬 Contacter mon formateur</Link>
-            <Link href={`/documents/convention/${enrollment.id}`} className="btn-secondary">✍️ Ma convention</Link>
-            <Link href={`/documents/assiduite/${enrollment.id}`} className="btn-secondary">📄 Attestation d&apos;assiduité</Link>
-            <Link href={`/documents/releve/${enrollment.id}`} className="btn-secondary">🕒 Relevé de connexions</Link>
+                        <Link href={`/learn/${course.slug}/messages`} className="btn-secondary">Contacter mon formateur</Link>
+            <Link href={`/documents/convention/${enrollment.id}`} className="btn-secondary">Ma convention</Link>
+            <Link href={`/documents/assiduite/${enrollment.id}`} className="btn-secondary">Attestation d&apos;assiduité</Link>
+            <Link href={`/documents/releve/${enrollment.id}`} className="btn-secondary">Relevé de connexions</Link>
             {enrollment.status === "COMPLETED" && (
-              <Link href={`/documents/realisation/${enrollment.id}`} className="btn-secondary">🧾 Certificat de réalisation</Link>
+              <Link href={`/documents/realisation/${enrollment.id}`} className="btn-secondary">Certificat de réalisation</Link>
             )}
           </>
         )}
         {certificate && (
-          <Link href={`/certificates/${certificate.code}`} className="btn-secondary">🏅 Voir mon certificat</Link>
+          <Link href={`/certificates/${certificate.code}`} className="btn-secondary">Voir mon certificat</Link>
         )}
       </div>
 
             {enrollment && !preview && !enrollment.conventionSignedAt && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          ✍️ Votre convention / contrat de formation n&apos;est pas encore signé(e).
+          Votre convention / contrat de formation n&apos;est pas encore signé(e).
           <Link href={`/documents/convention/${enrollment.id}`} className="btn-primary btn-sm ml-auto">Lire et signer</Link>
         </div>
       )}
       {enrollment && !preview && fullCourse.skills.length > 0 && !enrollment.exitAssessment && (enrollment.status === "COMPLETED" || outline.percent >= 80) && (
         <section className="card p-6">
-          <h2 className="mb-1">🧭 Auto-évaluation de fin de formation</h2>
+          <h2 className="mb-1">Auto-évaluation de fin de formation</h2>
           <p className="mb-4 text-sm text-slate-500">Où en êtes-vous sur chaque compétence visée ? Elle sera comparée à votre positionnement d&apos;entrée.</p>
           <ExitAssessmentForm action={saveExitAssessmentAction.bind(null, enrollment.id)} skills={fullCourse.skills} entry={entryPositioning} />
         </section>
       )}
       {enrollment && !preview && !satisfaction && (enrollment.status === "COMPLETED" || outline.percent >= 80) && (
         <section className="card border-brand-200 p-6 ring-2 ring-brand-100">
-          <h2 className="mb-1">⭐ Votre avis compte</h2>
+          <h2 className="mb-1">Votre avis compte</h2>
           <p className="mb-4 text-sm text-slate-500">Questionnaire de satisfaction (2 minutes) — il nous aide à améliorer la formation.</p>
           <SatisfactionForm action={submitSatisfactionAction.bind(null, enrollment.id, "HOT")} />
         </section>

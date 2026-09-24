@@ -6,9 +6,9 @@ export function DocShell({ org, title, subtitle, children }: { org: Organization
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 print:max-w-none print:p-0">
       <div className="no-print mb-4 flex justify-end gap-2">
-        <PrintButton label="🖨 Imprimer / Enregistrer en PDF" />
+        <PrintButton label="Imprimer / Enregistrer en PDF" />
       </div>
-      <article className="rounded-xl border border-slate-200 bg-white p-8 text-sm leading-relaxed shadow-sm print:border-0 print:shadow-none">
+      <article className="theme-paper rounded-2xl border border-slate-200 p-8 text-sm leading-relaxed shadow-sm print:border-0 print:shadow-none">
         <header className="mb-6 flex items-start justify-between gap-6 border-b border-slate-200 pb-4">
           <div>
             {org.logoUrl && (

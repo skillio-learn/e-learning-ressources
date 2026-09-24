@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveRubricAction, type RubricInput } from "@/app/actions/of";
+import { Trash2 } from "lucide-react";
 
 const DEFAULT_LEVELS = [
   { label: "Insuffisant", description: "", points: 0 },
@@ -111,7 +112,7 @@ export function RubricEditor({
               <div className="flex gap-0.5">
                 <button type="button" className="btn-ghost btn-sm" onClick={() => moveCrit(i, -1)}>↑</button>
                 <button type="button" className="btn-ghost btn-sm" onClick={() => moveCrit(i, 1)}>↓</button>
-                <button type="button" className="btn-ghost btn-sm text-red-600" onClick={() => setR({ ...r, criteria: r.criteria.filter((_, j) => j !== i) })}>🗑</button>
+                <button type="button" className="btn-ghost btn-sm text-red-600" onClick={() => setR({ ...r, criteria: r.criteria.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
               </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -145,7 +146,7 @@ export function RubricEditor({
       </section>
 
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {ok && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">✅ Grille enregistrée.</p>}
+      {ok && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Grille enregistrée.</p>}
       <div className="flex justify-end">
         <button className="btn-primary" onClick={save} disabled={pending || locked}>{pending ? "Enregistrement…" : "Enregistrer la grille"}</button>
       </div>

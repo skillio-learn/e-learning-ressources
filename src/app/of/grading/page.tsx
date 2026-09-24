@@ -70,7 +70,7 @@ export default async function Grading({ searchParams }: { searchParams: Promise<
         </form>
       </div>
       {items.length === 0 ? (
-        <Empty title={todo ? "Rien à corriger 🎉" : "Aucune correction"} />
+        <Empty title={todo ? "Rien à corriger" : "Aucune correction"} />
       ) : (
         <div className="card overflow-x-auto">
           <table className="table">

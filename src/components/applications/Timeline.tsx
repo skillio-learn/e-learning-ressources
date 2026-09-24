@@ -25,17 +25,17 @@ export function Timeline({ events, learnerId, showInternal }: { events: Ev[]; le
             className={cn(
               "rounded-lg border p-3 text-sm",
               e.type === "NOTE" && "border-amber-200 bg-amber-50",
-              e.type === "MESSAGE" && (mine ? "border-slate-200 bg-white" : "border-brand-200 bg-brand-50"),
+              e.type === "MESSAGE" && (mine ? "border-slate-200 bg-surface" : "border-brand-200 bg-brand-50"),
               e.type === "STATUS" && "border-slate-200 bg-slate-50",
-              e.type === "DOCUMENT" && "border-slate-100 bg-white",
+              e.type === "DOCUMENT" && "border-slate-100 bg-surface",
             )}
           >
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>
-                {e.type === "STATUS" && "🔄 Statut"}
-                {e.type === "MESSAGE" && "💬 Message"}
-                {e.type === "NOTE" && "🔒 Note interne OF"}
-                {e.type === "DOCUMENT" && "📎 Justificatif"}
+                {e.type === "STATUS" && "Statut"}
+                {e.type === "MESSAGE" && "Message"}
+                {e.type === "NOTE" && "Note interne OF"}
+                {e.type === "DOCUMENT" && "Justificatif"}
                 {e.author ? ` · ${e.author.name}${e.author.role === "LEARNER" ? " (apprenant)" : " (organisme)"}` : ""}
               </span>
               <span>{formatDate(e.createdAt, true)}</span>

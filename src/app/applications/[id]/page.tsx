@@ -108,8 +108,8 @@ export default async function ApplicationPage({ params, searchParams }: { params
       )}
       {app.status === "ENROLLED" && app.enrollment && (
         <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-          <span>🎉 Vous êtes inscrit(e) définitivement.{!app.enrollment.conventionSignedAt && " Dernière étape : signez votre convention / contrat de formation."}</span>
-          {!app.enrollment.conventionSignedAt && <Link href={`/documents/convention/${app.enrollment.id}`} className="btn-secondary ml-auto">✍️ Signer ma convention</Link>}
+          <span>Vous êtes inscrit(e) définitivement.{!app.enrollment.conventionSignedAt && " Dernière étape : signez votre convention / contrat de formation."}</span>
+          {!app.enrollment.conventionSignedAt && <Link href={`/documents/convention/${app.enrollment.id}`} className="btn-secondary ml-auto">Signer ma convention</Link>}
           <Link href={`/learn/${app.course.slug}`} className="btn-primary">Accéder à la formation</Link>
         </div>
       )}
@@ -126,7 +126,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
                     href={href(i + 1)}
                     className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
-                      step === i + 1 ? "border-brand-500 bg-brand-50 font-semibold text-brand-800" : "border-slate-200 bg-white hover:bg-slate-50",
+                      step === i + 1 ? "border-brand-500 bg-brand-50 font-semibold text-brand-800" : "border-slate-200 bg-surface hover:bg-slate-50",
                     )}
                   >
                     <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold", done[i] ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600")}>
@@ -224,7 +224,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
                       <ul className="mt-1 list-disc pl-5">{blockers.map((b) => <li key={b}>{b}</li>)}</ul>
                     </div>
                   ) : (
-                    <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">✅ Votre dossier est complet.</p>
+                    <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Votre dossier est complet.</p>
                   )}
                   <dl className="mb-4 grid gap-1 text-sm md:grid-cols-2">
                     <div><span className="text-slate-500">Identité :</span> {profile?.civility} {profile?.firstName} {profile?.lastName}</div>
@@ -312,7 +312,7 @@ function DocLine({ doc, canDelete }: { doc: { id: string; fileName: string; size
   return (
     <div className="mt-2 space-y-1 text-xs">
       <div className="flex flex-wrap items-center gap-2 text-slate-600">
-        <span>{doc.status === "VALIDATED" ? "✅" : doc.status === "REJECTED" ? "❌" : "📄"}</span>
+        <span className={`h-2 w-2 rounded-full ${doc.status === "VALIDATED" ? "bg-emerald-500" : doc.status === "REJECTED" ? "bg-red-500" : "bg-slate-400"}`} />
         <a href={`/api/documents/${doc.id}?inline=1`} target="_blank" className="text-brand-600 underline">{doc.fileName}</a>
         <span>{Math.max(1, Math.round(doc.size / 1024))} Ko · {formatDate(doc.uploadedAt, true)}</span>
         {canDelete && (

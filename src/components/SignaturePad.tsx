@@ -32,7 +32,7 @@ export function SignaturePad({ onSign, label = "Signer" }: { onSign: (dataUrl: s
     <div className="space-y-2">
       <canvas
         ref={canvas}
-        className="h-36 w-full touch-none rounded-lg border-2 border-dashed border-slate-300 bg-white"
+        className="h-36 w-full touch-none rounded-xl border-2 border-dashed border-slate-300 bg-[#fff]"
         onPointerDown={(e) => {
           drawing.current = true;
           const ctx = canvas.current!.getContext("2d")!;

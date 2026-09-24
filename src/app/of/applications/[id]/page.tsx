@@ -255,7 +255,7 @@ export default async function OfApplication({ params }: { params: Promise<{ id: 
 
           {app.enrollment && (
             <Link href={`/of/learners/${app.user.id}`} className="card block p-4 text-sm text-emerald-800 hover:shadow">
-              ✅ Inscrit(e) définitivement — voir le suivi de formation →
+              Inscrit(e) définitivement — voir le suivi de formation →
             </Link>
           )}
 

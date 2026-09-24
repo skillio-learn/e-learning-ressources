@@ -35,7 +35,7 @@ export function CompleteButton({
     );
   }
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-surface p-4">
       <span className="text-sm text-slate-600">
         {remaining > 0
           ? `Temps minimum de consultation : encore ${formatDuration(remaining)} avant de pouvoir valider cette étape.`

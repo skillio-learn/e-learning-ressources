@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Field } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
-import { LESSON_TYPE_ICONS, LESSON_TYPE_LABELS } from "@/lib/utils";
+import { LESSON_TYPE_LABELS } from "@/lib/utils";
 
 type LessonType = keyof typeof LESSON_TYPE_LABELS;
 
@@ -52,7 +52,7 @@ export function LessonForm({
           <Field label="Type d'étape">
             <select name="type" value={type} onChange={(e) => setType(e.target.value as LessonType)} className="input">
               {(Object.keys(LESSON_TYPE_LABELS) as LessonType[]).map((t) => (
-                <option key={t} value={t}>{LESSON_TYPE_ICONS[t]} {LESSON_TYPE_LABELS[t]}</option>
+                <option key={t} value={t}>{LESSON_TYPE_LABELS[t]}</option>
               ))}
             </select>
           </Field>
@@ -87,7 +87,7 @@ export function LessonForm({
 
       {type === "INTERACTIVE" && (
         <section className="card space-y-4 p-6">
-          <h2>✨ Module interactif</h2>
+          <h2>Module interactif</h2>
           <div className="flex gap-2">
             <button type="button" onClick={() => setSource("url")} className={source === "url" ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>URL du module</button>
             <button type="button" onClick={() => setSource("html")} className={source === "html" ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>Importer un fichier HTML</button>
@@ -120,7 +120,7 @@ export function LessonForm({
             <summary className="cursor-pointer font-medium">Comment activer la validation automatique dans mes modules ?</summary>
             <div className="mt-2 space-y-2 text-slate-600">
               <p>Ajoutez ce script dans le HTML de votre module :</p>
-              <pre className="overflow-x-auto rounded bg-slate-900 p-3 text-xs text-slate-100">{`<script src="${origin}/lms-bridge.js"></script>`}</pre>
+              <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800">{`<script src="${origin}/lms-bridge.js"></script>`}</pre>
               <p>Puis, à la fin du module (ex. bouton « Terminer ») : <code>LMS.complete()</code> ou <code>LMS.complete(score)</code>.</p>
               <p>Ou sans code : <code>&lt;body data-lms-complete-on=&quot;#bouton-fin&quot;&gt;</code>.</p>
             </div>
@@ -130,7 +130,7 @@ export function LessonForm({
 
       {type === "VIDEO" && (
         <section className="card space-y-4 p-6">
-          <h2>🎬 Vidéo</h2>
+          <h2>Vidéo</h2>
           <Field label="URL de la vidéo" hint="YouTube, Vimeo ou fichier MP4.">
             <input name="videoUrl" type="url" defaultValue={lesson.videoUrl ?? ""} className="input" />
           </Field>
@@ -141,7 +141,7 @@ export function LessonForm({
 
       {type === "RESOURCE" && (
         <section className="card space-y-4 p-6">
-          <h2>📎 Ressource</h2>
+          <h2>Ressource</h2>
           <Field label="Lien vers la ressource" hint="PDF, Google Drive, Canva, site…">
             <input name="resourceUrl" type="url" defaultValue={lesson.resourceUrl ?? ""} className="input" />
           </Field>
@@ -159,7 +159,7 @@ export function LessonForm({
 
       {type === "ASSIGNMENT" && (
         <section className="card space-y-4 p-6">
-          <h2>📝 Devoir évalué</h2>
+          <h2>Devoir évalué</h2>
           <Field label="Grille d'évaluation">
             <select name="rubricId" defaultValue={lesson.rubricId ?? ""} className="input">
               <option value="">— Aucune (note libre) —</option>

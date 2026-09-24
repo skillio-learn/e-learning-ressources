@@ -5,7 +5,7 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 import { canManageOrg, canViewLearner, manageableCoursesWhere } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { dateParam, learnersSummary } from "@/lib/reports";
-import { FUNDING_TYPES } from "@/lib/labels";
+import { ENROLLMENT_STATUS, EXIT_REASONS, FUNDING_TYPES } from "@/lib/labels";
 import { formatDate, toCsv } from "@/lib/utils";
 
 const EVT = { LOGIN: "Connexion", LOGOUT: "Déconnexion", FAILED: "Échec", LOCKED: "Verrouillé" } as const;
@@ -51,10 +51,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
     case "summary": {
       const data = await learnersSummary(courseIds, from, to);
       rows = [
-        ["Apprenant", "Email", "Formation", "Statut", "Début", "Fin", "Heures prévues", "Heures réalisées", "Taux assiduité (%)", "Progression (%)", "Nb connexions", "Dernière activité", "Financement", "N° prise en charge"],
+        ["Apprenant", "Email", "Formation", "Statut", "Date de sortie", "Motif de sortie", "Début", "Fin", "Heures prévues", "Heures réalisées", "Taux assiduité (%)", "Progression (%)", "Nb connexions", "Dernière activité", "Financement", "N° prise en charge"],
         ...data.map((r) => [
           r.enrollment.user.name, r.enrollment.user.email, r.enrollment.course.title,
-          r.enrollment.status === "COMPLETED" ? "Terminée" : r.enrollment.status === "SUSPENDED" ? "Suspendue" : "En cours",
+                    ENROLLMENT_STATUS[r.enrollment.status].label,
+          r.enrollment.exitDate ? formatDate(r.enrollment.exitDate) : "",
+          r.enrollment.exitCategory ? EXIT_REASONS[r.enrollment.exitCategory] ?? r.enrollment.exitCategory : "",
           formatDate(r.enrollment.startDate), formatDate(r.enrollment.endDate), r.enrollment.plannedHours ?? "", hours(r.seconds),
           r.enrollment.plannedHours ? Math.round((r.seconds / 3600 / r.enrollment.plannedHours) * 100) : "",
           r.percent, r.logins, iso(r.lastActivity),

@@ -33,7 +33,9 @@ export function OrganizationForm({ org }: { org: Organization }) {
         <Field label="Nom du signataire des attestations"><input name="managerName" defaultValue={org.managerName ?? ""} className="input" /></Field>
         <Field label="Fonction du signataire"><input name="managerTitle" defaultValue={org.managerTitle ?? ""} className="input" /></Field>
         <Field label="Règlement intérieur (URL)"><input name="internalRulesUrl" type="url" defaultValue={org.internalRulesUrl ?? ""} className="input" /></Field>
-        <Field label="Conditions générales de vente (URL)"><input name="cgvUrl" type="url" defaultValue={org.cgvUrl ?? ""} className="input" /></Field>
+                <Field label="Conditions générales de vente (URL)"><input name="cgvUrl" type="url" defaultValue={org.cgvUrl ?? ""} className="input" /></Field>
+        <Field label="Référent handicap (nom, email, téléphone)"><input name="referentHandicap" defaultValue={org.referentHandicap ?? ""} className="input" /></Field>
+        <Field label="Médiateur de la consommation (contrats particuliers)"><input name="mediatorInfo" defaultValue={org.mediatorInfo ?? ""} className="input" /></Field>
       </section>
       <section className="card space-y-4 p-6">
         <h2>Dossiers d&apos;inscription & traçabilité</h2>
@@ -50,7 +52,13 @@ export function OrganizationForm({ org }: { org: Organization }) {
           </div>
         </div>
         <Field label="Délai d'inactivité avant pause du chronomètre (minutes)" hint="Au-delà, le temps n'est plus comptabilisé et l'apprenant doit confirmer sa présence.">
-          <input name="inactivityTimeoutMin" type="number" min={2} max={120} defaultValue={org.inactivityTimeoutMin} className="input max-w-[140px]" />
+                    <input name="inactivityTimeoutMin" type="number" min={2} max={120} defaultValue={org.inactivityTimeoutMin} className="input max-w-[140px]" />
+        </Field>
+        <Field
+          label="Délai d'inactivité dans un module interactif (minutes)"
+          hint="L'activité à l'intérieur d'un module intégré (iframe) n'est visible que si le module inclut lms-bridge.js. Ce délai plus long évite de sous-compter le temps passé dans vos modules."
+        >
+          <input name="interactiveTimeoutMin" type="number" min={2} max={180} defaultValue={org.interactiveTimeoutMin} className="input max-w-[140px]" />
         </Field>
       </section>
     </StateForm>

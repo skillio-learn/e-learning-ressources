@@ -46,7 +46,10 @@ function courseData(fd: FormData) {
     rncpCode: optStr(fd, "rncpCode"),
     cpfEligible: bool(fd, "cpfEligible"),
     price: optFloat(fd, "price"),
-    requiredDocuments: fd.getAll("requiredDocuments").map(String).filter(Boolean),
+        requiredDocuments: fd.getAll("requiredDocuments").map(String).filter(Boolean),
+    skills: str(fd, "skills").split(/\r?\n/).map((s) => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean).slice(0, 20),
+    pedagogicalMethods: optStr(fd, "pedagogicalMethods"),
+    evaluationMethods: optStr(fd, "evaluationMethods"),
   };
 }
 

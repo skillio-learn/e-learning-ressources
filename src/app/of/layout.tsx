@@ -5,7 +5,7 @@ import { NavLink } from "@/components/NavLink";
 export default async function OfLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
   const manager = isOfManager(user);
-  const [org, pendingApps, pendingGrading] = await Promise.all([
+    const [org, pendingApps, pendingGrading, unreadMessages] = await Promise.all([
     user.organizationId ? db.organization.findUnique({ where: { id: user.organizationId }, select: { name: true } }) : null,
     manager
       ? db.application.count({
@@ -13,7 +13,10 @@ export default async function OfLayout({ children }: { children: React.ReactNode
         })
       : Promise.resolve(0),
     db.submission.count({
-      where: { status: "SUBMITTED", ...(user.role === "ADMIN" ? {} : { lesson: { module: { course: { organizationId: user.organizationId ?? "__" } } } }) },
+            where: { status: "SUBMITTED", ...(user.role === "ADMIN" ? {} : { lesson: { module: { course: { organizationId: user.organizationId ?? "__" } } } }) },
+    }),
+    db.pedagogicalMessage.count({
+      where: { fromStaff: false, readAt: null, ...(user.role === "ADMIN" ? {} : { enrollment: { course: { organizationId: user.organizationId ?? "__" } } }) },
     }),
   ]);
   const Item = ({ href, children, count }: { href: string; children: React.ReactNode; count?: number }) => (
@@ -34,7 +37,8 @@ export default async function OfLayout({ children }: { children: React.ReactNode
         <nav className="flex gap-1 overflow-x-auto p-2 text-sm lg:flex-col [&_a]:block">
           <Item href="/of/home">🏠 Tableau de bord</Item>
           {manager && <Item href="/of/applications" count={pendingApps}>📥 Dossiers d&apos;inscription</Item>}
-          <Item href="/of/learners">👥 Apprenants</Item>
+                    <Item href="/of/learners">👥 Apprenants</Item>
+          <Item href="/of/messages" count={unreadMessages}>💬 Messagerie pédagogique</Item>
           <Item href="/of/courses">📚 Formations</Item>
           <Item href="/of/sessions">📅 Sessions & émargement</Item>
           <Item href="/of/grading" count={pendingGrading}>📝 Corrections</Item>

@@ -4,10 +4,13 @@ import { db } from "@/lib/db";
 import { isOfManager, requireStaff } from "@/lib/auth";
 import { canViewLearner, manageableCoursesWhere } from "@/lib/permissions";
 import { updateEnrollmentAction } from "@/app/actions/of-admin";
+import { createFunderFeedbackAction, requestColdEvaluationAction, sendConvocationAction } from "@/app/actions/compliance";
+import { ofResetLearnerPasswordAction } from "@/app/actions/password";
+import { SubmitButton } from "@/components/SubmitButton";
 import { StateForm } from "@/components/StateForm";
 import { StatusBadge } from "@/components/applications/StatusBadge";
 import { Badge, Container, PageHeader, ProgressBar, Stat } from "@/components/ui";
-import { EMPLOYMENT_STATUS, FUNDING_TYPES, formatDuration, formatHours } from "@/lib/labels";
+import { EMPLOYMENT_STATUS, ENROLLMENT_STATUS, EXIT_REASONS, FUNDING_TYPES, RESPONDENT_TYPES, SKILL_LEVELS, formatDuration, formatHours } from "@/lib/labels";
 import { getCourseOutline } from "@/lib/progress";
 import { formatDate } from "@/lib/utils";
 
@@ -29,11 +32,12 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
       enrollments: {
         where: { course: courseWhere },
         include: {
-          course: { select: { id: true, title: true, sessions: { select: { id: true, name: true } } } },
           session: { select: { name: true } },
           enrolledBy: { select: { name: true } },
-          application: { select: { id: true, number: true } },
-          satisfaction: { select: { globalScore: true } },
+          application: { select: { id: true, number: true, positioning: true } },
+          feedbacks: { orderBy: { createdAt: "desc" } },
+          course: { select: { id: true, title: true, skills: true, sessions: { select: { id: true, name: true } } } },
+          satisfactions: { select: { globalScore: true, kind: true } },
         },
       },
       applications: { where: { course: courseWhere }, include: { course: { select: { title: true } } }, orderBy: { createdAt: "desc" } },
@@ -57,7 +61,14 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
       <PageHeader
         back={{ href: "/of/learners", label: "Apprenants" }}
         title={learner.name}
-        subtitle={`${learner.email}${p?.phone ? ` · ${p.phone}` : ""} · compte créé le ${formatDate(learner.createdAt)}`}
+                subtitle={`${learner.email}${p?.phone ? ` · ${p.phone}` : ""} · compte créé le ${formatDate(learner.createdAt)}`}
+        actions={
+          manager ? (
+            <StateForm action={ofResetLearnerPasswordAction.bind(null, id)} submitLabel="🔑 Réinitialiser le mot de passe" submitClassName="btn-secondary btn-sm" className="max-w-xs space-y-2">
+              <></>
+            </StateForm>
+          ) : null
+        }
       />
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <Stat label="Temps de formation total" value={formatHours(totalSec)} hint={formatDuration(totalSec)} />
@@ -80,12 +91,10 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                     {e.application ? `Dossier ${e.application.number} · ` : ""}Inscrit le {formatDate(e.enrolledAt)}
                     {e.enrolledBy ? ` par ${e.enrolledBy.name}` : ""} · {e.session?.name ?? "sans session"}
                     {e.fundingType ? ` · ${FUNDING_TYPES[e.fundingType].split(" (")[0]}` : ""}
-                    {e.satisfaction ? ` · satisfaction ${e.satisfaction.globalScore}/5` : ""}
+                    {e.satisfactions.map((x) => ` · satisfaction ${x.kind === "COLD" ? "à froid" : "à chaud"} ${x.globalScore}/5`).join("")}
                   </div>
                 </div>
-                <Badge tone={e.status === "COMPLETED" ? "green" : e.status === "SUSPENDED" ? "red" : "blue"}>
-                  {e.status === "COMPLETED" ? "Terminée" : e.status === "SUSPENDED" ? "Suspendue" : "En cours"}
-                </Badge>
+                <Badge tone={ENROLLMENT_STATUS[e.status].tone}>{ENROLLMENT_STATUS[e.status].label}</Badge>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-4">
                 <div>
@@ -106,7 +115,49 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                   <div className="text-sm">{formatDate(e.startDate)} → {formatDate(e.endDate)}</div>
                 </div>
               </div>
+                            {e.exitDate && (
+                <div className="mt-3 rounded-lg bg-red-50 p-2 text-sm text-red-800">
+                  Sortie le {formatDate(e.exitDate)} — {EXIT_REASONS[e.exitCategory ?? ""] ?? e.exitCategory}{e.exitReason ? ` : ${e.exitReason}` : ""}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                {e.conventionSignedAt ? (
+                  <Badge tone="green">✍️ Convention signée le {formatDate(e.conventionSignedAt, true)}</Badge>
+                ) : (
+                  <Badge tone="amber">Convention non signée</Badge>
+                )}
+                {e.convocationSentAt ? <Badge tone="green">📨 Convocation envoyée le {formatDate(e.convocationSentAt)}</Badge> : <Badge>Convocation non envoyée</Badge>}
+                {manager && (
+                  <form action={sendConvocationAction.bind(null, e.id)} className="inline">
+                    <SubmitButton className="btn-ghost btn-sm" pendingLabel="Envoi…">{e.convocationSentAt ? "Renvoyer la convocation" : "📨 Envoyer la convocation"}</SubmitButton>
+                  </form>
+                )}
+              </div>
+              {e.course.skills.length > 0 && (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-left text-slate-500"><th className="py-1">Compétence visée</th><th>Positionnement d&apos;entrée</th><th>Auto-évaluation de sortie</th><th>Évolution</th></tr></thead>
+                    <tbody>
+                      {e.course.skills.map((s) => {
+                        const inV = (e.application?.positioning as Record<string, number> | null)?.[s];
+                        const outV = (e.exitAssessment as Record<string, number> | null)?.[s];
+                        return (
+                          <tr key={s} className="border-t border-slate-100">
+                            <td className="py-1">{s}</td>
+                            <td>{inV !== undefined ? SKILL_LEVELS[inV] : "—"}</td>
+                            <td>{outV !== undefined ? SKILL_LEVELS[outV] : "—"}</td>
+                            <td>{inV !== undefined && outV !== undefined ? (outV - inV > 0 ? `+${outV - inV} ▲` : outV - inV === 0 ? "=" : `${outV - inV} ▼`) : ""}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
+                <Link href={`/documents/convention/${e.id}`} className="btn-secondary btn-sm">✍️ Convention / contrat</Link>
+                <Link href={`/documents/convocation/${e.id}`} className="btn-secondary btn-sm">📨 Convocation</Link>
+                <Link href={`/of/messages/${e.id}`} className="btn-secondary btn-sm">💬 Messages</Link>
                 <Link href={`/documents/releve/${e.id}`} className="btn-secondary btn-sm">🕒 Relevé de connexions</Link>
                 <Link href={`/documents/assiduite/${e.id}`} className="btn-secondary btn-sm">📄 Attestation d&apos;assiduité</Link>
                 <Link href={`/documents/realisation/${e.id}`} className="btn-secondary btn-sm">🧾 Certificat de réalisation</Link>
@@ -125,9 +176,19 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                       <select name="status" defaultValue={e.status} className="input">
                         <option value="ACTIVE">En cours</option>
                         <option value="COMPLETED">Terminée</option>
-                        <option value="SUSPENDED">Suspendue</option>
+                                                <option value="SUSPENDED">Interrompue</option>
+                        <option value="ABANDONED">Abandon</option>
                       </select>
                     </label>
+                    <label className="text-sm"><span className="label">Date de sortie (abandon / interruption)</span><input type="date" name="exitDate" defaultValue={iso(e.exitDate)} className="input" /></label>
+                    <label className="text-sm">
+                      <span className="label">Motif de sortie</span>
+                      <select name="exitCategory" defaultValue={e.exitCategory ?? ""} className="input">
+                        <option value="">—</option>
+                        {Object.entries(EXIT_REASONS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm md:col-span-2"><span className="label">Précisions</span><input name="exitReason" defaultValue={e.exitReason ?? ""} className="input" /></label>
                     <label className="text-sm">
                       <span className="label">Financement</span>
                       <select name="fundingType" defaultValue={e.fundingType ?? ""} className="input">
@@ -144,6 +205,32 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                       </select>
                     </label>
                   </StateForm>
+                                </details>
+              )}
+              {manager && (
+                <details className="mt-3 rounded-lg bg-slate-50 p-3">
+                  <summary className="cursor-pointer text-sm font-medium">Évaluations qualité (à froid, financeur, entreprise)</summary>
+                  <div className="mt-3 flex flex-wrap items-start gap-4">
+                    <form action={requestColdEvaluationAction.bind(null, e.id)}>
+                      <SubmitButton className="btn-secondary btn-sm" pendingLabel="Envoi…">❄️ Demander l&apos;évaluation à froid</SubmitButton>
+                    </form>
+                    <StateForm action={createFunderFeedbackAction.bind(null, e.id)} submitLabel="Générer le lien" submitClassName="btn-secondary btn-sm" className="flex flex-wrap items-center gap-2">
+                      <select name="respondentType" className="input w-auto py-1 text-sm">
+                        {Object.entries(RESPONDENT_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                      <input name="respondentName" placeholder="Nom / structure" className="input w-48 py-1 text-sm" />
+                    </StateForm>
+                  </div>
+                  {e.feedbacks.length > 0 && (
+                    <ul className="mt-3 space-y-1 text-xs">
+                      {e.feedbacks.map((f) => (
+                        <li key={f.id}>
+                          {RESPONDENT_TYPES[f.respondentType]} {f.respondentName ? `(${f.respondentName})` : ""} —{" "}
+                          {f.answeredAt ? <b>répondu : {f.globalScore}/5</b> : <span>en attente · lien : <code>/feedback/{f.token}</code></span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </details>
               )}
             </div>

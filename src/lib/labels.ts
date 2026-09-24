@@ -96,3 +96,40 @@ export function formatDuration(totalSec: number | null | undefined) {
 export function formatHours(totalSec: number | null | undefined) {
   return `${(Math.round(((totalSec ?? 0) / 3600) * 100) / 100).toLocaleString("fr-FR")} h`;
 }
+
+export const ENROLLMENT_STATUS = {
+  ACTIVE: { label: "En cours", tone: "blue" },
+  COMPLETED: { label: "Terminée", tone: "green" },
+  SUSPENDED: { label: "Interrompue", tone: "amber" },
+  ABANDONED: { label: "Abandon", tone: "red" },
+} as const;
+
+/** Motifs de sortie anticipée (demandés par les OPCO / France Travail / CDC). */
+export const EXIT_REASONS: Record<string, string> = {
+  LEARNER_CHOICE: "Abandon à l'initiative du stagiaire",
+  EMPLOYMENT: "Reprise d'emploi / entrée en contrat",
+  HEALTH: "Raison médicale",
+  FAMILY: "Raison familiale ou personnelle",
+  FORCE_MAJEURE: "Cas de force majeure",
+  OTHER_TRAINING: "Entrée dans une autre formation",
+  EXCLUSION: "Exclusion (règlement intérieur)",
+  NO_SHOW: "Absence de connexion / non-démarrage",
+  OTHER: "Autre motif",
+};
+
+export const SKILL_LEVELS = ["Aucune notion", "Débutant", "Intermédiaire", "Confirmé", "Expert"];
+
+export const FUNDER_QUESTIONS = [
+  { code: "relevance", label: "Adéquation de la formation aux besoins" },
+  { code: "information", label: "Qualité de l'information et des échanges avec l'organisme" },
+  { code: "followup", label: "Suivi administratif (dossier, attestations, justificatifs)" },
+  { code: "results", label: "Résultats observés / montée en compétences" },
+  { code: "recommend", label: "Recommanderiez-vous cet organisme ?" },
+];
+
+export const RESPONDENT_TYPES: Record<string, string> = {
+  EMPLOYER: "Entreprise / employeur",
+  OPCO: "OPCO",
+  FRANCE_TRAVAIL: "France Travail",
+  OTHER: "Autre financeur / partenaire",
+};

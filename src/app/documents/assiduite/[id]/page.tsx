@@ -1,6 +1,6 @@
 import { loadTraceForViewer } from "@/lib/document-access";
 import { DocShell, Signature } from "@/components/documents/DocShell";
-import { formatHours, MODALITY_LABELS } from "@/lib/labels";
+import { EXIT_REASONS, formatHours, MODALITY_LABELS } from "@/lib/labels";
 import { formatDate, pct } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,12 @@ export default async function Assiduite({ params }: { params: Promise<{ id: stri
           <tr><td className="border px-3 py-2 text-slate-600">Jours d&apos;activité</td><td className="border px-3 py-2">{trace.days.length} (première activité le {formatDate(trace.firstActivity)}, dernière le {formatDate(trace.lastActivity)})</td></tr>
           <tr><td className="border px-3 py-2 text-slate-600">Progression pédagogique</td><td className="border px-3 py-2">{trace.completedSteps}/{trace.totalSteps} étapes validées ({trace.percent} %)</td></tr>
           <tr><td className="border px-3 py-2 text-slate-600">Résultats aux évaluations</td><td className="border px-3 py-2">{trace.results.average === null ? "—" : `Moyenne ${pct(trace.results.average)}`}</td></tr>
+                    {e.exitDate && (
+            <tr><td className="border px-3 py-2 text-slate-600">Sortie anticipée</td><td className="border px-3 py-2">le {formatDate(e.exitDate)} – {EXIT_REASONS[e.exitCategory ?? ""] ?? e.exitCategory}</td></tr>
+          )}
+          {trace.messages.length > 0 && (
+            <tr><td className="border px-3 py-2 text-slate-600">Échanges pédagogiques</td><td className="border px-3 py-2">{trace.messages.length} message(s) avec le formateur</td></tr>
+          )}
           {trace.signatures.length > 0 && <tr><td className="border px-3 py-2 text-slate-600">Émargements</td><td className="border px-3 py-2">{trace.signatures.length} créneau(x) signé(s)</td></tr>}
         </tbody>
       </table>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
-import { inactivityTimeoutFor } from "@/lib/tracking";
+import { timeoutsFor } from "@/lib/tracking";
 import { Navbar } from "@/components/Navbar";
 import { ActivityTracker } from "@/components/tracking/ActivityTracker";
 
@@ -14,12 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  const timeout = user ? await inactivityTimeoutFor(user.id) : 15;
+    const timeouts = user ? await timeoutsFor(user.id) : { standard: 15, interactive: 45 };
   return (
     <html lang="fr">
       <body className="flex min-h-screen flex-col">
         <Navbar />
-        {user && <ActivityTracker timeoutMin={timeout} />}
+        {user && <ActivityTracker timeoutMin={timeouts.standard} interactiveTimeoutMin={timeouts.interactive} />}
         <div className="flex-1">{children}</div>
         <footer className="no-print border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
           <Link href="/legal/mentions-legales" className="hover:underline">Mentions légales</Link> ·{" "}

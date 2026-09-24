@@ -17,6 +17,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1 className="mb-1">Connexion</h1>
         <p className="mb-6 text-sm text-slate-500">Accédez à vos formations sur {settings.platformName}.</p>
         <AuthForm action={loginAction} mode="login" next={next} />
+        <p className="mt-3 text-right text-sm">
+          <Link href="/forgot-password" className="text-brand-600 hover:underline">Mot de passe oublié ?</Link>
+        </p>
         {settings.allowRegistration === "true" && (
           <p className="mt-6 text-center text-sm text-slate-500">
             Pas encore de compte ?{" "}

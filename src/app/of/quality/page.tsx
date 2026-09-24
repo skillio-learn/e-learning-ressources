@@ -4,7 +4,7 @@ import { manageableCoursesWhere, orgFilter } from "@/lib/permissions";
 import { respondComplaintAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
 import { Badge, Container, PageHeader, Stat } from "@/components/ui";
-import { COMPLAINT_STATUS, SATISFACTION_QUESTIONS } from "@/lib/labels";
+import { COMPLAINT_STATUS, RESPONDENT_TYPES, SATISFACTION_QUESTIONS } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Qualité" };
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function Quality() {
   const user = await requireOfManager();
   const courseIds = (await db.course.findMany({ where: manageableCoursesWhere(user), select: { id: true } })).map((c) => c.id);
-  const [responses, complaints] = await Promise.all([
+    const [responses, complaints, funders] = await Promise.all([
     db.satisfactionResponse.findMany({
       where: { enrollment: { courseId: { in: courseIds } } },
       orderBy: { createdAt: "desc" },
@@ -22,9 +22,21 @@ export default async function Quality() {
     db.complaint.findMany({
       where: orgFilter(user),
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-      include: { user: { select: { name: true, email: true } }, course: { select: { title: true } }, handledBy: { select: { name: true } } },
+            include: { user: { select: { name: true, email: true } }, course: { select: { title: true } }, handledBy: { select: { name: true } } },
+    }),
+    db.funderFeedback.findMany({
+      where: orgFilter(user),
+      orderBy: { createdAt: "desc" },
+      include: { enrollment: { select: { user: { select: { name: true } }, course: { select: { title: true } } } } },
     }),
   ]);
+  const hot = responses.filter((r) => r.kind === "HOT");
+  const cold = responses.filter((r) => r.kind === "COLD");
+  const avgOf = (list: { globalScore: number | null }[]) => {
+    const v = list.filter((x) => x.globalScore != null);
+    return v.length ? (v.reduce((s, x) => s + (x.globalScore ?? 0), 0) / v.length).toFixed(2) : "—";
+  };
+  const answeredFunders = funders.filter((f) => f.answeredAt);
   const avg = (code: string) => {
     const vals = responses.map((r) => (r.answers as Record<string, number>)[code]).filter((v) => typeof v === "number");
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
@@ -35,7 +47,8 @@ export default async function Quality() {
     <Container>
       <PageHeader title="Qualité : satisfaction & réclamations" subtitle="Indicateurs Qualiopi 30 (recueil des appréciations) et 31 (traitement des réclamations)." />
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
-        <Stat label="Satisfaction globale" value={global ? `${global.toFixed(2)} / 5` : "—"} hint={`${responses.length} réponse(s)`} />
+                <Stat label="Satisfaction à chaud" value={`${avgOf(hot)} / 5`} hint={`${hot.length} réponse(s) · à froid : ${avgOf(cold)} / 5 (${cold.length})`} />
+        <Stat label="Financeurs / entreprises" value={`${avgOf(answeredFunders)} / 5`} hint={`${answeredFunders.length} réponse(s) sur ${funders.length} demande(s)`} />
         <Stat label="Recommanderaient" value={recommend.length ? `${Math.round((recommend.filter((r) => r.recommend).length / recommend.length) * 100)} %` : "—"} />
         <Stat label="Réclamations ouvertes" value={complaints.filter((c) => c.status !== "RESOLVED").length} />
         <Stat label="Réclamations traitées" value={complaints.filter((c) => c.status === "RESOLVED").length} />
@@ -70,8 +83,22 @@ export default async function Quality() {
             {responses.every((r) => !r.comment) && <li className="text-slate-500">Aucun commentaire.</li>}
           </ul>
         </section>
-        <section className="space-y-3">
-          <h2>Réclamations & demandes</h2>
+                <section className="space-y-3">
+          <h2>Évaluations financeurs & entreprises</h2>
+          {funders.length === 0 && <p className="text-sm text-slate-500">Générez un lien d&apos;évaluation depuis la fiche d&apos;un apprenant.</p>}
+          {funders.map((f) => (
+            <div key={f.id} className="card p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span>
+                  <b>{RESPONDENT_TYPES[f.respondentType]}</b> {f.respondentName ? `· ${f.respondentName}` : ""}
+                  {f.enrollment ? <span className="text-slate-500"> · {f.enrollment.user.name} – {f.enrollment.course.title}</span> : null}
+                </span>
+                {f.answeredAt ? <Badge tone="green">{f.globalScore}/5</Badge> : <Badge>En attente</Badge>}
+              </div>
+              {f.comment && <p className="mt-1 text-slate-600">« {f.comment} »</p>}
+            </div>
+          ))}
+          <h2 className="pt-4">Réclamations & demandes</h2>
           {complaints.length === 0 && <p className="text-sm text-slate-500">Aucune réclamation.</p>}
           {complaints.map((c) => (
             <div key={c.id} id={c.id} className="card p-4 text-sm">

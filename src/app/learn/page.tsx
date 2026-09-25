@@ -28,7 +28,7 @@ export default async function MyCourses() {
       <PageHeader title="Mes formations" subtitle="Toutes les formations auxquelles vous êtes inscrit(e)." />
       {items.length === 0 ? (
         <Empty title="Vous n'êtes inscrit(e) à aucune formation">
-          <Link href="/courses" className="text-brand-600 hover:underline">Découvrir le catalogue</Link>
+          Votre organisme de formation vous inscrit à vos parcours : ils apparaîtront ici.
         </Empty>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

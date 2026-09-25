@@ -3,72 +3,23 @@ import { useActionState } from "react";
 import type { FormState } from "@/app/actions/auth";
 import { SubmitButton } from "./SubmitButton";
 
-export function AuthForm({
-  action,
-  mode,
-  next,
-  of,
-  organizations,
-}: {
-  action: (s: FormState, fd: FormData) => Promise<FormState>;
-  mode: "login" | "register";
-  next?: string;
-  of?: string;
-  /** Organismes proposés à l'auto-inscription (si aucun n'est imposé par le lien). */
-  organizations?: { slug: string; name: string; city: string | null }[];
-}) {
+/** Formulaire de connexion. Les comptes apprenants sont créés par les organismes de formation. */
+export function AuthForm({ action, next }: { action: (s: FormState, fd: FormData) => Promise<FormState>; next?: string }) {
   const [state, formAction] = useActionState(action, undefined);
   return (
     <form action={formAction} className="space-y-4">
       {next && <input type="hidden" name="next" value={next} />}
-      {of && <input type="hidden" name="of" value={of} />}
-      {mode === "register" && !of && organizations && (
-        <label className="block">
-          <span className="label">Organisme de formation</span>
-          <select name="of" required className="input" defaultValue={organizations.length === 1 ? organizations[0].slug : ""}>
-            <option value="" disabled>Choisissez votre organisme…</option>
-            {organizations.map((o) => (
-              <option key={o.slug} value={o.slug}>{o.name}{o.city ? ` — ${o.city}` : ""}</option>
-            ))}
-          </select>
-          <span className="hint block">C&apos;est lui qui validera votre inscription à la plateforme.</span>
-        </label>
-      )}
-      {mode === "register" && (
-        <label className="block">
-          <span className="label">Nom complet</span>
-          <input name="name" required className="input" autoComplete="name" />
-        </label>
-      )}
       <label className="block">
         <span className="label">Email</span>
         <input name="email" type="email" required className="input" autoComplete="email" />
       </label>
       <label className="block">
         <span className="label">Mot de passe</span>
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={mode === "register" ? 8 : undefined}
-          className="input"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-        />
+        <input name="password" type="password" required className="input" autoComplete="current-password" />
       </label>
-      {mode === "register" && (
-        <label className="flex items-start gap-2 text-sm text-slate-600">
-          <input type="checkbox" name="consent" required className="mt-1 accent-brand-600" />
-          <span>
-            J&apos;accepte les <a href="/legal/cgu" target="_blank" className="link underline">conditions générales d&apos;utilisation</a> et
-            la <a href="/legal/confidentialite" target="_blank" className="link underline">politique de confidentialité</a>{" "}
-            (traitement de mes données pour la gestion de ma formation).
-          </span>
-        </label>
-      )}
-      {mode === "register" && <p className="text-xs text-slate-500">8 caractères minimum, avec au moins une lettre et un chiffre.</p>}
       {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
       <SubmitButton className="btn-primary w-full" pendingLabel="Veuillez patienter…">
-        {mode === "login" ? "Se connecter" : "Créer mon compte"}
+        Se connecter
       </SubmitButton>
     </form>
   );

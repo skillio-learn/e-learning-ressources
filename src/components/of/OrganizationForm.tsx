@@ -68,10 +68,6 @@ export function OrganizationForm({ org }: { org: Organization }) {
           <input type="checkbox" name="requireAccountValidation" defaultChecked={org.requireAccountValidation} className="mt-1" />
           <span><b>Valider chaque compte apprenant</b> avant qu&apos;il accède à la plateforme (recommandé). Sinon, le compte est actif dès l&apos;envoi du dossier complet.</span>
         </label>
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="allowSelfRegistration" defaultChecked={org.allowSelfRegistration} className="mt-1" />
-          <span>Proposer l&apos;organisme dans la liste d&apos;<b>auto-inscription</b> (sinon, seuls les comptes que vous créez ou votre lien d&apos;inscription sont possibles).</span>
-        </label>
         <div>
           <span className="label">Pièces demandées à la création du compte</span>
           <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">

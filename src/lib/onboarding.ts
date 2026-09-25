@@ -16,7 +16,6 @@ export const PENDING_ACCOUNT_ALLOWED = [
   "/support",
   "/notifications",
   "/legal",
-  "/courses",
   "/api/support",
   "/api/learner-documents",
   "/api/me",

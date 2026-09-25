@@ -22,7 +22,7 @@ export const getLearnContext = cache(async (slug: string) => {
 
   if (!enrollment || enrollment.status === "SUSPENDED") {
     if (!manager) {
-      if (course.status === "PUBLISHED") redirect(`/courses/${course.slug}`);
+      if (course.status === "PUBLISHED") redirect("/learn");
       notFound();
     }
   }

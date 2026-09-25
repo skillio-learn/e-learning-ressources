@@ -87,7 +87,7 @@ export async function deleteUserAction(userId: string) {
 export async function saveSettingsAction(_: AdminState, fd: FormData): Promise<AdminState> {
   await requireRole("ADMIN");
   for (const key of Object.keys(DEFAULT_SETTINGS)) {
-    const value = key === "allowRegistration" ? (fd.get(key) === "on" ? "true" : "false") : str(fd, key);
+    const value = str(fd, key);
     await db.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
   }
   await audit("settings.update", { actorId: (await requireRole("ADMIN")).id });

@@ -14,18 +14,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const settings = await getSettings();
   return (
     <AuthShell title="Connexion" subtitle={<>Accédez à vos formations sur {settings.platformName}.</>}>
-        <AuthForm action={loginAction} mode="login" next={next} />
+        <AuthForm action={loginAction} next={next} />
         <p className="mt-3 text-right text-sm">
           <Link href="/forgot-password" className="link">Mot de passe oublié ?</Link>
         </p>
-        {settings.allowRegistration === "true" && (
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Pas encore de compte ?{" "}
-            <Link href="/register" className="link font-medium">
-              Créer un compte
-            </Link>
-          </p>
-        )}
+        <p className="mt-6 border-t border-black/[0.06] pt-5 text-center text-xs leading-relaxed text-slate-500">
+          Votre compte est créé par votre organisme de formation. Utilisez le lien d&apos;activation reçu pour choisir votre mot de passe.
+        </p>
     </AuthShell>
   );
 }

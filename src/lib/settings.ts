@@ -5,7 +5,6 @@ import { db } from "./db";
 export const DEFAULT_SETTINGS = {
   platformName: "Vylia",
   tagline: "Apprendre, pas à pas. Prouver chaque minute.",
-  allowRegistration: "true",
   supportEmail: "",
   certificateSignature: "L'équipe pédagogique",
   legalMentions: `## Éditeur de la plateforme

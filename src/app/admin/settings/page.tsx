@@ -21,10 +21,6 @@ export default async function Settings() {
           <Field label="Conditions générales d'utilisation (Markdown)"><textarea name="cgu" rows={8} defaultValue={s.cgu} className="input font-mono text-xs" /></Field>
           <Field label="Politique de confidentialité / RGPD (Markdown)"><textarea name="privacy" rows={10} defaultValue={s.privacy} className="input font-mono text-xs" /></Field>
           <Field label="Accessibilité & handicap (Markdown)"><textarea name="accessibility" rows={5} defaultValue={s.accessibility} className="input font-mono text-xs" /></Field>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="allowRegistration" defaultChecked={s.allowRegistration === "true"} className="accent-brand-600" />
-            Autoriser l&apos;inscription libre des apprenants
-          </label>
         </StateForm>
       </div>
     </div>

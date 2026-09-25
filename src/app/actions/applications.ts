@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ApplicationStatus, EmploymentStatus, FundingType } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireActiveLearnerAccount, requireUser, type CurrentUser } from "@/lib/auth";
+import { requireActiveLearnerAccount, requireOfManager, requireUser, type CurrentUser } from "@/lib/auth";
 import { announceEnrollment, initialAccessStatus } from "@/lib/onboarding";
 import { canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -80,6 +80,38 @@ export async function startApplicationAction(courseId: string) {
     if (!u?.organizationId && org) await db.user.update({ where: { id: user.id }, data: { organizationId: org.organizationId } });
   }
   redirect(`/applications/${app.id}`);
+}
+
+/** Sans catalogue, c'est l'OF qui ouvre le dossier de candidature d'un apprenant sur une formation. */
+export async function openApplicationForLearnerAction(learnerId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const staff = await requireOfManager();
+  const learner = await db.user.findUnique({ where: { id: learnerId }, select: { id: true, role: true, organizationId: true } });
+  if (!learner || learner.role !== "LEARNER") return { error: "Apprenant introuvable." };
+  const course = await db.course.findUnique({ where: { id: str(fd, "courseId") }, select: { id: true, title: true, status: true, organizationId: true } });
+  if (!course || course.status !== "PUBLISHED" || !canManageOrg(staff, course.organizationId)) return { error: "Formation invalide." };
+  if (learner.organizationId && learner.organizationId !== course.organizationId && staff.role !== "ADMIN") {
+    return { error: "Cet apprenant est rattaché à un autre organisme." };
+  }
+  if (await db.enrollment.findUnique({ where: { userId_courseId: { userId: learner.id, courseId: course.id } } })) {
+    return { error: "L'apprenant est déjà inscrit à cette formation." };
+  }
+  if (await db.application.findFirst({ where: { userId: learner.id, courseId: course.id, status: { in: ACTIVE_STATUSES } }, select: { id: true } })) {
+    return { error: "Un dossier est déjà en cours pour cette formation." };
+  }
+  const app = await db.application.create({
+    data: {
+      number: await nextApplicationNumber(),
+      userId: learner.id,
+      courseId: course.id,
+      events: { create: { type: "STATUS", toStatus: "DRAFT", authorId: staff.id, message: "Dossier de candidature ouvert par l'organisme" } },
+    },
+  });
+  if (!learner.organizationId) await db.user.update({ where: { id: learner.id }, data: { organizationId: course.organizationId } });
+  await audit("application.create", { actorId: staff.id, organizationId: course.organizationId, entityType: "Application", entityId: app.id, details: "ouvert par l'OF" });
+  await notify(learner.id, `Dossier de candidature : ${course.title}`, "Votre organisme a ouvert votre dossier : complétez vos informations et déposez vos justificatifs.", `/applications/${app.id}`);
+  revalidatePath(`/of/learners/${learner.id}`);
+  revalidatePath("/of/applications");
+  return { ok: `Dossier ${app.number} ouvert : l'apprenant est notifié.` };
 }
 
 function dateOrNull(v: string) {

@@ -7,6 +7,7 @@ import { updateEnrollmentAction } from "@/app/actions/of-admin";
 import { createFunderFeedbackAction, requestColdEvaluationAction, sendConvocationAction } from "@/app/actions/compliance";
 import { ofResetLearnerPasswordAction } from "@/app/actions/password";
 import { enrollLearnerInCourseAction } from "@/app/actions/access";
+import { openApplicationForLearnerAction } from "@/app/actions/applications";
 import { ACCESS_STATUS, ACCOUNT_STATUS } from "@/lib/labels";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StateForm } from "@/components/StateForm";
@@ -111,6 +112,19 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
               <label className="text-sm"><span className="label">Début</span><input type="date" name="startDate" className="input" /></label>
               <label className="text-sm"><span className="label">Fin</span><input type="date" name="endDate" className="input" /></label>
               <label className="text-sm"><span className="label">Heures prévues</span><input type="number" step="0.5" name="plannedHours" className="input" /></label>
+            </StateForm>
+          </details>
+        )}
+        {manager && enrollable.length > 0 && (
+          <details className="card p-5">
+            <summary className="cursor-pointer font-medium text-slate-900">Ouvrir un dossier de candidature</summary>
+            <p className="mt-1 text-xs text-slate-500">L&apos;apprenant complète son dossier (informations, financement, justificatifs) ; vous le validez puis l&apos;inscrivez depuis « Dossiers de candidature ».</p>
+            <StateForm action={openApplicationForLearnerAction.bind(null, id)} submitLabel="Ouvrir le dossier" submitClassName="btn-secondary self-end" className="mt-3 grid gap-3 md:grid-cols-3">
+              <label className="text-sm md:col-span-2"><span className="label">Formation *</span>
+                <select name="courseId" required className="input">
+                  {enrollable.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </label>
             </StateForm>
           </details>
         )}

@@ -3,13 +3,10 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { SESSION_COOKIE, sessionCookieOptions, signSession, verifySession } from "@/lib/session";
-import { getSettings } from "@/lib/settings";
 import { getClientInfo } from "@/lib/request";
 import { closeOpenSessions, startActivitySession } from "@/lib/tracking";
-import { audit } from "@/lib/audit";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -53,52 +50,6 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   const token = await signSession({ uid: user.id, role: user.role, name: user.name });
   (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions);
   redirect(safeNext(fd.get("next")));
-}
-
-const registerSchema = z.object({
-  name: z.string().trim().min(2, "Nom trop court"),
-  email: z.string().trim().toLowerCase().email("Email invalide"),
-  password: z
-    .string()
-    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
-    .regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre")
-    .regex(/[A-Za-z]/, "Le mot de passe doit contenir au moins une lettre"),
-});
-
-export async function registerAction(_: FormState, fd: FormData): Promise<FormState> {
-  const settings = await getSettings();
-  if (settings.allowRegistration !== "true") return { error: "Les inscriptions sont fermées." };
-  const parsed = registerSchema.safeParse({ name: fd.get("name"), email: fd.get("email"), password: fd.get("password") });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  if (fd.get("consent") !== "on") return { error: "Vous devez accepter les CGU et la politique de confidentialité." };
-  const { name, email, password } = parsed.data;
-  if (await db.user.findUnique({ where: { email } })) return { error: "Un compte existe déjà avec cet email." };
-
-  const orgSlug = String(fd.get("of") ?? "");
-  const org = orgSlug ? await db.organization.findUnique({ where: { slug: orgSlug }, select: { id: true, active: true } }) : null;
-  const choosable = await db.organization.count({ where: { active: true, allowSelfRegistration: true } });
-  if (choosable > 0 && !org?.active) return { error: "Choisissez votre organisme de formation." };
-  const { ip, userAgent } = await getClientInfo();
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      passwordHash: await bcrypt.hash(password, 10),
-      role: "LEARNER",
-      lastLoginAt: new Date(),
-      consentAt: new Date(),
-      organizationId: org?.active ? org.id : null,
-      // Le compte est utilisable après saisie des informations administratives et validation par l'OF
-      accountStatus: "PENDING_PROFILE",
-      createdVia: "SELF",
-    },
-  });
-  await db.loginEvent.create({ data: { userId: user.id, email, type: "LOGIN", ip, userAgent } });
-  await startActivitySession(user.id, ip, userAgent);
-  await audit("auth.register", { actorId: user.id, organizationId: user.organizationId, entityType: "User", entityId: user.id });
-  const token = await signSession({ uid: user.id, role: user.role, name: user.name });
-  (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions);
-  redirect("/onboarding");
 }
 
 export async function logoutAction() {

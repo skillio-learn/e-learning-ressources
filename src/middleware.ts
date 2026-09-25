@@ -3,7 +3,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 const PROTECTED = [
   "/dashboard", "/learn", "/of", "/admin", "/profile", "/applications", "/apply", "/attendance", "/support", "/notifications",
-  "/onboarding", "/enrollments",
+  "/onboarding", "/enrollments", "/courses",
 ];
 
 /** Transmet le chemin demandé aux composants serveur (garde « compte non validé » dans requireUser). */

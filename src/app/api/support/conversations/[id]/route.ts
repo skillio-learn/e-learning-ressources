@@ -12,7 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const c = await db.supportConversation.findUnique({ where: { id }, select: { id: true, userId: true, organizationId: true, subject: true, category: true, status: true, rating: true } });
   if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
   const mine = c.userId === user.id;
-  const staff = isStaff(user) && (user.role === "ADMIN" || (!!c.organizationId && c.organizationId === user.organizationId));
+  const staff = isStaff(user) && user.role !== "ADMIN" && !!c.organizationId && c.organizationId === user.organizationId;
   if (!mine && !staff) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const messages = await db.supportMessage.findMany({
     where: { conversationId: id },

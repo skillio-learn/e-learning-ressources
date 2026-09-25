@@ -28,6 +28,7 @@ export function formatDate(d: Date | string | null | undefined, withTime = false
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "Europe/Paris",
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
   });
 }
@@ -61,7 +62,9 @@ export const optFloat = (fd: FormData, key: string) => {
 export const bool = (fd: FormData, key: string) => fd.get(key) === "on" || fd.get(key) === "true";
 
 export function csvEscape(v: unknown) {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  // Injection de formule (Excel, LibreOffice) : une cellule texte ne doit jamais commencer par = + - @ tab ou retour
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
@@ -108,11 +111,11 @@ export const ROLE_LABELS = { ADMIN: "Super admin Vylia", OF_ADMIN: "Responsable 
 export const LEVEL_LABELS = { BEGINNER: "Débutant", INTERMEDIATE: "Intermédiaire", ADVANCED: "Avancé" } as const;
 export const STATUS_LABELS = { DRAFT: "Brouillon", PUBLISHED: "Publiée", ARCHIVED: "Archivée" } as const;
 export const QUESTION_TYPE_LABELS = {
-  SINGLE: "QCM – réponse unique",
-  MULTIPLE: "QCM – réponses multiples",
+  SINGLE: "Question fermée – une bonne réponse",
+  MULTIPLE: "Question fermée – plusieurs bonnes réponses",
   TRUE_FALSE: "Vrai / Faux",
   SHORT: "Réponse courte",
-  OPEN: "Question ouverte (correction manuelle)",
+  OPEN: "Question ouverte (corrigée par le formateur)",
 } as const;
 
 /** Transforme une URL YouTube / Vimeo en URL d'intégration. */

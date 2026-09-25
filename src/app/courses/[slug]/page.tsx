@@ -166,7 +166,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                   <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2">
                     <span className="font-medium">{s.name}</span>
                     <span className="text-slate-500">
-                      du {s.startDate.toLocaleDateString("fr-FR")} au {s.endDate.toLocaleDateString("fr-FR")}
+                      du {s.startDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })} au {s.endDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}
                       {s.location ? ` · ${s.location}` : ""}
                     </span>
                   </li>

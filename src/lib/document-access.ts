@@ -7,7 +7,7 @@ import { audit } from "./audit";
 import { db } from "./db";
 
 /** Charge la traçabilité d'une inscription si l'utilisateur y a droit (apprenant concerné ou équipe OF). */
-export async function loadTraceForViewer(enrollmentId: string, docType: string) {
+export async function loadTraceForViewer(enrollmentId: string, docType: string, opts: { learnerRequiresFinished?: boolean } = {}) {
   const user = await requireUser();
   const trace = await enrollmentTrace(enrollmentId);
   if (!trace) notFound();
@@ -15,6 +15,8 @@ export async function loadTraceForViewer(enrollmentId: string, docType: string) 
   const allowed =
     e.userId === user.id || canManageOrg(user, e.course.organization.id) || (await canManageCourse(user, e.course.id));
   if (!allowed) notFound();
+  // Un certificat de réalisation n'est délivré à l'apprenant qu'à la fin (ou à l'interruption) de sa formation
+  if (opts.learnerRequiresFinished && e.userId === user.id && !(e.status === "COMPLETED" || e.status === "ABANDONED" || e.exitDate)) notFound();
   if (e.userId !== user.id) {
     await audit("export.report", {
       actorId: user.id,

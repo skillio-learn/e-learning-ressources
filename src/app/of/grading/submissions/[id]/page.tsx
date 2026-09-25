@@ -66,7 +66,18 @@ export default async function GradeSubmission({ params, searchParams }: { params
             <h2 className="mb-2">Travail rendu</h2>
             {sub.text ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{sub.text}</div> : <p className="text-sm text-slate-400">Pas de texte.</p>}
             {sub.linkUrl && <p className="mt-3 text-sm"><a href={sub.linkUrl} target="_blank" rel="noopener noreferrer" className="break-all text-brand-600 underline">{sub.linkUrl}</a></p>}
-            {sub.fileName && <p className="mt-3 text-sm"><a href={`/api/submissions/${sub.id}/file`} className="text-brand-600 underline">{sub.fileName}</a></p>}
+            {sub.fileName && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-slate-900">{sub.fileName}</span>
+                {(sub.fileType === "application/pdf" || sub.fileType?.startsWith("image/")) && (
+                  <a href={`/api/submissions/${sub.id}/file?inline=1`} target="_blank" className="btn-ghost btn-sm">Aperçu</a>
+                )}
+                <a href={`/api/submissions/${sub.id}/file`} className="btn-secondary btn-sm">Télécharger</a>
+              </div>
+            )}
+            {sub.fileType === "video/mp4" && (
+              <p className="mt-2 text-xs text-slate-500">Vidéo : téléchargez le fichier pour la visionner.</p>
+            )}
           </div>
           {sub.lesson.content && (
             <details className="card no-print p-5">

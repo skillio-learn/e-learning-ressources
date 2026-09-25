@@ -7,7 +7,7 @@ import { canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { notify, notifyOrgManagers } from "@/lib/notify";
 import { getClientInfo } from "@/lib/request";
-import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from "@/lib/applications";
+import { readUpload } from "@/lib/uploads";
 import { ENROLLMENT_DOCUMENTS } from "@/lib/labels";
 import { accessChecklist, canESign, refreshAccessStatus, sha256, signedText } from "@/lib/onboarding";
 import { optStr, str } from "@/lib/utils";
@@ -46,15 +46,14 @@ function revalidate(enrollmentId: string, userId: string) {
 /** Dépôt d'un document d'inscription : par l'apprenant (à vérifier) ou par l'OF (validé d'office). */
 export async function uploadEnrollmentDocumentAction(enrollmentId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const { user, e, staff } = await actor(enrollmentId);
-  if (!staff && user.accountStatus !== "ACTIVE") return { error: "Votre compte doit d'abord être validé par l'organisme." };
+  // Les documents d'inscription peuvent être fournis pendant la validation du compte (un seul passage pour l'apprenant)
+  if (!staff && user.accountStatus === "REJECTED") return { error: "Votre inscription à la plateforme a été refusée." };
   if (!staff && e.accessStatus === "REFUSED") return { error: "L'accès à cette formation a été refusé : contactez l'assistance." };
   const type = str(fd, "type");
   if (!(type in ENROLLMENT_DOCUMENTS)) return { error: "Type de document invalide." };
-  const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choisissez un fichier." };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "Fichier trop volumineux (10 Mo maximum)." };
-  const mime = file.type || "application/octet-stream";
-  if (!ALLOWED_UPLOAD_TYPES.includes(mime)) return { error: "Format non accepté (PDF, JPG, PNG, WEBP, HEIC, DOC, DOCX, ODT)." };
+  const up = await readUpload(fd);
+  if ("error" in up) return up;
+  const file = up.file!;
   const live = await db.learnerDocument.count({ where: { enrollmentId, type, status: { not: "REJECTED" } } });
   if (live >= 5) return { error: "5 fichiers maximum pour ce document." };
   const doc = await db.learnerDocument.create({
@@ -64,10 +63,10 @@ export async function uploadEnrollmentDocumentAction(enrollmentId: string, _: Ac
       enrollmentId,
       type,
       source: staff ? "STAFF_UPLOAD" : "LEARNER_UPLOAD",
-      fileName: file.name.slice(0, 200),
-      fileType: mime,
+      fileName: file.fileName,
+      fileType: file.fileType,
       size: file.size,
-      data: new Uint8Array(await file.arrayBuffer()),
+      data: file.data,
       uploadedById: user.id,
       ...(staff ? { status: "VALIDATED" as const, reviewedById: user.id, reviewedAt: new Date() } : {}),
     },
@@ -112,7 +111,7 @@ export async function signEnrollmentDocumentAction(enrollmentId: string, type: s
   const user = await requireUser();
   const e = await loadEnrollment(enrollmentId);
   if (e.userId !== user.id) throw new Error("Seul l'apprenant peut signer ce document");
-  if (user.accountStatus !== "ACTIVE") throw new Error("Votre compte doit d'abord être validé par l'organisme.");
+  if (user.accountStatus === "REJECTED") throw new Error("Votre inscription à la plateforme a été refusée.");
   if (e.accessStatus === "REFUSED") throw new Error("L'accès à cette formation a été refusé.");
   if (ENROLLMENT_DOCUMENTS[type]?.esign !== "text" || !canESign(type, e.course.organization)) throw new Error("Ce document ne peut pas être signé en ligne");
   checkSignature(signature);
@@ -182,7 +181,7 @@ export async function grantAccessAction(enrollmentId: string, _: ActionState, fd
   if (pending.length) return { error: `Documents non validés : ${pending.map((i) => i.label).join(", ")}.` };
   await db.enrollment.update({
     where: { id: enrollmentId },
-    data: { accessStatus: "GRANTED", accessDecidedAt: new Date(), accessDecidedById: staff.id, accessDecisionNote: optStr(fd, "note") },
+    data: { accessStatus: "GRANTED", accessDecidedAt: new Date(), accessDecidedById: staff.id, accessDecisionNote: optStr(fd, "note"), accessRequestNote: null },
   });
   await audit("access.grant", { actorId: staff.id, organizationId: e.course.organizationId, entityType: "Enrollment", entityId: enrollmentId });
   await notify(e.userId, `Accès ouvert : ${e.course.title}`, "Votre inscription est complète : vous pouvez commencer la formation.", `/learn/${e.course.slug}`);
@@ -205,6 +204,27 @@ export async function refuseAccessAction(enrollmentId: string, _: ActionState, f
   await notify(e.userId, revoke ? `Accès suspendu : ${e.course.title}` : `Accès refusé : ${e.course.title}`, note, `/enrollments/${e.id}`);
   revalidate(enrollmentId, e.userId);
   return { ok: revoke ? "Accès retiré." : "Accès refusé." };
+}
+
+/** L'OF demande des compléments sur le dossier d'inscription (sans refuser l'accès). */
+export async function requestEnrollmentInfoAction(enrollmentId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const staff = await requireOfManager();
+  const e = await staffEnrollment(staff, enrollmentId);
+  const note = str(fd, "note").slice(0, 2000);
+  if (note.length < 5) return { error: "Précisez les compléments attendus (visible par l'apprenant)." };
+  await db.enrollment.update({
+    where: { id: enrollmentId },
+    data: {
+      accessStatus: e.accessStatus === "GRANTED" ? "GRANTED" : "PENDING_DOCUMENTS",
+      accessRequestNote: note,
+      accessRequestAt: new Date(),
+      accessDecidedById: staff.id,
+    },
+  });
+  await audit("access.request_info", { actorId: staff.id, organizationId: e.course.organizationId, entityType: "Enrollment", entityId: enrollmentId, details: note });
+  await notify(e.userId, `Compléments demandés : ${e.course.title}`, note, `/enrollments/${e.id}`);
+  revalidate(enrollmentId, e.userId);
+  return { ok: "Demande envoyée : l'apprenant a été notifié." };
 }
 
 /** Rouvre le dossier d'accès (après un refus, ou pour redemander des documents). */

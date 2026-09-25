@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import {
@@ -11,6 +12,8 @@ import {
   updateModuleAction,
 } from "@/app/actions/of";
 import { SubmitButton } from "@/components/SubmitButton";
+import { StateForm } from "@/components/StateForm";
+import { addResourceAction, deleteResourceAction } from "@/app/actions/resources";
 import { Badge, Empty } from "@/components/ui";
 import { LESSON_TYPE_LABELS } from "@/lib/utils";
 import { LessonTypeIcon } from "@/components/LessonTypeIcon";
@@ -21,6 +24,7 @@ const TYPES = Object.entries(LESSON_TYPE_LABELS) as [keyof typeof LESSON_TYPE_LA
 
 export default async function CourseStructure({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireCourseManager(id);
   const modules = await db.module.findMany({
     where: { courseId: id },
     orderBy: { position: "asc" },
@@ -33,6 +37,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
           rubricId: true,
         },
       },
+      resources: { orderBy: { position: "asc" }, select: { id: true, title: true, url: true, fileName: true, size: true } },
     },
   });
   const total = modules.reduce((s, m) => s + m.lessons.length, 0);
@@ -97,6 +102,33 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
                 </li>
               ))}
             </ol>
+
+            <details className="border-t border-slate-100 px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                Ressources du module ({m.resources.length}) <span className="font-normal text-slate-400">· téléchargeables par l&apos;apprenant dès qu&apos;il commence le module</span>
+              </summary>
+              <ul className="mt-3 space-y-1.5 text-sm">
+                {m.resources.map((r) => (
+                  <li key={r.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+                    <a href={`/api/resources/${r.id}`} target="_blank" className="min-w-0 flex-1 truncate hover:text-brand-700">{r.title}</a>
+                    <span className="text-xs text-slate-400">{r.url ? "lien" : r.fileName}</span>
+                    <form action={deleteResourceAction.bind(null, r.id)}>
+                      <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer la ressource « ${r.title} » ?`}>Supprimer</SubmitButton>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+              <StateForm action={addResourceAction.bind(null, m.id)} submitLabel="Ajouter la ressource" submitClassName="btn-secondary btn-sm" className="mt-3 grid gap-2 md:grid-cols-2">
+                <input name="title" required placeholder="Titre (ex. Énoncé de l'exercice 2)" className="input" />
+                <input name="description" placeholder="Description (facultative)" className="input" />
+                <label className="text-xs text-slate-500">Fichier (PDF, Word, Excel, PowerPoint, image, ZIP, MP3/MP4 · 4 Mo max.)
+                  <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.odt,.xlsx,.pptx,.zip,.mp3,.mp4" className="input mt-1" />
+                </label>
+                <label className="text-xs text-slate-500">ou lien externe (https)
+                  <input name="url" type="url" placeholder="https://…" className="input mt-1" />
+                </label>
+              </StateForm>
+            </details>
 
             <div className="grid gap-3 border-t border-slate-100 bg-slate-50/50 p-4 md:grid-cols-2">
               <form action={addLessonAction.bind(null, m.id)} className="flex flex-wrap gap-2">

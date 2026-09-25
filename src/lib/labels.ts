@@ -237,3 +237,45 @@ export const LOCKED_ORG_FIELDS = {
 export type LockedOrgField = keyof typeof LOCKED_ORG_FIELDS;
 
 export const isOrgFieldFilled = (v: unknown) => v !== null && v !== undefined && String(v).trim() !== "";
+
+// ─────────────── Profil apprenant ───────────────
+
+export const PROFILE_FIELD_LABELS: Record<string, string> = {
+  civility: "Civilité",
+  firstName: "Prénom",
+  lastName: "Nom",
+  birthName: "Nom de naissance",
+  birthDate: "Date de naissance",
+  birthPlace: "Lieu de naissance",
+  nationality: "Nationalité",
+  address: "Adresse",
+  postalCode: "Code postal",
+  city: "Ville",
+  country: "Pays",
+  phone: "Téléphone",
+  employmentStatus: "Situation professionnelle",
+  franceTravailId: "Identifiant France Travail",
+  franceTravailAgency: "Agence France Travail",
+  educationLevel: "Niveau de formation",
+  lastDiploma: "Dernier diplôme",
+  currentJob: "Emploi actuel",
+  employerName: "Employeur",
+  employerSiret: "SIRET de l'employeur",
+  employerAddress: "Adresse de l'employeur",
+  employerContactName: "Contact employeur",
+  employerContactEmail: "Email du contact employeur",
+  employerContactPhone: "Téléphone du contact employeur",
+  opcoName: "OPCO",
+  disability: "Situation de handicap",
+  disabilityNeeds: "Aménagements souhaités",
+};
+
+export const CHANGE_REQUEST_STATUS = {
+  PENDING: { label: "En attente de l'organisme", tone: "amber" },
+  APPROVED: { label: "Acceptée", tone: "green" },
+  REJECTED: { label: "Refusée", tone: "red" },
+  CANCELLED: { label: "Annulée", tone: "gray" },
+} as const;
+
+/** Le profil n'est modifiable par l'apprenant que pendant la constitution de son dossier de compte. */
+export const learnerProfileEditable = (accountStatus: string) => accountStatus === "PENDING_PROFILE";

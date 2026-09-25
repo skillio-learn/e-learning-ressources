@@ -23,7 +23,7 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
   const { status: s, q } = await searchParams;
   const status = (TABS.some((t) => t.key === s) ? s : "PENDING_REVIEW") as AccountStatus;
   const scope: Prisma.UserWhereInput = { role: "LEARNER", ...(user.role === "ADMIN" ? {} : { organizationId: user.organizationId ?? "__none__" }) };
-  const [counts, accounts, orgs] = await Promise.all([
+  const [counts, accounts, orgs, changeRequests, courses] = await Promise.all([
     db.user.groupBy({ by: ["accountStatus"], where: scope, _count: true }),
     db.user.findMany({
       where: {
@@ -40,6 +40,16 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
       },
     }),
     user.role === "ADMIN" ? db.organization.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
+    db.profileChangeRequest.findMany({
+      where: { status: "PENDING", user: scope },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, createdAt: true, changes: true, user: { select: { id: true, name: true } } },
+    }),
+    db.course.findMany({
+      where: { status: "PUBLISHED", ...(user.role === "ADMIN" ? {} : { organizationId: user.organizationId ?? "__none__" }) },
+      orderBy: { title: "asc" },
+      select: { id: true, title: true, sessions: { where: { open: true }, orderBy: { startDate: "asc" }, select: { id: true, name: true } } },
+    }),
   ]);
   const count = (k: AccountStatus) => counts.find((c) => c.accountStatus === k)?._count ?? 0;
 
@@ -52,7 +62,7 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
       <details className="card mb-6 p-5">
         <summary className="cursor-pointer font-medium text-slate-900">Créer un compte apprenant</summary>
         <p className="mt-2 text-sm text-slate-500">
-          L&apos;apprenant reçoit un lien d&apos;activation pour choisir son mot de passe, puis complète son dossier administratif que vous validez ensuite.
+          L&apos;apprenant reçoit un email d&apos;activation pour choisir son mot de passe, complète son dossier administratif et ses documents d&apos;inscription, puis vous validez.
         </p>
         <StateForm action={createLearnerAccountAction} submitLabel="Créer le compte" submitClassName="btn-primary" className="mt-4 grid gap-3 md:grid-cols-3">
           <label className="text-sm"><span className="label">Civilité</span>
@@ -62,6 +72,28 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
           <label className="text-sm"><span className="label">Nom *</span><input name="lastName" required className="input" /></label>
           <label className="text-sm"><span className="label">Email *</span><input name="email" type="email" required className="input" /></label>
           <label className="text-sm"><span className="label">Téléphone</span><input name="phone" className="input" /></label>
+          {courses.length > 0 && (
+            <fieldset className="md:col-span-3">
+              <legend className="label">Inscrire directement à une ou plusieurs formations (facultatif)</legend>
+              <p className="mb-2 text-xs text-slate-500">L&apos;apprenant fournira ses documents d&apos;inscription en même temps que son dossier de compte : un seul email, un seul passage.</p>
+              <div className="grid gap-2 md:grid-cols-2">
+                {courses.map((c) => (
+                  <div key={c.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3">
+                    <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                      <input type="checkbox" name="courseIds" value={c.id} />
+                      <span className="truncate">{c.title}</span>
+                    </label>
+                    {c.sessions.length > 0 && (
+                      <select name={`session_${c.id}`} className="input w-auto py-1 text-xs" defaultValue="">
+                        <option value="">Sans session</option>
+                        {c.sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          )}
           {user.role === "ADMIN" && (
             <label className="text-sm"><span className="label">Organisme *</span>
               <select name="organizationId" required className="input">
@@ -71,6 +103,20 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
           )}
         </StateForm>
       </details>
+
+      {changeRequests.length > 0 && (
+        <section className="card mb-6 p-5 ring-2 ring-amber-200">
+          <h2 className="mb-3 text-base">Demandes de modification d&apos;informations ({changeRequests.length})</h2>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {changeRequests.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span><b className="font-medium text-slate-900">{r.user.name}</b> · {Object.keys(r.changes as object).length} information(s) · {formatDate(r.createdAt, true)}</span>
+                <Link href={`/of/accounts/${r.user.id}`} className="btn-secondary btn-sm">Examiner</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {TABS.map((t) => (

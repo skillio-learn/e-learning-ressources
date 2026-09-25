@@ -63,6 +63,7 @@ export async function QuizPanel({
           {shown.feedback && <p className="mt-2 text-sm">{shown.feedback}</p>}
           <div className="mt-4 flex gap-2">
             <Link href={`/learn/${slug}/${lessonId}`} className="btn-secondary">Retour au quiz</Link>
+            <a href={`/api/pdf/attempts/${shown.id}`} className="btn-secondary">Mes résultats (PDF)</a>
             {canRetry && (
               <form action={startQuizAttemptAction.bind(null, quiz.id)}>
                 <SubmitButton className="btn-primary">Nouvelle tentative</SubmitButton>

@@ -9,7 +9,7 @@ export const metadata = { title: "Certificat de réalisation" };
 /** Modèle conforme au certificat de réalisation (arrêté du ministère du Travail) – CPF, OPCO, France Travail. */
 export default async function Realisation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { trace } = await loadTraceForViewer(id, "realisation");
+  const { trace } = await loadTraceForViewer(id, "realisation", { learnerRequiresFinished: true });
   const e = trace.enrollment;
   const org = e.course.organization;
   const hours = Math.round((trace.totalSeconds / 3600) * 100) / 100;

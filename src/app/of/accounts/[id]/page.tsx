@@ -8,11 +8,13 @@ import {
   regenerateActivationLinkAction, rejectAccountAction, reopenAccountAction, requestAccountChangesAction,
   reviewAccountDocumentAction, staffUploadAccountDocumentAction, validateAccountAction,
 } from "@/app/actions/accounts";
+import { approveProfileChangeAction, rejectProfileChangeAction } from "@/app/actions/profile";
+import { ChangeDiff } from "@/components/profile/ChangeDiff";
 import { StateForm } from "@/components/StateForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { DocumentUpload } from "@/components/applications/DocumentUpload";
 import { Badge, Container, PageHeader } from "@/components/ui";
-import { ACCOUNT_DOCUMENT_CHOICES, ACCOUNT_STATUS, DOC_SOURCE, DOCUMENT_TYPES, EMPLOYMENT_STATUS } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, ACCOUNT_STATUS, CHANGE_REQUEST_STATUS, DOC_SOURCE, DOCUMENT_TYPES, EMPLOYMENT_STATUS } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Validation de compte" };
@@ -24,6 +26,13 @@ export default async function AccountReview({ params }: { params: Promise<{ id: 
   const learner = await db.user.findUnique({ where: { id }, select: { role: true, organizationId: true } });
   if (!learner || learner.role !== "LEARNER" || !canManageOrg(staff, learner.organizationId)) notFound();
   const { user, missingFields, docs, extraDocs } = await accountChecklist(id);
+  const changeRequests = await db.profileChangeRequest.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: { id: true, changes: true, reason: true, status: true, reviewNote: true, createdAt: true, reviewedAt: true, fileName: true, reviewedBy: { select: { name: true } } },
+  });
+  const pendingChange = changeRequests.find((r) => r.status === "PENDING");
   const reviewer = user.accountReviewedById ? await db.user.findUnique({ where: { id: user.accountReviewedById }, select: { name: true } }) : null;
   const p = user.profile;
   const st = ACCOUNT_STATUS[user.accountStatus];
@@ -49,6 +58,29 @@ export default async function AccountReview({ params }: { params: Promise<{ id: 
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          {pendingChange && (
+            <section className="card space-y-4 p-6 ring-2 ring-amber-200">
+              <div>
+                <h2 className="mb-1">Demande de modification des informations</h2>
+                <p className="text-sm text-slate-500">Envoyée le {formatDate(pendingChange.createdAt, true)}. Vérifiez le justificatif avant d&apos;accepter : les nouvelles valeurs remplaceront les actuelles sur tous les documents.</p>
+              </div>
+              <ChangeDiff changes={pendingChange.changes} />
+              <p className="text-sm text-slate-600"><b>Motif :</b> {pendingChange.reason}</p>
+              {pendingChange.fileName ? (
+                <a href={`/api/profile-changes/${pendingChange.id}/file?inline=1`} target="_blank" className="btn-secondary btn-sm">Voir le justificatif ({pendingChange.fileName})</a>
+              ) : (
+                <p className="text-xs text-amber-700">Aucun justificatif joint.</p>
+              )}
+              <div className="grid gap-3 md:grid-cols-2">
+                <StateForm action={approveProfileChangeAction.bind(null, pendingChange.id)} submitLabel="Accepter et appliquer" submitClassName="btn-primary w-full" className="space-y-2">
+                  <textarea name="note" rows={2} className="input" placeholder="Message à l'apprenant (facultatif)" />
+                </StateForm>
+                <StateForm action={rejectProfileChangeAction.bind(null, pendingChange.id)} submitLabel="Refuser" submitClassName="btn-secondary w-full" className="space-y-2">
+                  <textarea name="note" rows={2} className="input" placeholder="Motif du refus (obligatoire)" />
+                </StateForm>
+              </div>
+            </section>
+          )}
           <section className="card p-6">
             <h2 className="mb-1">Informations administratives</h2>
             {missingFields.length > 0 ? (
@@ -64,6 +96,22 @@ export default async function AccountReview({ params }: { params: Promise<{ id: 
                 </div>
               ))}
             </dl>
+            {changeRequests.some((r) => r.status !== "PENDING") && (
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <h3 className="mb-2 text-sm font-semibold text-slate-600">Historique des modifications demandées</h3>
+                <ul className="space-y-2 text-sm">
+                  {changeRequests.filter((r) => r.status !== "PENDING").map((r) => (
+                    <li key={r.id} className="rounded-xl bg-slate-50 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-slate-600">{formatDate(r.createdAt, true)}{r.reviewedBy ? ` · traitée par ${r.reviewedBy.name}` : ""}{r.reviewNote ? ` · « ${r.reviewNote} »` : ""}</span>
+                        <Badge tone={CHANGE_REQUEST_STATUS[r.status].tone}>{CHANGE_REQUEST_STATUS[r.status].label}</Badge>
+                      </div>
+                      <details className="mt-1"><summary className="cursor-pointer text-xs text-slate-500">Détail</summary><ChangeDiff changes={r.changes} /></details>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
 
           <section className="card p-6">

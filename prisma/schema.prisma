@@ -30,6 +30,7 @@ model User {
   email               String        @unique
   name                String
   passwordHash        String
+  sessionVersion      Int           @default(0) // Incrémenté à chaque changement de mot de passe : invalide les sessions ouvertes
   role                Role          @default(LEARNER)
   active              Boolean       @default(true)
   bio                 String?
@@ -53,44 +54,46 @@ model User {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  profile              LearnerProfile?
-  applications         Application[]          @relation("ApplicationLearner")
-  reviewedApplications Application[]          @relation("ApplicationReviewer")
-  applicationEvents    ApplicationEvent[]
-  reviewedDocuments    ApplicationDocument[]
-  loginEvents          LoginEvent[]
-  resetTokens          PasswordResetToken[]
-  pedagogicalMessages  PedagogicalMessage[]
-  activitySessions     ActivitySession[]
-  timeLogs             TimeLog[]
-  notifications        Notification[]
-  auditLogs            AuditLog[]
-  signatures           AttendanceSignature[]
-  satisfactions        SatisfactionResponse[]
-  complaints           Complaint[]            @relation("ComplaintAuthor")
-  handledComplaints    Complaint[]            @relation("ComplaintHandler")
-  enrollmentsCreated   Enrollment[]           @relation("EnrolledBy")
-  coursesAuthored      Course[]               @relation("CourseAuthor")
-  coTeaching           CourseTrainer[]
-  enrollments          Enrollment[]           @relation("EnrollmentLearner")
-  lessonProgress       LessonProgress[]
-  quizAttempts         QuizAttempt[]
-  submissions          Submission[]           @relation("SubmissionLearner")
-  gradedSubmissions    Submission[]           @relation("SubmissionGrader")
-  rubrics              Rubric[]
-  certificates         Certificate[]
-  reviewedAccounts     User[]                 @relation("AccountReviewer")
-  learnerDocuments     LearnerDocument[]      @relation("DocumentOwner")
-  uploadedDocuments    LearnerDocument[]      @relation("DocumentUploader")
-  reviewedLearnerDocs  LearnerDocument[]      @relation("DocumentReviewer")
-  accessDecisions      Enrollment[]           @relation("AccessDecider")
-  supportConversations SupportConversation[]  @relation("SupportRequester")
-  assignedSupport      SupportConversation[]  @relation("SupportAssignee")
-  supportMessages      SupportMessage[]
-  ticketsRequested     SupportTicket[]        @relation("TicketRequester")
-  ticketsAssigned      SupportTicket[]        @relation("TicketAssignee")
-  ticketMessages       SupportTicketMessage[]
-  supportReferentOf    Organization[]         @relation("OrgSupportReferent")
+  profile                LearnerProfile?
+  applications           Application[]          @relation("ApplicationLearner")
+  reviewedApplications   Application[]          @relation("ApplicationReviewer")
+  applicationEvents      ApplicationEvent[]
+  reviewedDocuments      ApplicationDocument[]
+  loginEvents            LoginEvent[]
+  resetTokens            PasswordResetToken[]
+  pedagogicalMessages    PedagogicalMessage[]
+  activitySessions       ActivitySession[]
+  timeLogs               TimeLog[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+  signatures             AttendanceSignature[]
+  satisfactions          SatisfactionResponse[]
+  complaints             Complaint[]            @relation("ComplaintAuthor")
+  handledComplaints      Complaint[]            @relation("ComplaintHandler")
+  enrollmentsCreated     Enrollment[]           @relation("EnrolledBy")
+  coursesAuthored        Course[]               @relation("CourseAuthor")
+  coTeaching             CourseTrainer[]
+  enrollments            Enrollment[]           @relation("EnrollmentLearner")
+  lessonProgress         LessonProgress[]
+  quizAttempts           QuizAttempt[]
+  submissions            Submission[]           @relation("SubmissionLearner")
+  gradedSubmissions      Submission[]           @relation("SubmissionGrader")
+  rubrics                Rubric[]
+  certificates           Certificate[]
+  reviewedAccounts       User[]                 @relation("AccountReviewer")
+  learnerDocuments       LearnerDocument[]      @relation("DocumentOwner")
+  uploadedDocuments      LearnerDocument[]      @relation("DocumentUploader")
+  reviewedLearnerDocs    LearnerDocument[]      @relation("DocumentReviewer")
+  accessDecisions        Enrollment[]           @relation("AccessDecider")
+  supportConversations   SupportConversation[]  @relation("SupportRequester")
+  assignedSupport        SupportConversation[]  @relation("SupportAssignee")
+  supportMessages        SupportMessage[]
+  ticketsRequested       SupportTicket[]        @relation("TicketRequester")
+  ticketsAssigned        SupportTicket[]        @relation("TicketAssignee")
+  ticketMessages         SupportTicketMessage[]
+  supportReferentOf      Organization[]         @relation("OrgSupportReferent")
+  profileChangeRequests  ProfileChangeRequest[] @relation("ChangeRequester")
+  reviewedChangeRequests ProfileChangeRequest[] @relation("ChangeReviewer")
 }
 
 model Setting {
@@ -187,7 +190,8 @@ model Module {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lessons Lesson[]
+  lessons   Lesson[]
+  resources Resource[]
 
   @@index([courseId, position])
 }
@@ -487,6 +491,8 @@ model Enrollment {
   accessDecidedById  String?
   accessDecidedBy    User?             @relation("AccessDecider", fields: [accessDecidedById], references: [id], onDelete: SetNull)
   accessDecisionNote String?           @db.Text
+  accessRequestNote  String?           @db.Text // Compléments demandés par l'OF sur le dossier d'inscription
+  accessRequestAt    DateTime?
   documents          LearnerDocument[]
 
   satisfactions SatisfactionResponse[]
@@ -1114,4 +1120,57 @@ model SupportTicketMessage {
   createdAt DateTime      @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// ─────────────────────────────── Modification du profil apprenant ───────────────────────────────
+
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Une fois le compte validé, l'apprenant ne modifie plus ses informations : il en fait la demande à l'OF (anti-fraude)
+model ProfileChangeRequest {
+  id             String              @id @default(cuid())
+  userId         String
+  user           User                @relation("ChangeRequester", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  changes        Json // { champ: { from, to } }
+  reason         String              @db.Text
+  fileName       String? // Justificatif (pièce d'identité, justificatif de domicile…)
+  fileType       String?
+  size           Int?
+  data           Bytes?
+  status         ChangeRequestStatus @default(PENDING)
+  reviewNote     String?             @db.Text
+  reviewedById   String?
+  reviewedBy     User?               @relation("ChangeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@index([organizationId, status])
+  @@index([userId, createdAt])
+}
+
+// ─────────────────────────────── Ressources pédagogiques ───────────────────────────────
+
+/// Document ou lien mis à disposition dans un module : téléchargeable par l'apprenant dès qu'il a démarré le module
+model Resource {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  url         String? // Lien externe (https)
+  fileName    String?
+  fileType    String?
+  size        Int?
+  data        Bytes?
+  position    Int      @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([moduleId, position])
 }

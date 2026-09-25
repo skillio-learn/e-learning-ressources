@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LearnerDetail({ params }: { params: Promise<{ id: string; userId: string }> }) {
   const { id, userId } = await params;
+  await requireCourseManager(id);
   const enrollment = await db.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId: id } },
     include: { user: { select: { name: true, email: true } } },
@@ -74,6 +76,9 @@ export default async function LearnerDetail({ params }: { params: Promise<{ id: 
                             </Link>
                           ) : "—"
                         ) : p?.score != null ? pct(p.score) : "—"}
+                        {r?.refId && r.kind === "QUIZ" && (
+                          <a href={`/api/pdf/attempts/${r.refId}`} className="ml-2 text-xs text-slate-500 hover:underline">PDF</a>
+                        )}
                       </td>
                       <td className="text-xs">{p ? `${Math.round(p.timeSpentSec / 60)} min` : "—"}</td>
                       <td className="text-xs text-slate-500">{formatDate(p?.completedAt)}</td>

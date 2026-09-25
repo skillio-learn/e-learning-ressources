@@ -9,7 +9,7 @@ import { ENROLLMENT_STATUS, EXIT_REASONS, FUNDING_TYPES } from "@/lib/labels";
 import { formatDate, toCsv } from "@/lib/utils";
 
 const EVT = { LOGIN: "Connexion", LOGOUT: "Déconnexion", FAILED: "Échec", LOCKED: "Verrouillé" } as const;
-const iso = (d: Date | null | undefined) => (d ? d.toLocaleString("fr-FR") : "");
+const iso = (d: Date | null | undefined) => (d ? d.toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "");
 const hours = (s: number) => (Math.round((s / 3600) * 100) / 100).toString().replace(".", ",");
 
 export async function GET(req: Request, { params }: { params: Promise<{ kind: string }> }) {
@@ -66,17 +66,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
       break;
     }
     case "logins": {
+      // Adresses IP et navigateurs : données personnelles réservées aux responsables de l'organisme
+      if (user.role !== "OF_ADMIN") return new NextResponse("Accès refusé", { status: 403 });
       const events = await db.loginEvent.findMany({
         where: { userId: enrollmentFilter ? enrollmentFilter.userId : { in: userIds ?? [] }, ...dateWhere("createdAt") },
         orderBy: { createdAt: "asc" },
         include: { user: { select: { name: true } } },
       });
       rows = [["Date", "Heure", "Apprenant", "Email", "Évènement", "Adresse IP", "Navigateur"], ...events.map((e) => [
-        e.createdAt.toLocaleDateString("fr-FR"), e.createdAt.toLocaleTimeString("fr-FR"), e.user?.name ?? "", e.email, EVT[e.type], e.ip ?? "", e.userAgent ?? "",
+        e.createdAt.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" }), e.createdAt.toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" }), e.user?.name ?? "", e.email, EVT[e.type], e.ip ?? "", e.userAgent ?? "",
       ])];
       break;
     }
     case "sessions": {
+      if (user.role !== "OF_ADMIN") return new NextResponse("Accès refusé", { status: 403 });
       const sessions = await db.activitySession.findMany({
         where: { userId: enrollmentFilter ? enrollmentFilter.userId : { in: userIds ?? [] }, ...dateWhere("startedAt") },
         orderBy: { startedAt: "asc" },
@@ -105,7 +108,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
     case "audit": {
       if (user.role === "TRAINER") return new NextResponse("Accès refusé", { status: 403 });
       const orgId = user.role === "ADMIN" ? sp.get("org") : user.organizationId;
-      if (orgId && !canManageOrg(user, orgId)) return new NextResponse("Accès refusé", { status: 403 });
+      // Un responsable sans organisme ne doit jamais obtenir le journal de toute la plateforme
+      if (user.role !== "ADMIN" && (!orgId || !canManageOrg(user, orgId))) return new NextResponse("Accès refusé", { status: 403 });
       const logs = await db.auditLog.findMany({
         where: { ...(orgId ? { organizationId: orgId } : {}), ...dateWhere("createdAt") },
         orderBy: { createdAt: "desc" },

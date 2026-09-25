@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { readUpload } from "@/lib/uploads";
 import { requireActiveLearnerAccount, requireUser } from "@/lib/auth";
-import { notifyOrgManagers } from "@/lib/notify";
+import { notifyCourseGraders, notifyOrgManagers } from "@/lib/notify";
+import { courseIdForLesson } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { initialAccessStatus, learnerCanAccess } from "@/lib/onboarding";
 import { completeLesson, getCourseOutline } from "@/lib/progress";
@@ -33,7 +35,7 @@ async function loadLessonForLearner(lessonId: string) {
 export async function enrollAction(courseId: string) {
   const user = await requireActiveLearnerAccount();
   const course = await db.course.findUnique({ where: { id: courseId }, include: { organization: { select: { enrollmentRequiredDocuments: true } } } });
-  if (!course || course.status !== "PUBLISHED" || course.enrollmentPolicy !== "OPEN") {
+  if (!course || course.status !== "PUBLISHED" || course.enrollmentPolicy !== "OPEN" || course.organizationId !== user.organizationId) {
     throw new Error("Inscription impossible à cette formation");
   }
   const existing = await db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId } } });
@@ -41,7 +43,6 @@ export async function enrollAction(courseId: string) {
   const e = await db.enrollment.create({
     data: { userId: user.id, courseId, origin: "SELF", accessStatus: initialAccessStatus(course.organization, "SELF"), startDate: new Date() },
   });
-  if (!user.organizationId) await db.user.update({ where: { id: user.id }, data: { organizationId: course.organizationId } });
   await audit("enrollment.create", { actorId: user.id, organizationId: course.organizationId, entityType: "Enrollment", entityId: e.id, details: "demande de l'apprenant" });
   await notifyOrgManagers(course.organizationId, `Demande d'inscription – ${user.name}`, `${user.name} demande à suivre « ${course.title} ».`, `/of/access/${e.id}`);
   redirect(`/enrollments/${e.id}`);
@@ -59,7 +60,12 @@ export async function completeLessonAction(lessonId: string, score?: number | nu
       throw new Error("Le temps minimum de consultation de cette étape n'est pas encore atteint.");
     }
   }
-  const s = typeof score === "number" && Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null;
+  // Score remonté par le navigateur : accepté uniquement pour un module interactif, et enregistré une seule fois
+  let s: number | null = null;
+  if (lesson.type === "INTERACTIVE" && typeof score === "number" && Number.isFinite(score)) {
+    const prev = await db.lessonProgress.findUnique({ where: { userId_lessonId: { userId: user.id, lessonId } }, select: { score: true, status: true } });
+    if (!(prev?.status === "COMPLETED" && prev.score !== null)) s = Math.round(Math.max(0, Math.min(100, score)));
+  }
   await completeLesson(user.id, lessonId, s);
   revalidatePath(`/learn/${slug}`, "layout");
   return { ok: true };
@@ -76,7 +82,17 @@ export async function startQuizAttemptAction(quizId: string) {
   if (!inProgress) {
     const used = await db.quizAttempt.count({ where: { quizId, userId: user.id } });
     if (quiz.maxAttempts && used >= quiz.maxAttempts) throw new Error("Nombre maximal de tentatives atteint");
-    await db.quizAttempt.create({ data: { quizId, userId: user.id } });
+    const created = await db.quizAttempt.create({ data: { quizId, userId: user.id } });
+    // Requêtes simultanées : on ne garde qu'une tentative en cours et on respecte le nombre maximal
+    const [open, total] = await Promise.all([
+      db.quizAttempt.findMany({ where: { quizId, userId: user.id, status: "IN_PROGRESS" }, orderBy: { startedAt: "asc" }, select: { id: true } }),
+      db.quizAttempt.count({ where: { quizId, userId: user.id } }),
+    ]);
+    if (open.length > 1 && open[0].id !== created.id) await db.quizAttempt.delete({ where: { id: created.id } });
+    else if (quiz.maxAttempts && total > quiz.maxAttempts) {
+      await db.quizAttempt.delete({ where: { id: created.id } });
+      throw new Error("Nombre maximal de tentatives atteint");
+    }
   }
   revalidatePath(`/learn/${slug}/${quiz.lessonId}`);
 }
@@ -91,61 +107,72 @@ export async function submitQuizAttemptAction(attemptId: string, fd: FormData) {
   if (attempt.status !== "IN_PROGRESS") throw new Error("Cette tentative a déjà été remise");
   const { slug } = await loadLessonForLearner(attempt.quiz.lesson.id);
 
-  // Temps limite : on tolère 1 minute de marge réseau
-  if (attempt.quiz.timeLimitMin) {
-    const deadline = attempt.startedAt.getTime() + (attempt.quiz.timeLimitMin + 1) * 60_000;
-    if (Date.now() > deadline) {
-      // Les réponses sont tout de même enregistrées ; la remise tardive est signalée dans le feedback.
-      await db.quizAttempt.update({ where: { id: attemptId }, data: { feedback: "Remis après la limite de temps." } });
-    }
-  }
+  // Remise unique (double clic, requêtes simultanées)
+  const claimed = await db.quizAttempt.updateMany({ where: { id: attemptId, status: "IN_PROGRESS", submittedAt: null }, data: { submittedAt: new Date() } });
+  if (claimed.count !== 1) throw new Error("Cette tentative a déjà été remise");
+
+  // Temps limite (1 minute de marge réseau) : une remise hors délai est enregistrée mais n'est pas notée
+  const late = !!attempt.quiz.timeLimitMin && Date.now() > attempt.startedAt.getTime() + (attempt.quiz.timeLimitMin + 1) * 60_000;
+  if (late) await db.quizAttempt.update({ where: { id: attemptId }, data: { feedback: "Remis après la limite de temps : tentative non notée." } });
 
   for (const q of attempt.quiz.questions) {
-    const selected = fd.getAll(`q_${q.id}`).map(String);
+    const selected = [...new Set(fd.getAll(`q_${q.id}`).map(String))].slice(0, 50);
     const text = typeof fd.get(`t_${q.id}`) === "string" ? String(fd.get(`t_${q.id}`)).slice(0, 20000) : null;
     const raw = { selectedOptionIds: selected, text };
-    const g = gradeAnswer(q, raw);
+    const g = late ? { pointsAwarded: 0, isCorrect: false, needsReview: false } : gradeAnswer(q, raw);
     await db.answer.upsert({
       where: { attemptId_questionId: { attemptId, questionId: q.id } },
       create: { attemptId, questionId: q.id, ...raw, ...g },
       update: { ...raw, ...g },
     });
   }
-  await db.quizAttempt.update({ where: { id: attemptId }, data: { submittedAt: new Date() } });
-  await recomputeAttempt(attemptId);
+  const graded = await recomputeAttempt(attemptId);
+  if (graded?.status === "PENDING_REVIEW") {
+    const courseId = await courseIdForLesson(attempt.quiz.lesson.id);
+    await notifyCourseGraders(courseId, `Quiz à corriger – ${user.name}`, "Des questions ouvertes attendent votre correction.", `/of/grading/attempts/${attemptId}`);
+  }
   revalidatePath(`/learn/${slug}`, "layout");
   redirect(`/learn/${slug}/${attempt.quiz.lesson.id}?attempt=${attemptId}`);
 }
 
 // ─────────────── Devoirs ───────────────
 
-const MAX_FILE = 8 * 1024 * 1024;
+export type AssignmentState = { error?: string; ok?: string } | undefined;
 
-export async function submitAssignmentAction(lessonId: string, fd: FormData) {
+/**
+ * Remise d'un devoir : texte, lien (vidéo hébergée, document en ligne) et/ou fichier (PDF, photo d'un exercice papier,
+ * document, courte vidéo). Le devoir remis apparaît chez les formateurs de la formation et les responsables de l'OF.
+ */
+export async function submitAssignmentAction(lessonId: string, _: AssignmentState, fd: FormData): Promise<AssignmentState> {
   const { user, lesson, slug } = await loadLessonForLearner(lessonId);
-  if (lesson.type !== "ASSIGNMENT") throw new Error("Cette leçon n'est pas un devoir");
+  if (lesson.type !== "ASSIGNMENT") return { error: "Cette étape n'est pas un devoir." };
 
-  const existing = await db.submission.findFirst({
-    where: { lessonId, userId: user.id },
-    orderBy: { submittedAt: "desc" },
-  });
-  if (existing && existing.status === "GRADED") throw new Error("Ce devoir a déjà été évalué");
+  const existing = await db.submission.findFirst({ where: { lessonId, userId: user.id }, orderBy: { submittedAt: "desc" } });
+  if (existing && existing.status === "GRADED") return { error: "Ce devoir a déjà été évalué." };
 
-  const text = String(fd.get("text") ?? "").trim() || null;
-  const linkUrl = safeUrl(String(fd.get("linkUrl") ?? "").trim());
-  const file = fd.get("file");
-  let fileData: { fileName: string; fileType: string; fileData: Uint8Array<ArrayBuffer> } | null = null;
-  if (file instanceof File && file.size > 0) {
-    if (file.size > MAX_FILE) throw new Error("Fichier trop volumineux (8 Mo maximum)");
-    fileData = { fileName: file.name, fileType: file.type || "application/octet-stream", fileData: new Uint8Array(await file.arrayBuffer()) };
-  }
-  if (!text && !linkUrl && !fileData && !existing?.fileName) throw new Error("Ajoutez un texte, un lien ou un fichier");
+  const text = String(fd.get("text") ?? "").trim().slice(0, 50000) || null;
+  const rawLink = String(fd.get("linkUrl") ?? "").trim();
+  const linkUrl = safeUrl(rawLink);
+  if (rawLink && !linkUrl) return { error: "Lien invalide (adresse commençant par https://)." };
+  const up = await readUpload(fd, { kind: "assignment", required: false });
+  if ("error" in up) return up;
+  if (!text && !linkUrl && !up.file && !existing?.fileName) return { error: "Ajoutez une réponse écrite, un lien ou un fichier." };
 
-  const data = { text, linkUrl, ...(fileData ?? {}), status: "SUBMITTED" as const, submittedAt: new Date() };
-  if (existing) await db.submission.update({ where: { id: existing.id }, data });
-  else await db.submission.create({ data: { lessonId, userId: user.id, ...data } });
+  const data = {
+    text,
+    linkUrl,
+    ...(up.file ? { fileName: up.file.fileName, fileType: up.file.fileType, fileData: up.file.data } : {}),
+    status: "SUBMITTED" as const,
+    submittedAt: new Date(),
+  };
+  const sub = existing
+    ? await db.submission.update({ where: { id: existing.id }, data })
+    : await db.submission.create({ data: { lessonId, userId: user.id, ...data } });
 
   // La remise débloque l'étape suivante ; la validation finale dépend de l'évaluation par le formateur.
   await completeLesson(user.id, lessonId);
+  const courseId = await courseIdForLesson(lessonId);
+  await notifyCourseGraders(courseId, `Devoir à corriger – ${user.name}`, `« ${lesson.title} »${existing ? " (nouvelle version)" : ""}`, `/of/grading/submissions/${sub.id}`);
   revalidatePath(`/learn/${slug}`, "layout");
+  return { ok: existing ? "Votre rendu a été mis à jour : le formateur est prévenu." : "Devoir remis : le formateur est prévenu." };
 }

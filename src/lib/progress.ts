@@ -180,9 +180,12 @@ export async function getLearnerResults(userId: string, courseId: string) {
 export async function evaluateCourseCompletion(userId: string, courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
-    select: { passingScore: true, certificateEnabled: true },
+    select: { passingScore: true, certificateEnabled: true, title: true, slug: true },
   });
   if (!course) return false;
+  // Pas d'inscription, pas de validation ni de certificat
+  const enrollment = await db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } });
+  if (!enrollment) return false;
   const outline = await getCourseOutline(courseId, userId, { ignoreLocks: true });
   if (!outline || outline.total === 0) return false;
   const allRequiredDone = outline.flat.filter((l) => l.required).every((l) => l.completed);
@@ -193,12 +196,18 @@ export async function evaluateCourseCompletion(userId: string, courseId: string)
   const scoreOk = average === null || average >= course.passingScore;
   if (!evaluationsOk || !scoreOk) return false;
 
-  const enrollment = await db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } });
-  if (enrollment && enrollment.status !== "COMPLETED") {
+  if (enrollment.status !== "COMPLETED") {
     await db.enrollment.update({
       where: { id: enrollment.id },
       data: { status: "COMPLETED", completedAt: new Date() },
     });
+    const { notify } = await import("./notify");
+    await notify(
+      userId,
+      `Formation terminée : ${course.title}`,
+      "Félicitations ! Votre attestation de réalisation et le relevé de vos connexions sont disponibles au téléchargement dans votre espace.",
+      `/learn/${course.slug}/documents`,
+    );
   }
   if (course.certificateEnabled) {
     await db.certificate.upsert({
@@ -208,4 +217,13 @@ export async function evaluateCourseCompletion(userId: string, courseId: string)
     });
   }
   return true;
+}
+
+/** Modules démarrés par l'apprenant (au moins une étape ouverte) : leurs ressources lui sont accessibles. */
+export async function startedModuleIds(userId: string, courseId: string) {
+  const rows = await db.lessonProgress.findMany({
+    where: { userId, lesson: { module: { courseId } } },
+    select: { lesson: { select: { moduleId: true } } },
+  });
+  return new Set(rows.map((r) => r.lesson.moduleId));
 }

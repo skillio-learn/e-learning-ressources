@@ -19,24 +19,32 @@ export function EnrollForm({ action }: { action: (prev: EnrollResult, fd: FormDa
         Créer les comptes manquants
       </label>
       <SubmitButton className="btn-primary w-full" pendingLabel="Inscription…">Inscrire</SubmitButton>
-      {state && (
+      {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
+      {state && !state.error && (
         <div className="space-y-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
           <div>{state.enrolled} apprenant(s) inscrit(s).</div>
-          {state.notFound.length > 0 && <div className="text-amber-800">Comptes introuvables : {state.notFound.join(", ")}</div>}
+          {state.notFound.length > 0 && <div className="text-amber-800">Non inscrits (compte introuvable ou non rattaché à votre organisme) : {state.notFound.join(", ")}</div>}
           {state.created.length > 0 && (
             <div>
-              <div className="font-medium">Comptes créés — transmettez ces liens d&apos;activation (valables 7 jours) :</div>
-              <table className="mt-1 w-full text-xs">
-                <tbody>
-                  {state.created.map((c) => (
-                    <tr key={c.email}>
-                      <td className="pr-2">{c.email}</td>
-                      <td className="break-all font-mono">{c.link}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="mt-1 text-xs text-emerald-700">L&apos;apprenant choisit son mot de passe, complète son dossier administratif, puis vous validez son compte (Comptes apprenants).</p>
+              <div className="font-medium">{state.created.length} compte(s) créé(s).</div>
+              {state.created.some((c) => c.link) ? (
+                <>
+                  <div className="mt-1 text-xs">L&apos;email n&apos;a pas pu être envoyé pour ces comptes : transmettez le lien d&apos;activation personnel (7 jours).</div>
+                  <table className="mt-1 w-full text-xs">
+                    <tbody>
+                      {state.created.filter((c) => c.link).map((c) => (
+                        <tr key={c.email}>
+                          <td className="pr-2">{c.email}</td>
+                          <td className="break-all font-mono">{c.link}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <div className="text-xs">Chaque apprenant a reçu son email d&apos;activation.</div>
+              )}
+              <p className="mt-1 text-xs text-emerald-700">L&apos;apprenant choisit son mot de passe, complète son dossier et ses documents d&apos;inscription, puis vous validez (Comptes apprenants, Accès aux parcours).</p>
             </div>
           )}
         </div>

@@ -20,10 +20,12 @@ export default async function LearnLayout({ children, params }: { children: Reac
           <div className="mt-1 text-xs text-slate-500">
             {outline.completed}/{outline.total} étapes terminées
           </div>
-                    {!preview && (
-            <Link href={`/learn/${course.slug}/messages`} className="mt-3 inline-block text-xs font-medium text-brand-600 hover:underline">
-              Contacter mon formateur →
-            </Link>
+          {!preview && (
+            <nav className="mt-4 flex flex-wrap gap-1.5 text-xs">
+              <Link href={`/learn/${course.slug}/ressources`} className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700 transition hover:bg-slate-200">Ressources</Link>
+              <Link href={`/learn/${course.slug}/documents`} className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700 transition hover:bg-slate-200">Mes documents</Link>
+              <Link href={`/learn/${course.slug}/messages`} className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700 transition hover:bg-slate-200">Mon formateur</Link>
+            </nav>
           )}
           {preview && (
             <div className="mt-3 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">

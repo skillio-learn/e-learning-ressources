@@ -10,9 +10,11 @@ export function renderMarkdown(md: string | null | undefined) {
       ...sanitizeHtml.defaults.allowedAttributes,
       img: ["src", "alt", "title", "width", "height"],
       iframe: ["src", "width", "height", "allow", "allowfullscreen", "title"],
-      "*": ["class"],
+      // Classes limitées à la coloration du code (pas de classes d'interface pour habiller une fausse page)
+      code: ["class"],
     },
     allowedIframeHostnames: ["www.youtube.com", "www.youtube-nocookie.com", "player.vimeo.com", "docs.google.com", "www.canva.com"],
+    allowedClasses: { code: [/^language-[\w-]+$/] },
     transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noopener noreferrer" }) },
   });
 }

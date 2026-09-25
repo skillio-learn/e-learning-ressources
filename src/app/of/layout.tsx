@@ -10,7 +10,12 @@ export default async function OfLayout({ children }: { children: React.ReactNode
   const manager = isOfManager(user);
   const orgScope = user.role === "ADMIN" ? {} : { organizationId: user.organizationId ?? "__none__" };
   const [pendingAccounts, pendingAccess, openSupport] = await Promise.all([
-    manager ? db.user.count({ where: { role: "LEARNER", accountStatus: "PENDING_REVIEW", ...orgScope } }) : Promise.resolve(0),
+    manager
+      ? Promise.all([
+          db.user.count({ where: { role: "LEARNER", accountStatus: "PENDING_REVIEW", ...orgScope } }),
+          db.profileChangeRequest.count({ where: { status: "PENDING", user: orgScope } }),
+        ]).then(([a, b]) => a + b)
+      : Promise.resolve(0),
     manager ? db.enrollment.count({ where: { accessStatus: "UNDER_REVIEW", ...(user.role === "ADMIN" ? {} : { course: orgScope }) } }) : Promise.resolve(0),
     db.supportConversation.count({ where: { status: "OPEN", ...orgScope } }),
   ]);

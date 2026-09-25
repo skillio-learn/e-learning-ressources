@@ -38,6 +38,7 @@ export async function signConventionAction(enrollmentId: string, signature: stri
   checkSignature(signature);
   const e = await loadEnrollment(enrollmentId);
   if (e.userId !== user.id) throw new Error("Seul le stagiaire peut signer sa convention");
+  if (user.accountStatus === "REJECTED") throw new Error("Votre inscription à la plateforme a été refusée.");
   if (e.conventionSignedAt) return;
   const { ip, userAgent } = await getClientInfo();
   const full = await db.enrollment.findUniqueOrThrow({ where: { id: enrollmentId }, include: { course: { select: { price: true } } } });
@@ -106,6 +107,8 @@ export async function clearOrgSignatureAction(orgId: string) {
 
 export async function saveExitAssessmentAction(enrollmentId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  // Un apprenant dont le compte n'est pas validé ne peut pas agir sur une formation
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") throw new Error("Votre compte doit d'abord être validé par votre organisme.");
   const e = await db.enrollment.findUnique({ where: { id: enrollmentId }, include: { course: { select: { skills: true, organizationId: true } } } });
   if (!e || e.userId !== user.id) return { error: "Inscription introuvable." };
   const result: Record<string, number> = {};
@@ -130,11 +133,15 @@ async function canAccessThread(user: CurrentUser, e: Awaited<ReturnType<typeof l
 
 export async function sendPedagogicalMessageAction(enrollmentId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  // Un apprenant dont le compte n'est pas validé ne peut pas agir sur une formation
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") throw new Error("Votre compte doit d'abord être validé par votre organisme.");
   const e = await loadEnrollment(enrollmentId);
   const side = await canAccessThread(user, e);
   if (!side) return { error: "Accès refusé." };
   const body = str(fd, "body").slice(0, 5000);
   if (!body) return { error: "Message vide." };
+  const recent = await db.pedagogicalMessage.count({ where: { authorId: user.id, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } });
+  if (recent >= 30) return { error: "Trop de messages envoyés : réessayez dans quelques minutes." };
   await db.pedagogicalMessage.create({ data: { enrollmentId, authorId: user.id, fromStaff: side === "staff", body } });
   if (side === "staff") {
     await notify(e.userId, `Réponse de votre formateur – ${e.course.title}`, body.slice(0, 160), `/learn/${e.course.slug}/messages`);
@@ -216,7 +223,13 @@ export async function signSlotAsTrainerAction(slotId: string, signature: string)
   checkSignature(signature);
   const slot = await db.attendanceSlot.findUnique({ where: { id: slotId }, include: { session: { select: { courseId: true } } } });
   if (!slot || !(await canManageCourse(user, slot.session.courseId))) throw new Error("Accès refusé");
-  await db.attendanceSlot.update({ where: { id: slotId }, data: { trainerName: user.name, trainerSignature: signature, trainerSignedAt: new Date() } });
-  await audit("attendance.trainer_sign", { actorId: user.id, entityType: "AttendanceSlot", entityId: slotId });
+  // Émargement formateur : signature unique, jamais écrasée (valeur probante)
+  const signed = await db.attendanceSlot.updateMany({
+    where: { id: slotId, trainerSignedAt: null },
+    data: { trainerName: user.name, trainerSignature: signature, trainerSignedAt: new Date() },
+  });
+  if (signed.count !== 1) throw new Error("Ce créneau est déjà signé par un formateur");
+  const org = await db.course.findUnique({ where: { id: slot.session.courseId }, select: { organizationId: true } });
+  await audit("attendance.trainer_sign", { actorId: user.id, organizationId: org?.organizationId, entityType: "AttendanceSlot", entityId: slotId });
   revalidatePath(`/of/sessions/${slot.sessionId}`);
 }

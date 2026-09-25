@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
-import { canManageRubric, manageableCoursesWhere } from "@/lib/permissions";
+import { canManageRubric, canViewRubric, manageableCoursesWhere } from "@/lib/permissions";
 import { deleteRubricAction, duplicateRubricAction } from "@/app/actions/of";
 import { RubricEditor } from "@/components/rubric/RubricEditor";
 import { RubricTable, rubricInclude } from "@/components/rubric/RubricTable";
@@ -17,7 +17,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const user = await requireRole("ADMIN", "OF_ADMIN", "TRAINER");
   const rubric = await db.rubric.findUnique({ where: { id }, include: { ...rubricInclude, course: { select: { title: true } } } });
-  if (!rubric) notFound();
+  if (!rubric || !(await canViewRubric(user, id))) notFound();
   const editable = await canManageRubric(user, id);
   const manageable = await db.course.findMany({ where: manageableCoursesWhere(user), select: { id: true, title: true }, orderBy: { title: "asc" } });
   const manageableIds = manageable.map((c) => c.id);

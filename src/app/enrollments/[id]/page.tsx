@@ -73,6 +73,12 @@ export default async function EnrollmentAccess({ params }: { params: Promise<{ i
           </div>
         </div>
       )}
+      {e.accessRequestNote && e.accessStatus !== "GRANTED" && e.accessStatus !== "REFUSED" && (
+        <div className="card mb-6 border-amber-200 bg-amber-50 p-5 text-sm">
+          <div className="font-semibold text-slate-900">Compléments demandés par l&apos;organisme{e.accessRequestAt ? ` le ${formatDate(e.accessRequestAt, true)}` : ""}</div>
+          <p className="mt-1 whitespace-pre-line text-slate-700">{e.accessRequestNote}</p>
+        </div>
+      )}
       {e.accessStatus === "PENDING_DOCUMENTS" && (
         <p className="mb-6 text-[15px] text-slate-600">
           Pour valider votre inscription, signez en ligne ou déposez les documents ci-dessous. L&apos;organisme les vérifie puis ouvre votre accès à la formation.

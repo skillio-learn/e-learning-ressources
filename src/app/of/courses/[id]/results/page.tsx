@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getGradebook } from "@/lib/gradebook";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CourseResults({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireCourseManager(id);
   const { evaluations, rows } = await getGradebook(id);
   const quizzes = await db.quiz.findMany({
     where: { lesson: { module: { courseId: id } } },

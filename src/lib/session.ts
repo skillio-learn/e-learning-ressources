@@ -6,13 +6,15 @@ import type { Role } from "@prisma/client";
 export const SESSION_COOKIE = "lms_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
-export type SessionPayload = { uid: string; role: Role; name: string };
+export type SessionPayload = { uid: string; role: Role; name: string; sv?: number };
 
 function secret() {
   const s = process.env.AUTH_SECRET;
-  if (!s || s.length < 16) {
-    if (process.env.NODE_ENV === "production") throw new Error("AUTH_SECRET manquant ou trop court");
-    return new TextEncoder().encode("dev-secret-dev-secret-dev-secret");
+  // Refus des secrets absents, trop courts ou recopiés depuis .env.example (sessions falsifiables)
+  const weak = !s || s.length < 16 || /changez-moi|change-me|changeme|dev-secret/i.test(s);
+  if (weak) {
+    if (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV !== undefined) throw new Error("AUTH_SECRET manquant, trop court ou non personnalisé");
+    return new TextEncoder().encode(s && s.length >= 16 ? s : "dev-secret-dev-secret-dev-secret");
   }
   return new TextEncoder().encode(s);
 }
@@ -28,7 +30,7 @@ export async function signSession(payload: SessionPayload) {
 export async function verifySession(token: string | undefined): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret());
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
     return payload as unknown as SessionPayload;
   } catch {
     return null;

@@ -14,7 +14,7 @@ export default async function Rubrics() {
     where:
       user.role === "ADMIN"
         ? {}
-        : { OR: [{ authorId: user.id }, { courseId: null }, { course: manageableCoursesWhere(user) }] },
+        : { OR: [{ authorId: user.id }, { courseId: null, author: { organizationId: user.organizationId ?? "__none__" } }, { course: manageableCoursesWhere(user) }] },
     orderBy: { updatedAt: "desc" },
     include: {
       course: { select: { title: true } },

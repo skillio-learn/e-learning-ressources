@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { EDITABLE_STATUSES, applicationBlockers, missingProfileFields, requiredDocumentsFor } from "@/lib/applications";
 import { toProfileData } from "@/lib/profile";
-import { APPLICATION_STATUS, DOCUMENT_TYPES, FUNDING_TYPES, SKILL_LEVELS } from "@/lib/labels";
+import { APPLICATION_STATUS, DOCUMENT_TYPES, FUNDING_TYPES, SKILL_LEVELS, learnerProfileEditable } from "@/lib/labels";
 import {
   deleteDocumentAction,
   saveApplicationDetailsAction,
@@ -149,7 +149,17 @@ export default async function ApplicationPage({ params, searchParams }: { params
                 <section className="card p-6">
                   <h2 className="mb-1">1. Mes informations administratives</h2>
                   <p className="mb-4 text-sm text-slate-500">Informations exigées par les financeurs (OPCO, France Travail, Caisse des dépôts). Elles sont conservées pour vos prochains dossiers.</p>
-                  <ProfileForm action={saveProfileAction.bind(null, app.id)} profile={toProfileData(profile)} nextHref={href(2)} submitLabel="Enregistrer et continuer →" />
+                  {learnerProfileEditable(user.accountStatus) ? (
+                    <ProfileForm action={saveProfileAction.bind(null, app.id)} profile={toProfileData(profile)} nextHref={href(2)} submitLabel="Enregistrer et continuer →" />
+                  ) : (
+                    <>
+                      <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                        Informations vérifiées par votre organisme. Une erreur ? <Link href="/profile" className="link">Demandez une modification</Link>.
+                      </p>
+                      <ProfileForm action={saveProfileAction.bind(null, app.id)} profile={toProfileData(profile)} disabled />
+                      <Link href={href(2)} className="btn-primary mt-4">Continuer</Link>
+                    </>
+                  )}
                 </section>
               )}
 

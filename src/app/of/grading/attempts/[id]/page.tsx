@@ -41,6 +41,7 @@ export default async function GradeAttempt({ params, searchParams }: { params: P
             <Link href={`/of/courses/${courseId}/learners/${attempt.user.id}`} className="hover:underline">{attempt.user.name}</Link> · {attempt.quiz.lesson.module.course.title} · remis le {formatDate(attempt.submittedAt, true)}
           </>
         }
+        actions={<a href={`/api/pdf/attempts/${attempt.id}`} className="btn-secondary">Résultats (PDF)</a>}
       />
       {saved && <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">Correction enregistrée.</p>}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

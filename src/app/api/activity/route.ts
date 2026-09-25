@@ -5,12 +5,17 @@ import { recordHeartbeat } from "@/lib/tracking";
 
 /** Battement d'activité envoyé par le navigateur (fetch ou sendBeacon). */
 export async function POST(req: Request) {
+  // Requête de la plateforme uniquement (pas d'appel inter-sites avec les cookies de l'utilisateur)
+  const origin = req.headers.get("origin");
+  if (origin && origin !== new URL(req.url).origin) return new NextResponse(null, { status: 403 });
   const user = await getCurrentUser();
   // Après déconnexion, le dernier signal du navigateur est simplement ignoré
   if (!user) return new NextResponse(null, { status: 204 });
   let body: { lessonId?: string | null; seconds?: number } = {};
   try {
-    body = JSON.parse(await req.text());
+    const raw = await req.text();
+    if (raw.length > 2000) return NextResponse.json({ error: "bad request" }, { status: 400 });
+    body = JSON.parse(raw);
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }

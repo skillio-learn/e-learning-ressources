@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import {
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CourseSettings({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireCourseManager(id);
   const user = await requireStaff();
   const organizations = user.role === "ADMIN" ? await db.organization.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }) : undefined;
   const course = await db.course.findUniqueOrThrow({

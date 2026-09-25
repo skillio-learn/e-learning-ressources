@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import type { ComplaintStatus, EnrollmentStatus, FundingType, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireOfManager, requireStaff } from "@/lib/auth";
-import { assertCanManageCourse, canManageOrg } from "@/lib/permissions";
+import { assertCanManageCourse, canAdministerOrg, canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { inviteStaffMember } from "@/lib/passwords";
 import { notify, notifyOrgManagers } from "@/lib/notify";
-import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS, FUNDING_TYPES, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
 import { bool, optFloat, optInt, optStr, randomCode, safeUrl, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -23,7 +24,7 @@ function dateOrNull(v: string) {
 
 export async function updateOrganizationAction(orgId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireOfManager();
-  if (!canManageOrg(user, orgId)) return { error: "Accès refusé." };
+  if (!canAdministerOrg(user, orgId)) return { error: "Accès refusé." };
   const siret = str(fd, "siret").replace(/\s/g, "");
   if (siret && !/^\d{14}$/.test(siret)) return { error: "Le SIRET doit comporter 14 chiffres." };
   const nda = str(fd, "nda").replace(/\s/g, "");
@@ -112,7 +113,7 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
 
 export async function createTeamMemberAction(orgId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireOfManager();
-  if (!canManageOrg(user, orgId)) return { error: "Accès refusé." };
+  if (!canAdministerOrg(user, orgId)) return { error: "Accès refusé." };
   const email = str(fd, "email").toLowerCase();
   const name = str(fd, "name");
   const role = str(fd, "role") as Role;
@@ -128,23 +129,41 @@ export async function createTeamMemberAction(orgId: string, _: ActionState, fd: 
   revalidatePath("/admin/organizations", "layout");
     return { ok: `${email} rattaché(e) à l'équipe.` };
   }
-  const password = randomCode(10) + "7";
   const created = await db.user.create({
-    data: { email, name, role, organizationId: orgId, passwordHash: await bcrypt.hash(password, 10) },
+    data: { email, name: name.slice(0, 120), role, organizationId: orgId, passwordHash: await bcrypt.hash(randomCode(24), 10), createdVia: user.role === "ADMIN" ? "ADMIN" : "OF" },
   });
   await audit("user.create", { actorId: user.id, organizationId: orgId, entityType: "User", entityId: created.id, details: { role } });
+  const link = await inviteStaffMember(created.id, user.name);
   revalidatePath("/of/team");
   revalidatePath("/admin/organizations", "layout");
-  return { ok: `Compte créé pour ${email} — mot de passe provisoire : ${password}` };
+  return { ok: link ? `Compte créé : transmettez ce lien d'activation personnel (7 jours) à ${email} : ${link}` : `Compte créé : une invitation a été envoyée à ${email}.` };
 }
 
+/**
+ * Rôle (responsable / formateur) ou activation d'un membre de l'équipe.
+ * Les arguments viennent du client : chaque champ est validé, aucun autre n'est accepté.
+ */
 export async function setTeamMemberAction(memberId: string, patch: { role?: "OF_ADMIN" | "TRAINER"; active?: boolean }) {
   const user = await requireOfManager();
-  const member = await db.user.findUniqueOrThrow({ where: { id: memberId } });
-  if (!canManageOrg(user, member.organizationId) || member.role === "ADMIN" || member.role === "LEARNER") throw new Error("Accès refusé");
+  const data: { role?: "OF_ADMIN" | "TRAINER"; active?: boolean } = {};
+  if (patch && typeof patch === "object") {
+    if ("role" in patch) {
+      if (patch.role !== "OF_ADMIN" && patch.role !== "TRAINER") throw new Error("Rôle invalide");
+      data.role = patch.role;
+    }
+    if ("active" in patch) {
+      if (typeof patch.active !== "boolean") throw new Error("Valeur invalide");
+      data.active = patch.active;
+    }
+    if (Object.keys(patch).some((k) => k !== "role" && k !== "active")) throw new Error("Modification non autorisée");
+  }
+  if (!Object.keys(data).length) throw new Error("Aucune modification");
+  const member = await db.user.findUniqueOrThrow({ where: { id: String(memberId) } });
+  if (!canAdministerOrg(user, member.organizationId) || member.role === "ADMIN" || member.role === "LEARNER") throw new Error("Accès refusé");
   if (member.id === user.id) throw new Error("Vous ne pouvez pas modifier votre propre compte ici");
-  await db.user.update({ where: { id: memberId }, data: patch });
-  await audit(patch.role ? "user.role" : "user.active", { actorId: user.id, organizationId: member.organizationId, entityType: "User", entityId: memberId, details: patch });
+  // Changement de rôle ou désactivation : les sessions ouvertes du membre sont fermées
+  await db.user.update({ where: { id: member.id }, data: { ...data, sessionVersion: { increment: 1 } } });
+  await audit(data.role ? "user.role" : "user.active", { actorId: user.id, organizationId: member.organizationId, entityType: "User", entityId: member.id, details: data });
   revalidatePath("/of/team");
   revalidatePath("/admin/organizations", "layout");
 }
@@ -161,7 +180,7 @@ export async function createSessionAction(_: ActionState, fd: FormData): Promise
   await db.trainingSession.create({
     data: {
       courseId,
-      name: str(fd, "name") || `Session du ${startDate.toLocaleDateString("fr-FR")}`,
+      name: str(fd, "name") || `Session du ${startDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}`,
       startDate,
       endDate,
       capacity: optInt(fd, "capacity"),
@@ -205,14 +224,15 @@ export async function generateSlotsAction(sessionId: string, _: ActionState, fd:
   const from = dateOrNull(str(fd, "from"));
   const to = dateOrNull(str(fd, "to"));
   if (!from || !to || to < from) return { error: "Période invalide." };
-  const weekdays = fd.getAll("weekday").map(Number);
+  if (to.getTime() - from.getTime() > 366 * 86400000) return { error: "Période limitée à un an." };
+  const weekdays = fd.getAll("weekday").map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   if (!weekdays.length) return { error: "Choisissez au moins un jour de la semaine." };
   const periods: { label: string; start: string; end: string }[] = [];
   if (bool(fd, "morning")) periods.push({ label: "Matin", start: str(fd, "morningStart") || "09:00", end: str(fd, "morningEnd") || "12:30" });
   if (bool(fd, "afternoon")) periods.push({ label: "Après-midi", start: str(fd, "afternoonStart") || "13:30", end: str(fd, "afternoonEnd") || "17:00" });
   if (!periods.length) return { error: "Choisissez au moins une demi-journée." };
   let count = 0;
-  for (let d = new Date(from); d <= to; d = new Date(d.getTime() + 86400000)) {
+  for (let d = new Date(from); d <= to && count <= 400; d = new Date(d.getTime() + 86400000)) {
     if (!weekdays.includes(d.getUTCDay())) continue;
     for (const p of periods) {
       const exists = await db.attendanceSlot.findFirst({ where: { sessionId, date: d, label: p.label } });
@@ -267,6 +287,11 @@ export async function updateEnrollmentAction(enrollmentId: string, _: ActionStat
   }
   if (exitDate && startDate && exitDate < startDate) return { error: "La date de sortie ne peut précéder le début de la formation." };
   const sessionId = optStr(fd, "sessionId");
+  if (sessionId && !(await db.trainingSession.findFirst({ where: { id: sessionId, courseId: e.courseId }, select: { id: true } }))) {
+    return { error: "Session invalide pour cette formation." };
+  }
+  const ft = str(fd, "fundingType");
+  if (ft && !(ft in FUNDING_TYPES)) return { error: "Financement invalide." };
   const data = {
     startDate,
     endDate,

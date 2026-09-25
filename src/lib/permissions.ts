@@ -6,12 +6,13 @@ import type { CurrentUser } from "./auth";
 
 /**
  * Règles d'accès :
- * - ADMIN (Vylia) : tout.
+ * - ADMIN (Vylia) : administration de la plateforme (organismes, équipes, paramètres, support) ;
+ *   aucun accès aux formations ni aux données des apprenants des organismes.
  * - OF_ADMIN : toutes les formations et données de son organisme.
  * - TRAINER : formations de son organisme dont il est auteur ou co-formateur.
  */
 export function manageableCoursesWhere(user: CurrentUser): Prisma.CourseWhereInput {
-  if (user.role === "ADMIN") return {};
+  if (user.role === "ADMIN") return { id: "__none__" };
   if (!user.organizationId) return { id: "__none__" };
   if (user.role === "OF_ADMIN") return { organizationId: user.organizationId };
   if (user.role === "TRAINER") {
@@ -33,10 +34,15 @@ export async function assertCanManageCourse(user: CurrentUser, courseId: string)
   if (!(await canManageCourse(user, courseId))) notFound();
 }
 
-/** Accès aux données administratives d'un OF (dossiers, apprenants, rapports). */
+/** Accès aux données d'un OF (dossiers, apprenants, rapports) : ses responsables uniquement. */
 export function canManageOrg(user: CurrentUser, organizationId: string | null | undefined) {
-  if (user.role === "ADMIN") return true;
   return user.role === "OF_ADMIN" && !!organizationId && user.organizationId === organizationId;
+}
+
+/** Administration d'un OF (fiche, équipe) : ses responsables, ou l'administrateur Vylia. */
+export function canAdministerOrg(user: CurrentUser, organizationId: string | null | undefined) {
+  if (user.role === "ADMIN") return !!organizationId;
+  return canManageOrg(user, organizationId);
 }
 
 export function assertCanManageOrg(user: CurrentUser, organizationId: string | null | undefined) {
@@ -62,8 +68,7 @@ export async function courseIdForLesson(lessonId: string) {
 }
 
 export async function canManageRubric(user: CurrentUser, rubricId: string) {
-  if (user.role === "ADMIN") return true;
-  if (user.role === "LEARNER") return false;
+  if (user.role === "ADMIN" || user.role === "LEARNER") return false;
   const r = await db.rubric.findUnique({
     where: { id: rubricId },
     select: { authorId: true, courseId: true, author: { select: { organizationId: true } } },
@@ -76,7 +81,7 @@ export async function canManageRubric(user: CurrentUser, rubricId: string) {
 
 /** Un membre de l'équipe OF peut-il consulter le dossier de cet apprenant ? */
 export async function canViewLearner(user: CurrentUser, learnerId: string) {
-  if (user.role === "ADMIN") return true;
+  if (user.role === "ADMIN") return false;
   if (user.role === "LEARNER") return user.id === learnerId;
   if (user.role === "OF_ADMIN" && user.organizationId) {
     const own = await db.user.count({ where: { id: learnerId, organizationId: user.organizationId } });
@@ -90,4 +95,21 @@ export async function canViewLearner(user: CurrentUser, learnerId: string) {
       : Promise.resolve(0),
   ]);
   return enr + app > 0;
+}
+
+/** Garde de page « formation » : membre de l'équipe autorisé sur cette formation (à appeler dans chaque page, pas seulement le layout). */
+export async function requireCourseManager(courseId: string) {
+  const { requireStaff } = await import("./auth");
+  const user = await requireStaff();
+  await assertCanManageCourse(user, courseId);
+  return user;
+}
+
+/** Consultation / réutilisation d'une grille : grilles de son organisme uniquement. */
+export async function canViewRubric(user: CurrentUser, rubricId: string) {
+  if (user.role === "ADMIN" || user.role === "LEARNER" || !user.organizationId) return false;
+  const r = await db.rubric.findUnique({ where: { id: rubricId }, select: { courseId: true, author: { select: { organizationId: true } } } });
+  if (!r) return false;
+  if (r.courseId) return canManageCourse(user, r.courseId);
+  return r.author.organizationId === user.organizationId;
 }

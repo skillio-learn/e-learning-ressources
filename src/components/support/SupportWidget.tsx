@@ -9,7 +9,7 @@ type Conv = { id: string; subject: string; category: string; status: keyof typeo
 type Msg = { id: string; body: string; fromStaff: boolean; system: boolean; createdAt: string; author: string | null; read: boolean };
 type Overview = { team: string; enabled: boolean; hours: string | null; responseHours: number; unread: number; conversations: Conv[] };
 
-const time = (d: string) => new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+const time = (d: string) => new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
 /** Chat d'assistance flottant (apprenants, y compris compte en attente de validation). */
 export function SupportWidget() {

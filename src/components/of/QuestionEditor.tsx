@@ -84,25 +84,50 @@ export function QuestionEditor({ quizId, questions }: { quizId: string; question
   );
 }
 
+type Mode = "CLOSED" | "OPEN" | "TRUE_FALSE" | "SHORT";
+const MODES: { key: Mode; label: string; hint: string }[] = [
+  { key: "CLOSED", label: "Question fermée", hint: "Choix parmi des propositions, correction automatique" },
+  { key: "OPEN", label: "Question ouverte", hint: "Réponse rédigée, corrigée par le formateur" },
+  { key: "TRUE_FALSE", label: "Vrai / Faux", hint: "Deux propositions" },
+  { key: "SHORT", label: "Réponse courte", hint: "Un mot ou une expression, correction automatique" },
+];
+const modeOf = (t: QType): Mode => (t === "SINGLE" || t === "MULTIPLE" ? "CLOSED" : t);
+
 function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: QuestionInput; onDone: () => void }) {
   const [q, setQ] = useState<QuestionInput>(initial);
+  const [mode, setMode] = useState<Mode>(modeOf(initial.type as QType));
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
   const set = (patch: Partial<QuestionInput>) => setQ((prev) => ({ ...prev, ...patch }));
 
-  const changeType = (type: QType) => {
-    if (type === "TRUE_FALSE") set({ type, options: [{ text: "Vrai", isCorrect: true }, { text: "Faux", isCorrect: false }] });
-    else if ((type === "SINGLE" || type === "MULTIPLE") && q.options.length < 2)
-      set({ type, options: [{ text: "", isCorrect: true }, { text: "", isCorrect: false }] });
-    else set({ type });
+  const changeMode = (m: Mode) => {
+    setMode(m);
+    if (m === "TRUE_FALSE") set({ type: "TRUE_FALSE", options: [{ text: "Vrai", isCorrect: true }, { text: "Faux", isCorrect: false }] });
+    else if (m === "CLOSED") {
+      const opts = q.type === "SINGLE" || q.type === "MULTIPLE" ? q.options : [];
+      set({ type: "SINGLE", options: opts.length >= 2 ? opts : [{ text: "", isCorrect: true }, { text: "", isCorrect: false }, { text: "", isCorrect: false }] });
+    } else set({ type: m });
   };
+
+  /** Nombre de propositions choisi par l'OF (2 à 10) */
+  const setChoiceCount = (n: number) => {
+    const count = Math.max(2, Math.min(10, Math.round(n) || 2));
+    const opts = q.options.slice(0, count);
+    while (opts.length < count) opts.push({ text: "", isCorrect: false });
+    if (!opts.some((o) => o.isCorrect)) opts[0] = { ...opts[0], isCorrect: true };
+    set({ options: opts });
+  };
+
+  const correctCount = q.options.filter((o) => o.isCorrect).length;
 
   const save = () =>
     start(async () => {
       try {
         setError(null);
-        await saveQuestionAction(quizId, q);
+        // Question fermée : une seule bonne réponse → choix unique, plusieurs → choix multiples
+        const type: QType = mode === "CLOSED" ? (correctCount > 1 ? "MULTIPLE" : "SINGLE") : mode;
+        await saveQuestionAction(quizId, { ...q, type });
         router.refresh();
         onDone();
       } catch (e) {
@@ -111,40 +136,57 @@ function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: Qu
     });
 
   return (
-    <div className="card space-y-4 border-brand-300 p-5 ring-2 ring-brand-100">
+    <div className="card space-y-5 border-brand-300 p-5 ring-2 ring-brand-100">
+      <div>
+        <span className="label">Type de question</span>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => changeMode(m.key)}
+              className={`rounded-2xl border p-3 text-left transition ${mode === m.key ? "border-brand-500 bg-brand-50 ring-2 ring-brand-100" : "border-slate-200 hover:border-slate-300"}`}
+            >
+              <div className="text-sm font-medium text-slate-900">{m.label}</div>
+              <div className="mt-0.5 text-xs text-slate-500">{m.hint}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-[1fr_120px]">
         <label className="block">
-          <span className="label">Type de question</span>
-          <select className="input" value={q.type} onChange={(e) => changeType(e.target.value as QType)}>
-            {(Object.keys(QUESTION_TYPE_LABELS) as QType[]).map((t) => <option key={t} value={t}>{QUESTION_TYPE_LABELS[t]}</option>)}
-          </select>
+          <span className="label">Énoncé</span>
+          <textarea className="input" rows={3} value={q.text} onChange={(e) => set({ text: e.target.value })} placeholder="Posez votre question…" />
         </label>
         <label className="block">
           <span className="label">Points</span>
           <input type="number" min="0" step="0.5" className="input" value={q.points} onChange={(e) => set({ points: Number(e.target.value) })} />
         </label>
       </div>
-      <label className="block">
-        <span className="label">Énoncé</span>
-        <textarea className="input" rows={3} value={q.text} onChange={(e) => set({ text: e.target.value })} />
-      </label>
 
-      {(q.type === "SINGLE" || q.type === "MULTIPLE") && (
+      {mode === "CLOSED" && (
         <div className="space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <label className="block">
+              <span className="label">Nombre de choix proposés</span>
+              <input type="number" min={2} max={10} className="input w-28" value={q.options.length} onChange={(e) => setChoiceCount(Number(e.target.value))} />
+            </label>
+            <p className="text-xs text-slate-500">
+              {correctCount > 1
+                ? `${correctCount} bonnes réponses : l'apprenant doit toutes les cocher (crédit partiel).`
+                : "Une seule bonne réponse : l'apprenant choisit une proposition."}
+            </p>
+          </div>
           <span className="label">Propositions (cochez la ou les bonnes réponses)</span>
           {q.options.map((o, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
-                type={q.type === "SINGLE" ? "radio" : "checkbox"}
+                type="checkbox"
                 checked={o.isCorrect}
-                className="accent-emerald-600"
-                onChange={(e) =>
-                  set({
-                    options: q.options.map((x, j) =>
-                      q.type === "SINGLE" ? { ...x, isCorrect: j === i } : j === i ? { ...x, isCorrect: e.target.checked } : x,
-                    ),
-                  })
-                }
+                aria-label={`Proposition ${i + 1} correcte`}
+                className="h-4 w-4 accent-emerald-600"
+                onChange={(e) => set({ options: q.options.map((x, j) => (j === i ? { ...x, isCorrect: e.target.checked } : x)) })}
               />
               <input
                 className="input"
@@ -152,16 +194,16 @@ function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: Qu
                 placeholder={`Proposition ${i + 1}`}
                 onChange={(e) => set({ options: q.options.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) })}
               />
-              <button type="button" className="btn-ghost btn-sm" onClick={() => set({ options: q.options.filter((_, j) => j !== i) })}>✕</button>
+              <button type="button" className="btn-ghost btn-sm" disabled={q.options.length <= 2} onClick={() => set({ options: q.options.filter((_, j) => j !== i) })} aria-label="Retirer">✕</button>
             </div>
           ))}
-          <button type="button" className="btn-secondary btn-sm" onClick={() => set({ options: [...q.options, { text: "", isCorrect: false }] })}>
-            + Proposition
-          </button>
+          {q.options.length < 10 && (
+            <button type="button" className="btn-secondary btn-sm" onClick={() => setChoiceCount(q.options.length + 1)}>+ Proposition</button>
+          )}
         </div>
       )}
 
-      {q.type === "TRUE_FALSE" && (
+      {mode === "TRUE_FALSE" && (
         <div className="flex gap-4">
           {["Vrai", "Faux"].map((label, i) => (
             <label key={label} className="flex items-center gap-2">
@@ -177,7 +219,7 @@ function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: Qu
         </div>
       )}
 
-      {q.type === "SHORT" && (
+      {mode === "SHORT" && (
         <label className="block">
           <span className="label">Réponses acceptées (une par ligne)</span>
           <textarea
@@ -190,14 +232,14 @@ function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: Qu
         </label>
       )}
 
-      {q.type === "OPEN" && (
-        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-          Question ouverte : la réponse sera à corriger dans « Corrections ». Utilisez l&apos;explication pour noter les éléments attendus.
+      {mode === "OPEN" && (
+        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+          Question ouverte : l&apos;apprenant rédige sa réponse, que le formateur corrige dans « Corrections ». Indiquez les éléments attendus dans la correction ci-dessous.
         </p>
       )}
 
       <label className="block">
-        <span className="label">Explication / correction (affichée après la remise)</span>
+        <span className="label">{mode === "OPEN" ? "Éléments de réponse attendus / correction" : "Explication / correction (affichée après la remise)"}</span>
         <textarea className="input" rows={2} value={q.explanation ?? ""} onChange={(e) => set({ explanation: e.target.value })} />
       </label>
 

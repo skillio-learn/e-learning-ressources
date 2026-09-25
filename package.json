@@ -25,6 +25,7 @@
     "lucide-react": "^1.48.0",
     "marked": "^15.0.12",
     "next": "^15.5.26",
+    "pdf-lib": "^1.17.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "sanitize-html": "^2.17.7",

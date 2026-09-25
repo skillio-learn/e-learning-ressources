@@ -1,5 +1,6 @@
 "use server";
 
+import { createWithUniqueNumber } from "@/lib/numbering";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { TicketPriority, TicketStatus } from "@prisma/client";
@@ -49,7 +50,8 @@ async function rateLimited(userId: string) {
 
 export async function openTicketAction(_: TicketState, fd: FormData): Promise<TicketState> {
   const user = await requireRole("OF_ADMIN");
-  if (!user.organizationId) return { error: "Votre compte n'est rattaché à aucun organisme." };
+  const organizationId = user.organizationId;
+  if (!organizationId) return { error: "Votre compte n'est rattaché à aucun organisme." };
   const category = str(fd, "category");
   const priority = str(fd, "priority") as TicketPriority;
   const subject = str(fd, "subject").slice(0, 140);
@@ -65,10 +67,10 @@ export async function openTicketAction(_: TicketState, fd: FormData): Promise<Ti
 
   const now = Date.now();
   const sla = TICKET_PRIORITY[priority].slaHours;
-  const t = await db.supportTicket.create({
+  const t = await createWithUniqueNumber(nextTicketNumber, (number) => db.supportTicket.create({
     data: {
-      number: await nextTicketNumber(),
-      organizationId: user.organizationId,
+      number,
+      organizationId,
       requesterId: user.id,
       category,
       priority,
@@ -85,9 +87,9 @@ export async function openTicketAction(_: TicketState, fd: FormData): Promise<Ti
         ],
       },
     },
-  });
-  await audit("ticket.open", { actorId: user.id, organizationId: user.organizationId, entityType: "SupportTicket", entityId: t.id, details: { number: t.number, priority, category } });
-  const org = await db.organization.findUnique({ where: { id: user.organizationId }, select: { name: true } });
+  }));
+  await audit("ticket.open", { actorId: user.id, organizationId, entityType: "SupportTicket", entityId: t.id, details: { number: t.number, priority, category } });
+  const org = await db.organization.findUnique({ where: { id: organizationId }, select: { name: true } });
   await notifySupportTeam(t, `${priority === "URGENT" ? "[URGENT] " : ""}Ticket ${t.number} – ${org?.name ?? "OF"}`, `${TICKET_CATEGORIES[category]} : ${subject}`);
   revalidateTicket(t.id);
   redirect(`/of/tickets/${t.id}`);

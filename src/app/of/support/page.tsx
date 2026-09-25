@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Prisma, SupportStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { AutoRefresh } from "@/components/support/AutoRefresh";
 import { Badge, Container, Empty, PageHeader, Stat } from "@/components/ui";
@@ -19,10 +20,12 @@ const TABS: { key: SupportStatus | "MINE"; label: string }[] = [
 
 export default async function OfSupport({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireStaff();
+  // Assistance des apprenants : responsables de l'organisme uniquement
+  if (user.role !== "OF_ADMIN") notFound();
   const { tab: t } = await searchParams;
   const tab = TABS.find((x) => x.key === t)?.key ?? "OPEN";
   const scope: Prisma.SupportConversationWhereInput =
-    user.role === "ADMIN" ? {} : { organizationId: user.organizationId ?? "__none__" };
+    { organizationId: user.organizationId ?? "__none__" };
   const org = user.organizationId ? await db.organization.findUnique({ where: { id: user.organizationId }, select: { supportResponseHours: true } }) : null;
   const slaHours = org?.supportResponseHours ?? 24;
   const since = new Date(Date.now() - 30 * 86400_000);

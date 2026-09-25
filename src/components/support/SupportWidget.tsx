@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, CheckCircle2, MessageCircle, Plus, Send, Star, X } from "lucide-react";
-import { openSupportConversationAction, rateSupportAction, sendSupportMessageAction, setSupportStatusAction, type SupportState } from "@/app/actions/support";
+import { markSupportReadAction, openSupportConversationAction, rateSupportAction, sendSupportMessageAction, setSupportStatusAction, type SupportState } from "@/app/actions/support";
 import { SUPPORT_CATEGORIES, SUPPORT_STATUS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -159,6 +159,8 @@ function Thread({ id, onChange }: { id: string; onChange: () => void }) {
       const d = await r.json();
       setConv(d.conversation);
       setMessages(d.messages);
+      // Le demandeur lit les réponses de l'équipe : marquage explicite (jamais sur un simple GET)
+      if (d.messages.some((m: { fromStaff: boolean; system: boolean; read: boolean }) => m.fromStaff && !m.system && !m.read)) await markSupportReadAction(id);
     } catch {}
   }, [id]);
 

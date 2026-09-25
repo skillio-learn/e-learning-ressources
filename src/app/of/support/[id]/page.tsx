@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MarkSupportRead } from "@/components/support/MarkSupportRead";
 import { db } from "@/lib/db";
-import { requireStaff } from "@/lib/auth";
+import { canHandleSupport, requireStaff } from "@/lib/auth";
 import { assignSupportToMeAction, sendSupportMessageAction, setSupportStatusAction } from "@/app/actions/support";
 import { Composer } from "@/components/messages/Composer";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -29,14 +30,15 @@ export default async function SupportThread({ params }: { params: Promise<{ id: 
       messages: { orderBy: { createdAt: "asc" }, include: { author: { select: { name: true } } } },
     },
   });
-  if (!c || !(user.role === "ADMIN" || (!!c.organizationId && c.organizationId === user.organizationId))) notFound();
-  await db.supportMessage.updateMany({ where: { conversationId: id, fromStaff: false, readAt: null }, data: { readAt: new Date() } });
+  if (!c || !canHandleSupport(user, c.organizationId)) notFound();
+  const unread = c.messages.filter((m) => !m.fromStaff && !m.readAt).length;
   const st = SUPPORT_STATUS[c.status];
   const acc = ACCOUNT_STATUS[c.user.accountStatus];
 
   return (
     <Container className="max-w-6xl">
       <AutoRefresh />
+      <MarkSupportRead conversationId={c.id} unread={unread} />
       <PageHeader
         back={{ href: "/of/support", label: "Assistance" }}
         title={c.subject}

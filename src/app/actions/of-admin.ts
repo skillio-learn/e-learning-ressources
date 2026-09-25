@@ -62,7 +62,6 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
     mediatorInfo: optStr(fd, "mediatorInfo"),
     // Inscription à la plateforme
     requireAccountValidation: bool(fd, "requireAccountValidation"),
-    allowSelfRegistration: bool(fd, "allowSelfRegistration"),
     accountRequiredDocuments: fd.getAll("accountRequiredDocuments").map(String).filter((c) => (ACCOUNT_DOCUMENT_CHOICES as readonly string[]).includes(c)),
     // Accès aux parcours
     enrollmentRequiredDocuments: fd.getAll("enrollmentRequiredDocuments").map(String).filter((c) => c in ENROLLMENT_DOCUMENTS),

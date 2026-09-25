@@ -23,7 +23,7 @@ export default async function MyApplications() {
       <PageHeader title="Mes dossiers de candidature" subtitle="Suivez l'avancement de vos inscriptions et échangez avec l'organisme de formation." />
       {apps.length === 0 ? (
         <Empty title="Aucun dossier">
-          <Link href="/courses" className="text-brand-600 hover:underline">Choisir une formation dans le catalogue</Link>
+          Les dossiers sont ouverts par votre organisme de formation.
         </Empty>
       ) : (
         <div className="space-y-3">

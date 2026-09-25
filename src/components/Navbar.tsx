@@ -30,14 +30,12 @@ export async function Navbar() {
           <Logo name={settings.platformName} />
         </Link>
         <nav className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto px-1 [scrollbar-width:none]">
-          {!staff && <NavLink href="/courses">Catalogue</NavLink>}
           {user && !staff && <NavLink href="/dashboard">Tableau de bord</NavLink>}
           {user && !staff && <NavLink href="/learn">Mes formations</NavLink>}
           {user && !staff && <NavLink href="/applications">Mes dossiers</NavLink>}
           {user && !staff && <NavLink href="/attendance">Émargement</NavLink>}
           {user && !staff && <NavLink href="/support">Aide</NavLink>}
           {staff && <NavLink href="/of">Espace OF{org ? ` · ${org.name}` : ""}</NavLink>}
-          {staff && <NavLink href="/courses">Catalogue</NavLink>}
           {user?.role === "ADMIN" && <NavLink href="/admin">Administration</NavLink>}
         </nav>
         {user ? (
@@ -75,10 +73,7 @@ export async function Navbar() {
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <Link href="/login" className="btn-ghost btn-sm">Connexion</Link>
-            {settings.allowRegistration === "true" && (
-              <Link href="/register" className="btn-primary btn-sm">Créer un compte</Link>
-            )}
+            <Link href="/login" className="btn-primary btn-sm">Se connecter</Link>
           </div>
         )}
       </div>

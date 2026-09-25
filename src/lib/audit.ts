@@ -29,6 +29,7 @@ export const AUDIT_LABELS: Record<string, string> = {
   "auth.login": "Connexion",
   "auth.logout": "Déconnexion",
   "auth.register": "Création de compte",
+  "application.create": "Ouverture de dossier",
   "application.submit": "Dépôt de dossier",
   "application.status": "Changement de statut du dossier",
   "application.message": "Message sur un dossier",

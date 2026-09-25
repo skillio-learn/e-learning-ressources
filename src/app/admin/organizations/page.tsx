@@ -29,7 +29,7 @@ export default async function Organizations() {
         <PageHeader title="Organismes de formation" subtitle="Chaque OF dispose de son espace, de son équipe, de ses formations et de ses apprenants." />
         <div className="card overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Organisme</th><th>NDA / Qualiopi</th><th>Formations</th><th>Comptes</th><th>Inscriptions</th><th>Lien d&apos;inscription</th><th></th></tr></thead>
+            <thead><tr><th>Organisme</th><th>NDA / Qualiopi</th><th>Formations</th><th>Comptes</th><th>Inscriptions</th><th></th></tr></thead>
             <tbody>
               {orgs.map((o) => (
                 <tr key={o.id} className={o.active ? "" : "opacity-60"}>
@@ -41,7 +41,6 @@ export default async function Organizations() {
                   <td>{o._count.courses}</td>
                   <td>{o._count.users}</td>
                   <td>{enrByOrg.get(o.id) ?? 0}</td>
-                  <td className="text-xs"><code>/register?of={o.slug}</code></td>
                   <td className="whitespace-nowrap">
                     {!o.active && <Badge tone="red">Désactivé</Badge>}
                     <form action={toggleOrganizationAction.bind(null, o.id)} className="inline">

@@ -113,7 +113,7 @@ async function LearnerDashboard({ userId }: { userId: string }) {
         <h2 className="mb-3">Reprendre mes formations</h2>
         {withProgress.length === 0 ? (
           <Empty title="Aucune formation pour le moment">
-            <Link href="/courses" className="text-brand-600 hover:underline">Parcourir le catalogue</Link>
+            Votre organisme de formation vous inscrit à vos parcours : ils apparaîtront ici.
           </Empty>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">

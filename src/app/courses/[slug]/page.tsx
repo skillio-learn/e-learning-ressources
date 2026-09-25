@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canManageCourse } from "@/lib/permissions";
@@ -36,6 +36,14 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const manager = user ? await canManageCourse(user, course.id) : false;
   if (course.status !== "PUBLISHED" && !manager) notFound();
 
+  // Pas de catalogue : la fiche n'est visible que par l'équipe qui gère la formation
+  // et par l'apprenant déjà inscrit ou dont le dossier est ouvert.
+  if (!manager) {
+    if (!user) redirect(`/login?next=/courses/${course.slug}`);
+    if (user.role !== "LEARNER") notFound();
+    const linked = await db.enrollment.count({ where: { userId: user.id, courseId: course.id } }) + (await db.application.count({ where: { userId: user.id, courseId: course.id } }));
+    if (linked === 0) redirect("/learn");
+  }
   const [enrollment, application] = user
     ? await Promise.all([
         db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } }),

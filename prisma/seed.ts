@@ -56,7 +56,9 @@ async function main() {
     });
 
   await upsertUser("admin@skillio.fr", "Admin Skillio", "ADMIN");
-  await upsertUser("of@skillio.fr", "Sophie Responsable OF", "OF_ADMIN");
+  const ofAdmin = await upsertUser("of@skillio.fr", "Sophie Responsable OF", "OF_ADMIN");
+  // Référent support Vylia de l'organisme de démonstration
+  await db.organization.update({ where: { id: org.id }, data: { supportReferentId: ofAdmin.id } });
   const trainer = await upsertUser("formateur@skillio.fr", "Camille Formatrice", "TRAINER");
   const learner = await upsertUser("apprenant@skillio.fr", "Alex Apprenant", "LEARNER");
   await upsertUser("candidat@skillio.fr", "Chris Candidat", "LEARNER");

@@ -36,7 +36,12 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
   }
   const supportResponseHours = optInt(fd, "supportResponseHours") ?? 24;
   if (supportResponseHours < 1 || supportResponseHours > 168) return { error: "Délai de réponse de l'assistance : entre 1 et 168 heures." };
+  const supportReferentId = str(fd, "supportReferentId") || null;
+  if (supportReferentId && !(await db.user.findFirst({ where: { id: supportReferentId, organizationId: orgId, role: "OF_ADMIN", active: true }, select: { id: true } }))) {
+    return { error: "Le référent support doit être un responsable actif de l'organisme." };
+  }
   const data = {
+    supportReferentId,
     name: str(fd, "name") || "Organisme",
     legalName: optStr(fd, "legalName"),
     siret: siret || null,
@@ -77,6 +82,7 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
   await db.organization.update({ where: { id: orgId }, data });
   await audit("organization.update", { actorId: user.id, organizationId: orgId, entityType: "Organization", entityId: orgId });
   revalidatePath("/of", "layout");
+  revalidatePath(`/admin/organizations/${orgId}`);
   return { ok: "Paramètres enregistrés." };
 }
 
@@ -97,6 +103,7 @@ export async function createTeamMemberAction(orgId: string, _: ActionState, fd: 
     await db.user.update({ where: { id: existing.id }, data: { organizationId: orgId, role, active: true } });
     await audit("user.role", { actorId: user.id, organizationId: orgId, entityType: "User", entityId: existing.id, details: { role } });
     revalidatePath("/of/team");
+  revalidatePath("/admin/organizations", "layout");
     return { ok: `${email} rattaché(e) à l'équipe.` };
   }
   const password = randomCode(10) + "7";
@@ -105,6 +112,7 @@ export async function createTeamMemberAction(orgId: string, _: ActionState, fd: 
   });
   await audit("user.create", { actorId: user.id, organizationId: orgId, entityType: "User", entityId: created.id, details: { role } });
   revalidatePath("/of/team");
+  revalidatePath("/admin/organizations", "layout");
   return { ok: `Compte créé pour ${email} — mot de passe provisoire : ${password}` };
 }
 
@@ -116,6 +124,7 @@ export async function setTeamMemberAction(memberId: string, patch: { role?: "OF_
   await db.user.update({ where: { id: memberId }, data: patch });
   await audit(patch.role ? "user.role" : "user.active", { actorId: user.id, organizationId: member.organizationId, entityType: "User", entityId: memberId, details: patch });
   revalidatePath("/of/team");
+  revalidatePath("/admin/organizations", "layout");
 }
 
 // ─────────────── Sessions de formation & émargement ───────────────

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createComplaintAction } from "@/app/actions/learner-extra";
@@ -12,6 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function Support() {
   const user = await requireUser();
+  // Espace apprenant : les équipes ont leurs propres outils d'assistance
+  if (user.role === "ADMIN") redirect("/admin/support");
+  if (user.role === "OF_ADMIN") redirect("/of/tickets");
+  if (user.role === "TRAINER") redirect("/of/support");
   const [courses, complaints] = await Promise.all([
     db.course.findMany({
       where: { OR: [{ enrollments: { some: { userId: user.id } } }, { applications: { some: { userId: user.id } } }] },

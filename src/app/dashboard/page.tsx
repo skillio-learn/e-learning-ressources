@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
   const user = await requireUser();
   const { denied } = await searchParams;
+  if (user.role === "ADMIN") redirect("/admin");
   if (user.role !== "LEARNER" && !denied) redirect("/of");
   return (
     <Container>

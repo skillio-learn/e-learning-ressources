@@ -13,11 +13,14 @@ export const dynamic = "force-dynamic";
 export default async function OfSettings() {
   const user = await requireOfManager();
   if (!user.organizationId) notFound();
-  const org = await db.organization.findUniqueOrThrow({ where: { id: user.organizationId } });
+  const [org, managers] = await Promise.all([
+    db.organization.findUniqueOrThrow({ where: { id: user.organizationId } }),
+    db.user.findMany({ where: { organizationId: user.organizationId, role: "OF_ADMIN", active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
+  ]);
   return (
     <Container className="max-w-4xl">
       <PageHeader title="Paramètres de l'organisme" subtitle="Ces informations apparaissent sur les attestations, certificats de réalisation et relevés de connexion." />
-            <OrganizationForm org={org} />
+      <OrganizationForm org={org} managers={managers} />
       <section className="card mt-6 p-6">
         <h2 className="mb-1">Signature de l&apos;organisme</h2>
         <p className="mb-3 text-sm text-slate-500">Apposée automatiquement sur les conventions, convocations, attestations et certificats de réalisation.</p>

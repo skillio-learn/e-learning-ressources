@@ -13,9 +13,10 @@ export type FormState = { error?: string; ok?: string } | undefined;
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
-function safeNext(next: FormDataEntryValue | null) {
+function safeNext(next: FormDataEntryValue | null, role?: string) {
   const n = typeof next === "string" ? next : "";
-  return n.startsWith("/") && !n.startsWith("//") ? n : "/dashboard";
+  if (n.startsWith("/") && !n.startsWith("//")) return n;
+  return role === "ADMIN" ? "/admin" : "/dashboard";
 }
 
 export async function loginAction(_: FormState, fd: FormData): Promise<FormState> {
@@ -49,7 +50,7 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   await startActivitySession(user.id, ip, userAgent);
   const token = await signSession({ uid: user.id, role: user.role, name: user.name });
   (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions);
-  redirect(safeNext(fd.get("next")));
+  redirect(safeNext(fd.get("next"), user.role));
 }
 
 export async function logoutAction() {

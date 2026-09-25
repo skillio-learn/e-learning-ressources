@@ -179,3 +179,30 @@ export const SUPPORT_STATUS = {
   WAITING: { label: "Répondu", tone: "blue" },
   RESOLVED: { label: "Résolu", tone: "green" },
 } as const;
+
+// ─────────────── Support Vylia : tickets OF ↔ administrateur ───────────────
+
+export const TICKET_CATEGORIES: Record<string, string> = {
+  TECH: "Incident technique",
+  BUG: "Anomalie / comportement inattendu",
+  ACCOUNT: "Comptes, accès & équipe",
+  BILLING: "Abonnement & facturation",
+  COMPLIANCE: "Qualiopi, financeurs & conformité",
+  FEATURE: "Demande d'évolution",
+  OTHER: "Autre demande",
+};
+
+export const TICKET_PRIORITY = {
+  LOW: { label: "Basse", tone: "gray", slaHours: 72, hint: "Question sans urgence" },
+  NORMAL: { label: "Normale", tone: "blue", slaHours: 24, hint: "Gêne ponctuelle, contournement possible" },
+  HIGH: { label: "Haute", tone: "amber", slaHours: 8, hint: "Fonction importante indisponible" },
+  URGENT: { label: "Urgente", tone: "red", slaHours: 4, hint: "Service bloqué pour l'organisme ou ses apprenants" },
+} as const;
+
+export const TICKET_STATUS = {
+  OPEN: { label: "Nouveau", ofLabel: "Envoyé", tone: "amber" },
+  IN_PROGRESS: { label: "En cours", ofLabel: "Pris en charge", tone: "blue" },
+  WAITING_OF: { label: "En attente de l'OF", ofLabel: "Réponse reçue", tone: "purple" },
+  RESOLVED: { label: "Résolu", ofLabel: "Résolu, à confirmer", tone: "green" },
+  CLOSED: { label: "Clôturé", ofLabel: "Clôturé", tone: "gray" },
+} as const;

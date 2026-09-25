@@ -26,8 +26,10 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
   }
-  if ((pathname === "/of" || pathname.startsWith("/of/")) && session.role === "LEARNER") {
-    return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
+  if (pathname === "/of" || pathname.startsWith("/of/")) {
+    if (session.role === "LEARNER") return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
+    // L'administrateur Vylia n'intervient pas dans l'espace des organismes : il les accompagne via le support
+    if (session.role === "ADMIN") return NextResponse.redirect(new URL("/admin", req.url));
   }
   return next(req);
 }

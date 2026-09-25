@@ -4,7 +4,8 @@ import { StateForm } from "@/components/StateForm";
 import { Field } from "@/components/ui";
 import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES } from "@/lib/labels";
 
-export function OrganizationForm({ org }: { org: Organization }) {
+/** « managers » : responsables de l'OF, candidats au rôle de référent support Vylia. */
+export function OrganizationForm({ org, managers = [] }: { org: Organization; managers?: { id: string; name: string; email: string }[] }) {
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
   return (
     <StateForm action={updateOrganizationAction.bind(null, org.id)} className="space-y-6" submitLabel="Enregistrer les paramètres">
@@ -122,6 +123,19 @@ export function OrganizationForm({ org }: { org: Organization }) {
         </div>
         <Field label="Message automatique à l'ouverture d'une conversation" hint="Laisser vide pour le message par défaut (horaires et délai).">
           <textarea name="supportAutoReply" rows={3} defaultValue={org.supportAutoReply ?? ""} className="input" />
+        </Field>
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <h2>Support Vylia</h2>
+        <Field
+          label="Référent support de l'organisme"
+          hint="Interlocuteur du support Vylia : il reçoit les réponses et les résolutions de tous les tickets de l'organisme."
+        >
+          <select name="supportReferentId" defaultValue={org.supportReferentId ?? ""} className="input max-w-md">
+            <option value="">— Aucun (chaque responsable suit ses tickets) —</option>
+            {managers.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}
+          </select>
         </Field>
       </section>
     </StateForm>

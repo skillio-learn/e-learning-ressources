@@ -13,10 +13,9 @@ export type SupportState = { error?: string; ok?: string; id?: string } | undefi
 
 const MAX_BODY = 4000;
 
-/** Accès d'un membre de l'équipe à une conversation (OF de la conversation, ou support Vylia pour l'admin). */
+/** Accès d'un membre de l'équipe OF à une conversation de son organisme. */
 function staffCanAccess(user: CurrentUser, organizationId: string | null) {
-  if (!isStaff(user)) return false;
-  if (user.role === "ADMIN") return true;
+  if (!isStaff(user) || user.role === "ADMIN") return false;
   return !!organizationId && organizationId === user.organizationId;
 }
 
@@ -35,8 +34,6 @@ async function notifyTeam(c: { id: string; organizationId: string | null; assign
   const link = `/of/support/${c.id}`;
   if (c.assignedToId) return notify(c.assignedToId, title, body, link);
   if (c.organizationId) return notifyOrgManagers(c.organizationId, title, body, link);
-  const admins = await db.user.findMany({ where: { role: "ADMIN", active: true }, select: { id: true } });
-  await Promise.all(admins.map((a) => notify(a.id, title, body, link)));
 }
 
 export async function openSupportConversationAction(_: SupportState, fd: FormData): Promise<SupportState> {
@@ -47,8 +44,10 @@ export async function openSupportConversationAction(_: SupportState, fd: FormDat
   if (!(category in SUPPORT_CATEGORIES)) return { error: "Choisissez un sujet." };
   if (subject.length < 3) return { error: "Indiquez l'objet de votre demande." };
   if (body.length < 2) return { error: "Écrivez votre message." };
-  // L'équipe OF s'adresse au support Vylia ; l'apprenant à son organisme
-  const organizationId = isStaff(user) ? null : user.organizationId;
+  // Le chat relie l'apprenant à son organisme ; les OF contactent le support Vylia par ticket
+  if (isStaff(user)) return { error: "Les équipes des organismes contactent le support Vylia par ticket (Espace OF > Support Vylia)." };
+  const organizationId = user.organizationId;
+  if (!organizationId) return { error: "Votre compte n'est rattaché à aucun organisme de formation : contactez l'organisme qui vous a inscrit." };
   const org = organizationId
     ? await db.organization.findUnique({ where: { id: organizationId }, select: { name: true, email: true, phone: true, supportEnabled: true, supportHours: true, supportResponseHours: true, supportAutoReply: true } })
     : null;

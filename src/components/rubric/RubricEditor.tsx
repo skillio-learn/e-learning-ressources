@@ -121,7 +121,7 @@ export function RubricEditor({
                   <div className="flex gap-1">
                     <input className="input px-2 py-1 text-xs font-medium" value={l.label} placeholder="Niveau" onChange={(e) => setLevel(i, k, { label: e.target.value })} />
                     <input type="number" step={0.5} className="input w-16 px-2 py-1 text-xs" value={l.points} onChange={(e) => setLevel(i, k, { points: Number(e.target.value) })} title="Points" />
-                    <button type="button" className="text-xs text-slate-400 hover:text-red-600" onClick={() => setCrit(i, { levels: c.levels.filter((_, j) => j !== k) })}>✕</button>
+                    <button type="button" className="text-xs text-slate-500 hover:text-red-600" onClick={() => setCrit(i, { levels: c.levels.filter((_, j) => j !== k) })}>✕</button>
                   </div>
                   <textarea className="input px-2 py-1 text-xs" rows={2} placeholder="Descripteur du niveau" value={l.description ?? ""} onChange={(e) => setLevel(i, k, { description: e.target.value })} />
                 </div>

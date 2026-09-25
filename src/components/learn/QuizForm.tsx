@@ -53,7 +53,7 @@ export function QuizForm({ attemptId, questions, deadline }: { attemptId: string
           <legend className="sr-only">Question {i + 1}</legend>
           <div className="mb-3 flex items-start justify-between gap-4">
             <div className="font-medium">
-              <span className="text-slate-400">Q{i + 1}. </span>
+              <span className="text-slate-500">Q{i + 1}. </span>
               <span className="prose-lms inline [&>p]:inline" dangerouslySetInnerHTML={{ __html: q.textHtml }} />
             </div>
             <span className="shrink-0 text-xs text-slate-500">{q.points} pt</span>

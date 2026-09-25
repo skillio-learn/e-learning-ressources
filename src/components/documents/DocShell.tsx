@@ -8,7 +8,7 @@ export function DocShell({ org, title, subtitle, children }: { org: Organization
       <div className="no-print mb-4 flex justify-end gap-2">
         <PrintButton label="Imprimer / Enregistrer en PDF" />
       </div>
-      <article className="theme-paper rounded-2xl border border-slate-200 p-8 text-sm leading-relaxed shadow-sm print:border-0 print:shadow-none">
+      <article className="theme-paper rounded-2xl border border-slate-200 p-8 text-sm leading-relaxed print:border-0 print:shadow-none">
         <header className="mb-6 flex items-start justify-between gap-6 border-b border-slate-200 pb-4">
           <div>
             {org.logoUrl && (
@@ -27,7 +27,7 @@ export function DocShell({ org, title, subtitle, children }: { org: Organization
           </div>
           <div className="text-right text-xs text-slate-500">Édité le {formatDate(new Date(), true)}</div>
         </header>
-        <h1 className="text-center text-xl font-bold uppercase tracking-wide">{title}</h1>
+        <h1 className="text-center text-xl font-bold">{title}</h1>
         {subtitle && <p className="mt-1 text-center text-xs text-slate-500">{subtitle}</p>}
         <div className="mt-6">{children}</div>
       </article>
@@ -48,7 +48,7 @@ export function Signature({ org, place }: { org: Organization; place?: string | 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={org.signatureImage} alt="Signature de l'organisme" className="ml-auto mt-2 h-16" />
         ) : (
-          <div className="mt-10 text-xs text-slate-400">Signature et cachet de l&apos;organisme</div>
+          <div className="mt-10 text-xs text-slate-500">Signature et cachet de l&apos;organisme</div>
         )}
       </div>
     </div>

@@ -146,7 +146,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
 
       <aside className="space-y-4">
         <div className="card space-y-2 p-4 text-sm">
-          <div className="text-xs font-semibold uppercase text-slate-400">Emplacement</div>
+          <div className="text-xs font-semibold text-slate-500">Emplacement</div>
           <div>Module {lesson.module.position + 1} · {lesson.module.title}</div>
           <div>Étape n° {lesson.position + 1} du module</div>
         </div>

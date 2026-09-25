@@ -51,7 +51,7 @@ export default async function LearnerResources({ params }: { params: Promise<{ s
                       {r.url ? <><ExternalLink className="h-4 w-4" strokeWidth={1.75} /> Ouvrir</> : <><Download className="h-4 w-4" strokeWidth={1.75} /> Télécharger</>}
                     </a>
                   ) : (
-                    <Lock className="h-4 w-4 text-slate-400" strokeWidth={1.75} />
+                    <Lock className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
                   )}
                 </li>
               ))}

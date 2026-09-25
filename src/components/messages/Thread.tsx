@@ -10,8 +10,8 @@ export function Thread({ messages, viewer }: { messages: Msg[]; viewer: "learner
         const mine = (viewer === "staff") === m.fromStaff;
         return (
           <li key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[80%] rounded-2xl px-4 py-2 text-sm", mine ? "bg-brand-600 text-white" : "bg-surface shadow-sm ring-1 ring-slate-200")}>
-              <div className={cn("mb-0.5 text-[11px]", mine ? "text-white/70" : "text-slate-400")}>
+            <div className={cn("max-w-[80%] rounded-2xl px-4 py-2 text-sm", mine ? "bg-brand-600 text-white" : "bg-surface ring-1 ring-slate-200")}>
+              <div className={cn("mb-0.5 text-[11px]", mine ? "text-white/70" : "text-slate-500")}>
                 {m.author.name}{m.fromStaff ? " (formateur / OF)" : ""} · {formatDate(m.createdAt, true)}
                 {mine && m.readAt ? " · lu" : ""}
               </div>

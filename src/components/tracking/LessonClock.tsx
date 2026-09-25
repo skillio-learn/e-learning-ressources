@@ -22,7 +22,7 @@ export function LessonClock({ initialSeconds, minTimeSec }: { initialSeconds: nu
         <span className="flex items-center gap-2 text-xs text-slate-500">
           Minimum requis : {formatDuration(minTimeSec)}
           <span className="inline-block h-1.5 w-24 overflow-hidden rounded-full bg-slate-200">
-            <span className={`block h-full ${pct === 100 ? "bg-emerald-500" : "bg-brand-500"}`} style={{ width: `${pct}%` }} />
+            <span className={`block h-full ${pct === 100 ? "bg-emerald-600" : "bg-brand-600"}`} style={{ width: `${pct}%` }} />
           </span>
           {pct === 100 && <span className="text-emerald-600">✓</span>}
         </span>

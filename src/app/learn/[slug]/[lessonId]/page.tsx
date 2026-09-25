@@ -50,13 +50,13 @@ export default async function LessonPage({
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 lg:px-10">
       <div className="mb-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <div className="text-xs font-semibold text-slate-500">
           Module {moduleIndex + 1} · {lesson.module.title} — Étape {entry.index}/{outline.total}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1>{lesson.title}</h1>
           <Badge tone="blue">
-            <LessonTypeIcon type={lesson.type} className="text-brand-500" /> {LESSON_TYPE_LABELS[lesson.type]}
+            <LessonTypeIcon type={lesson.type} className="text-brand-600" /> {LESSON_TYPE_LABELS[lesson.type]}
           </Badge>
           {lesson.durationMin ? <Badge>{lesson.durationMin} min</Badge> : null}
           {entry.completed && <Badge tone="green">✓ Terminée</Badge>}
@@ -131,14 +131,14 @@ export default async function LessonPage({
               {next.title}
             </span>
           ) : (
-            <Link href={`/learn/${slug}/${next.id}`} className="btn-primary">{next.title} →</Link>
+            <Link href={`/learn/${slug}/${next.id}`} className="btn-primary" title={next.title}>Étape suivante</Link>
           )
         ) : (
-          <Link href={`/learn/${slug}`} className="btn-primary">Terminer : récapitulatif →</Link>
+          <Link href={`/learn/${slug}`} className="btn-primary">Voir le récapitulatif</Link>
         )}
       </div>
       {course.sequential && !entry.completed && next && (
-        <p className="mt-2 text-right text-xs text-slate-400">Parcours séquentiel : terminez cette étape pour débloquer la suivante.</p>
+        <p className="mt-2 text-right text-xs text-slate-500">Parcours séquentiel : terminez cette étape pour débloquer la suivante.</p>
       )}
     </div>
   );

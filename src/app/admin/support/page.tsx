@@ -107,7 +107,7 @@ export default async function AdminSupport({ searchParams }: { searchParams: Pro
               <Link key={t.id} href={`/admin/support/${t.id}`} className="flex flex-wrap items-center gap-3 p-4 transition hover:bg-slate-50">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-slate-400">{t.number}</span>
+                    <span className="font-mono text-xs text-slate-500">{t.number}</span>
                     <span className="truncate font-medium text-slate-900">{t.subject}</span>
                     {t._count.messages > 0 && <span className="rounded-full bg-brand-600 px-1.5 text-[10px] font-semibold text-white">{t._count.messages}</span>}
                   </div>

@@ -45,7 +45,7 @@ export default async function GradeSubmission({ params, searchParams }: { params
         <PrintButton label="Imprimer / PDF de la grille" />
       </div>
       <div className="mb-6">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Grille d&apos;évaluation · {sub.lesson.module.course.title}</div>
+        <div className="text-xs font-semibold text-slate-500">Grille d&apos;évaluation · {sub.lesson.module.course.title}</div>
         <h1>{sub.lesson.title}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
           <span>
@@ -64,7 +64,7 @@ export default async function GradeSubmission({ params, searchParams }: { params
         <section className="space-y-4">
           <div className="card p-5">
             <h2 className="mb-2">Travail rendu</h2>
-            {sub.text ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{sub.text}</div> : <p className="text-sm text-slate-400">Pas de texte.</p>}
+            {sub.text ? <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm">{sub.text}</div> : <p className="text-sm text-slate-500">Pas de texte.</p>}
             {sub.linkUrl && <p className="mt-3 text-sm"><a href={sub.linkUrl} target="_blank" rel="noopener noreferrer" className="break-all text-brand-600 underline">{sub.linkUrl}</a></p>}
             {sub.fileName && (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -111,7 +111,7 @@ export default async function GradeSubmission({ params, searchParams }: { params
             </Field>
             <div className="flex flex-wrap justify-end gap-2">
               <button name="decision" value="revision" className="btn-secondary">↩ Demander une reprise</button>
-              <button name="decision" value="grade" className="btn-primary">✓ Enregistrer l&apos;évaluation</button>
+              <button name="decision" value="grade" className="btn-primary">Enregistrer l&apos;évaluation</button>
             </div>
           </form>
         </section>

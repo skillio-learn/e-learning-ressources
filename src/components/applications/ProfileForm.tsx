@@ -70,7 +70,7 @@ export function ProfileForm({
     <form action={formAction} onChange={flow.onChange} className="space-y-5">
       <fieldset disabled={disabled} className="space-y-5">
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Identité</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-500">Identité</h3>
           <div className="grid gap-3 md:grid-cols-4">
             <F label="Civilité *">
               <select name="civility" defaultValue={p.civility ?? ""} className="input">
@@ -89,7 +89,7 @@ export function ProfileForm({
           </div>
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Adresse</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-500">Adresse</h3>
           <div className="grid gap-3 md:grid-cols-4">
             <F label="Adresse *" className="md:col-span-2"><input name="address" defaultValue={p.address ?? ""} className="input" autoComplete="street-address" /></F>
             <F label="Code postal *"><input name="postalCode" defaultValue={p.postalCode ?? ""} className="input" autoComplete="postal-code" /></F>
@@ -98,7 +98,7 @@ export function ProfileForm({
           </div>
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Situation & parcours</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-500">Situation & parcours</h3>
           <div className="grid gap-3 md:grid-cols-3">
             <F label="Situation professionnelle *">
               <select name="employmentStatus" value={status} onChange={(e) => setStatus(e.target.value)} className="input">
@@ -124,7 +124,7 @@ export function ProfileForm({
         </div>
         {showEmployer && (
           <div>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Employeur (obligatoire pour un financement OPCO / employeur)</h3>
+            <h3 className="mb-2 text-sm font-semibold text-slate-500">Employeur (obligatoire pour un financement OPCO / employeur)</h3>
             <div className="grid gap-3 md:grid-cols-3">
               <F label="Raison sociale"><input name="employerName" defaultValue={p.employerName ?? ""} className="input" /></F>
               <F label="SIRET (14 chiffres)"><input name="employerSiret" defaultValue={p.employerSiret ?? ""} className="input" inputMode="numeric" /></F>

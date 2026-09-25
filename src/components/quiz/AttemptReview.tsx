@@ -28,14 +28,14 @@ export function AttemptReview({
             className={cn(
               "card border-l-4 p-5",
               status === "ok" && "border-l-emerald-500",
-              status === "partial" && "border-l-amber-400",
+              status === "partial" && "border-l-slate-400",
               status === "ko" && "border-l-red-400",
               status === "review" && "border-l-slate-300",
             )}
           >
             <div className="mb-2 flex items-start justify-between gap-4">
               <div className="font-medium">
-                <span className="text-slate-400">Q{i + 1}. </span>
+                <span className="text-slate-500">Q{i + 1}. </span>
                 <span className="prose-lms inline [&>p]:inline" dangerouslySetInnerHTML={{ __html: renderMarkdown(q.text) }} />
               </div>
               <span className="shrink-0 text-sm font-semibold text-slate-600">
@@ -68,7 +68,7 @@ export function AttemptReview({
 
             {(q.type === "SHORT" || q.type === "OPEN") && (
               <div className="rounded-md bg-slate-50 p-3 text-sm whitespace-pre-wrap">
-                {a?.text || <span className="italic text-slate-400">Pas de réponse</span>}
+                {a?.text || <span className="italic text-slate-500">Pas de réponse</span>}
               </div>
             )}
             {showCorrection && q.type === "SHORT" && q.acceptedAnswers.length > 0 && (
@@ -76,7 +76,7 @@ export function AttemptReview({
             )}
             {showCorrection && q.explanation && (
               <div className="mt-3 rounded-md bg-brand-50 p-3 text-sm text-brand-900">
-                <span className="font-semibold text-amber-600">Explication :</span> <span className="prose-lms [&>p]:inline" dangerouslySetInnerHTML={{ __html: renderMarkdown(q.explanation) }} />
+                <span className="font-medium text-brand-600">Explication :</span> <span className="prose-lms [&>p]:inline" dangerouslySetInnerHTML={{ __html: renderMarkdown(q.explanation) }} />
               </div>
             )}
             {a?.feedback && (

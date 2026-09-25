@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, FileSignature, Fingerprint, Layers } from "lucide-react";
+import { Award, BookOpen, ClipboardCheck, FileSignature, ShieldCheck, Layers } from "lucide-react";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const HIGHLIGHTS = [
-  { icon: Layers, label: "Parcours interactifs" },
-  { icon: ClipboardCheck, label: "Quiz & grilles d'évaluation" },
-  { icon: FileSignature, label: "Signature électronique" },
-  { icon: Fingerprint, label: "Preuves OPCO & France Travail" },
+  { icon: Layers, label: "Parcours interactifs, étape par étape" },
+  { icon: ClipboardCheck, label: "Quiz, devoirs et grilles d'évaluation" },
+  { icon: FileSignature, label: "Conventions signées en ligne" },
+  { icon: ShieldCheck, label: "Preuves de réalisation pour les financeurs" },
 ];
 
 const LEGAL = [
@@ -25,52 +25,62 @@ export default async function Home() {
   const cta = !user
     ? { href: "/login", label: "Se connecter" }
     : isStaff(user)
-      ? { href: "/of", label: "Ouvrir l'espace OF" }
-      : { href: "/dashboard", label: "Mon tableau de bord" };
+      ? { href: user.role === "ADMIN" ? "/admin" : "/of", label: user.role === "ADMIN" ? "Ouvrir l'administration" : "Ouvrir l'espace OF" }
+      : { href: "/dashboard", label: "Reprendre ma formation" };
 
   return (
-    <main className="relative isolate flex h-[calc(100dvh-3.5rem-1px)] min-h-[520px] flex-col overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-14rem] h-[40rem] w-[40rem] -translate-x-[75%] animate-aurora rounded-full bg-[#0071e3]/[0.12] blur-[120px]" />
-        <div className="absolute left-1/2 top-[-6rem] h-[34rem] w-[34rem] -translate-x-[10%] animate-aurora rounded-full bg-[#bf5af2]/[0.10] blur-[120px] [animation-delay:-9s]" />
-        <div className="absolute bottom-[-18rem] left-1/2 h-[30rem] w-[50rem] -translate-x-1/2 rounded-full bg-[#5e5ce6]/[0.06] blur-[120px]" />
-        <div className="bg-grid mask-fade-b absolute inset-0" />
-      </div>
-
-      <section className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-        <div className="eyebrow animate-fade-up text-brand-500 [text-wrap:balance]">La plateforme des organismes de formation</div>
-        <h1 className="mt-5 animate-fade-up font-display text-[2.05rem] font-semibold leading-[1.05] [text-wrap:balance] tracking-tightest text-slate-900 delay-100 sm:text-6xl md:text-7xl">
-          Apprendre, pas à pas.
-          <br />
-          <span className="text-gradient animate-shimmer bg-[length:200%_auto]">Prouver chaque minute.</span>
-        </h1>
-        <p className="mx-auto mt-5 max-w-xl animate-fade-up text-base leading-relaxed text-slate-600 delay-200 md:text-lg">
-          {settings.platformName} réunit parcours interactifs, évaluations et toute la preuve de réalisation exigée par les
-          financeurs, dans une seule plateforme.
-        </p>
-        <div className="mt-8 flex animate-fade-up flex-col items-center gap-3 delay-300">
-          <Link href={cta.href} className="btn-primary btn-lg">
-            {cta.label} <ArrowRight className="h-4 w-4" />
-          </Link>
-          {!user && <p className="text-xs text-slate-500">Votre accès est créé par votre organisme de formation.</p>}
+    <main className="flex h-[calc(100dvh-4rem-1px)] min-h-[560px] flex-col">
+      <section className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-12 px-4 md:grid-cols-[1.1fr_1fr] md:gap-16">
+        <div className="animate-fade-in">
+          <p className="eyebrow">La plateforme des organismes de formation</p>
+          <h1 className="mt-4 text-[40px] leading-[48px] md:text-[56px] md:leading-[64px]">L&apos;expertise qui accompagne.</h1>
+          <p className="mt-5 max-w-[60ch] text-slate-500 md:text-lg md:leading-8">
+            {settings.platformName} réunit parcours de formation, évaluations et preuves de réalisation dans une seule
+            plateforme. Vos apprenants avancent à leur rythme, vous gardez la maîtrise de chaque étape.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link href={cta.href} className="btn-primary btn-lg">{cta.label}</Link>
+            {!user && <p className="text-sm text-slate-500">Votre accès est créé par votre organisme de formation.</p>}
+          </div>
+          <ul className="mt-10 hidden gap-x-8 gap-y-3 sm:grid sm:grid-cols-2">
+            {HIGHLIGHTS.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3 text-sm text-slate-700">
+                <Icon className="h-5 w-5 shrink-0 text-brand-600" strokeWidth={1.75} aria-hidden="true" /> {label}
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul className="mt-10 hidden animate-fade-up flex-wrap justify-center gap-2 delay-500 sm:flex">
-          {HIGHLIGHTS.map(({ icon: Icon, label }) => (
-            <li
-              key={label}
-              className="inline-flex items-center gap-2 rounded-full border border-black/[0.07] bg-surface/70 px-3.5 py-1.5 text-[13px] text-slate-600 shadow-[0_1px_2px_rgb(0_0_0/0.04)] backdrop-blur"
-            >
-              <Icon className="h-3.5 w-3.5 text-brand-500" strokeWidth={2} /> {label}
-            </li>
-          ))}
-        </ul>
+
+        {/* Aperçu : deux cartes de formation telles qu'un apprenant les voit */}
+        <div className="hidden animate-fade-in gap-4 md:grid" aria-hidden="true">
+          <div className="card overflow-hidden">
+            <div className="bg-brand-50 px-6 py-5 text-brand-600"><BookOpen className="h-6 w-6" strokeWidth={1.75} /></div>
+            <div className="p-6">
+              <div className="text-sm text-slate-500">6 modules, 4 h 30</div>
+              <div className="mt-1 font-title text-xl text-slate-900">Gestion de projet agile</div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-brand-50"><div className="h-full w-[65%] rounded-full bg-brand-600" /></div>
+              <div className="mt-2 text-sm text-slate-500">65 % terminé</div>
+              <span className="btn-primary mt-5 pointer-events-none">Reprendre le module</span>
+            </div>
+          </div>
+          <div className="card overflow-hidden md:ml-12">
+            <div className="bg-ambre-100 px-6 py-5 text-brand-600"><Award className="h-6 w-6" strokeWidth={1.75} /></div>
+            <div className="p-6">
+              <div className="text-sm text-slate-500">5 modules, 3 h</div>
+              <div className="mt-1 font-title text-xl text-slate-900">Management bienveillant</div>
+              <span className="badge mt-4 bg-ambre-100 text-slate-900"><span className="h-1.5 w-1.5 rounded-full bg-ambre-400" />Parcours terminé</span>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <footer className="no-print flex flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 pb-5 text-[11px] text-slate-400">
-        {LEGAL.map(([href, label]) => (
-          <Link key={href} href={href} className="transition hover:text-slate-700">{label}</Link>
-        ))}
-        <span>© {new Date().getFullYear()} {settings.platformName}</span>
+      <footer className="no-print border-t border-slate-200 bg-surface">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-4 text-sm text-slate-500">
+          {LEGAL.map(([href, label]) => (
+            <Link key={href} href={href} className="transition-colors hover:text-brand-600">{label}</Link>
+          ))}
+          <span className="sm:ml-auto">© {new Date().getFullYear()} {settings.platformName}</span>
+        </div>
       </footer>
     </main>
   );

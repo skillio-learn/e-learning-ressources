@@ -31,6 +31,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Polices de la charte intégrées aux PDF (attestations, relevés, résultats), lues sur disque à l'exécution
+  outputFileTracingIncludes: { "/api/pdf/**": ["./src/assets/fonts/**"] },
   experimental: {
     // Limite Vercel : 4,5 Mo par requête (fichiers de 4 Mo maximum, voir src/lib/uploads.ts)
     serverActions: { bodySizeLimit: "4.5mb" },

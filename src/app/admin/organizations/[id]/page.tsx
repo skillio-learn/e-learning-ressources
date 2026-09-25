@@ -59,7 +59,7 @@ export default async function AdminOrganization({ params }: { params: Promise<{ 
                 </tr>
               ))}
               {members.length === 0 && (
-                <tr><td colSpan={4} className="text-center text-sm text-slate-400">Aucun membre : créez le compte du responsable de l&apos;organisme.</td></tr>
+                <tr><td colSpan={4} className="text-center text-sm text-slate-500">Aucun membre : créez le compte du responsable de l&apos;organisme.</td></tr>
               )}
             </tbody>
           </table>
@@ -82,7 +82,7 @@ export default async function AdminOrganization({ params }: { params: Promise<{ 
               <Link href={`/admin/support?org=${org.id}&tab=closed`} className="link text-xs">Historique</Link>
             </div>
             {tickets.length === 0 ? (
-              <p className="text-slate-400">Aucun ticket.</p>
+              <p className="text-slate-500">Aucun ticket.</p>
             ) : (
               <ul className="space-y-1.5">
                 {tickets.map((t) => (

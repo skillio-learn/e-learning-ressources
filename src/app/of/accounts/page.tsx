@@ -157,7 +157,7 @@ export default async function OfAccounts({ searchParams }: { searchParams: Promi
                     <div className="font-medium text-slate-900">{a.name}</div>
                     <div className="text-xs text-slate-500">{a.email}</div>
                   </td>
-                  {user.role === "ADMIN" && <td>{a.organization?.name ?? <span className="text-slate-400">Aucun</span>}</td>}
+                  {user.role === "ADMIN" && <td>{a.organization?.name ?? <span className="text-slate-500">Aucun</span>}</td>}
                   <td>{a.createdVia === "OF" ? "Créé par l'OF" : a.createdVia === "ADMIN" ? "Créé par Vylia" : "Auto-inscription"}</td>
                   <td>{formatDate(a.createdAt)}</td>
                   <td>{formatDate(status === "PENDING_REVIEW" ? a.accountSubmittedAt : a.accountReviewedAt, true)}</td>

@@ -50,13 +50,13 @@ export default async function SupportThread({ params }: { params: Promise<{ id: 
           <div className="max-h-[60vh] flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-5">
             {c.messages.map((m) =>
               m.system ? (
-                <div key={m.id} className="mx-auto max-w-[85%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500 shadow-sm">{m.body}</div>
+                <div key={m.id} className="mx-auto max-w-[85%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500">{m.body}</div>
               ) : (
                 <div key={m.id} className={cn("flex", m.fromStaff ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[78%] rounded-[20px] px-4 py-2.5 text-sm", m.fromStaff ? "rounded-br-md bg-brand-600 text-white" : "rounded-bl-md bg-white text-slate-900 shadow-sm")}>
+                  <div className={cn("max-w-[78%] rounded-[20px] px-4 py-2.5 text-sm", m.fromStaff ? "rounded-br-md bg-brand-600 text-white" : "rounded-bl-md bg-white text-slate-900")}>
                     <div className={cn("mb-0.5 text-[11px] font-medium", m.fromStaff ? "text-white/75" : "text-slate-500")}>{m.author?.name ?? "—"}</div>
                     <div className="whitespace-pre-line break-words">{m.body}</div>
-                    <div className={cn("mt-0.5 text-right text-[10px]", m.fromStaff ? "text-white/70" : "text-slate-400")}>
+                    <div className={cn("mt-0.5 text-right text-[10px]", m.fromStaff ? "text-white/70" : "text-slate-500")}>
                       {formatDate(m.createdAt, true)}{m.fromStaff && m.readAt ? " · lu" : ""}
                     </div>
                   </div>
@@ -85,7 +85,7 @@ export default async function SupportThread({ params }: { params: Promise<{ id: 
                       <Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge>
                     </li>
                   ))}
-                  {c.user.enrollments.length === 0 && <li className="text-slate-400">Aucune inscription</li>}
+                  {c.user.enrollments.length === 0 && <li className="text-slate-500">Aucune inscription</li>}
                 </ul>
                 <Link href={`/of/learners/${c.user.id}`} className="btn-secondary btn-sm mt-3 w-full">Fiche apprenant</Link>
               </>

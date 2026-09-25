@@ -24,7 +24,7 @@ export default async function TrainerCourses() {
       <PageHeader
         title="Mes formations"
         subtitle={user.role === "ADMIN" ? "Toutes les formations de la plateforme." : "Formations dont vous êtes auteur ou co-formateur."}
-        actions={<Link href="/of/courses/new" className="btn-primary">+ Nouvelle formation</Link>}
+        actions={<Link href="/of/courses/new" className="btn-primary">Créer une formation</Link>}
       />
       {courses.length === 0 ? (
         <Empty title="Aucune formation">

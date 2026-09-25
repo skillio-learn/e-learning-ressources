@@ -43,7 +43,7 @@ export default async function MyCourses() {
                 footer={
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge>
-                    <span className="link">Finaliser mon inscription →</span>
+                    <span className="link">Finaliser mon inscription</span>
                   </div>
                 }
               />
@@ -56,12 +56,12 @@ export default async function MyCourses() {
           <h2 className="mb-3">Mes certificats</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {certificates.map((c) => (
-              <Link key={c.id} href={`/certificates/${c.code}`} className="card flex items-center justify-between p-4 hover:shadow-md">
+              <Link key={c.id} href={`/certificates/${c.code}`} className="card flex items-center justify-between p-4">
                 <div>
                   <div className="font-medium">{c.course.title}</div>
                   <div className="text-xs text-slate-500">Délivré le {formatDate(c.issuedAt)}</div>
                 </div>
-                <span className="text-sm text-brand-600">Voir →</span>
+                <span className="link text-sm">Ouvrir la formation</span>
               </Link>
             ))}
           </div>

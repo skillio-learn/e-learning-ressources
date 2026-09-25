@@ -40,7 +40,7 @@ export function RubricGrader({
                   <td className="w-60 border border-slate-200 px-3 py-2 align-top">
                     <div className="font-semibold">{c.title}</div>
                     {c.description && <div className="mt-1 text-xs text-slate-500">{c.description}</div>}
-                    {c.weight !== 1 && <div className="text-xs text-slate-400">×{c.weight}</div>}
+                    {c.weight !== 1 && <div className="text-xs text-slate-500">×{c.weight}</div>}
                     <input type="hidden" name={`level_${c.id}`} value={s.levelId ?? ""} />
                     <div className="mt-2 flex items-center gap-1 text-xs">
                       <input

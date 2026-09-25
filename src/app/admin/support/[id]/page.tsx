@@ -133,7 +133,7 @@ export default async function AdminTicket({ params }: { params: Promise<{ id: st
             <div className="pt-2">Demandeur : <b className="text-slate-900">{t.requester.name}</b> ({t.requester.email})</div>
             <div>
               Référent support :{" "}
-              {t.organization.supportReferent ? <b className="text-slate-900">{t.organization.supportReferent.name}</b> : <span className="text-slate-400">non désigné</span>}
+              {t.organization.supportReferent ? <b className="text-slate-900">{t.organization.supportReferent.name}</b> : <span className="text-slate-500">non désigné</span>}
             </div>
           </section>
           {history.length > 0 && (

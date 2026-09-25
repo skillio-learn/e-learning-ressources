@@ -22,8 +22,8 @@ export function TicketThread({ messages, viewer }: { messages: Msg[]; viewer: "a
       {visible.map((m) => {
         if (m.system) {
           return (
-            <div key={m.id} className="mx-auto max-w-[85%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500 shadow-sm">
-              {m.body} <span className="text-slate-400">· {formatDate(m.createdAt, true)}</span>
+            <div key={m.id} className="mx-auto max-w-[85%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500">
+              {m.body} <span className="text-slate-500">· {formatDate(m.createdAt, true)}</span>
             </div>
           );
         }
@@ -37,7 +37,7 @@ export function TicketThread({ messages, viewer }: { messages: Msg[]; viewer: "a
                   ? "rounded-br-md bg-amber-50 text-slate-900 ring-1 ring-inset ring-amber-200"
                   : mine
                     ? "rounded-br-md bg-brand-600 text-white"
-                    : "rounded-bl-md bg-white text-slate-900 shadow-sm",
+                    : "rounded-bl-md bg-white text-slate-900",
               )}
             >
               <div className={cn("mb-0.5 flex items-center gap-1 text-[11px] font-medium", mine && !m.internal ? "text-white/75" : "text-slate-500")}>
@@ -60,7 +60,7 @@ export function TicketThread({ messages, viewer }: { messages: Msg[]; viewer: "a
                   {m.size ? <span className="shrink-0 opacity-70">{Math.max(1, Math.round(m.size / 1024))} Ko</span> : null}
                 </a>
               )}
-              <div className={cn("mt-0.5 text-right text-[10px]", mine && !m.internal ? "text-white/70" : "text-slate-400")}>
+              <div className={cn("mt-0.5 text-right text-[10px]", mine && !m.internal ? "text-white/70" : "text-slate-500")}>
                 {formatDate(m.createdAt, true)}
                 {mine && !m.internal && m.readAt ? " · lu" : ""}
               </div>

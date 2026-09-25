@@ -1,17 +1,53 @@
 import "server-only";
-import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb, type RGB } from "pdf-lib";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import fontkit from "@pdf-lib/fontkit";
+import { LineCapStyle, PDFDocument, PDFFont, PDFPage, rgb, type RGB } from "pdf-lib";
 
 /**
  * Génération de documents PDF (attestations, relevés, résultats de quiz) côté serveur, sans navigateur.
- * Polices standard PDF (Helvetica) : le texte est ramené au jeu de caractères WinAnsi.
+ * Charte Vylia : Lora pour les titres, Poppins pour le texte, logo officiel vectoriel, couleurs Pétrole / Ardoise.
+ * Polices intégrées en sous-ensemble latin : le texte est ramené au jeu de caractères latin (WinAnsi).
  */
 
 const A4: [number, number] = [595.28, 841.89];
 const M = 50; // marges
-const INK = rgb(0.11, 0.11, 0.12);
-const MUTED = rgb(0.43, 0.43, 0.45);
-const LINE = rgb(0.87, 0.87, 0.89);
-const BRAND = rgb(0, 0.443, 0.89);
+const hex = (h: string) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
+const INK = hex("#17262D"); // Ardoise
+const MUTED = hex("#546770"); // Gris
+const LINE = hex("#D6E0E3"); // Bordure
+const BRAND = hex("#0E4D5C"); // Pétrole
+const AMBRE = hex("#F2B33D");
+const BRUME = hex("#F6F8F9");
+
+const FONT_DIR = path.join(process.cwd(), "src/assets/fonts");
+let fontCache: Promise<[Buffer, Buffer, Buffer]> | null = null;
+const fontFiles = () =>
+  (fontCache ??= Promise.all([
+    readFile(path.join(FONT_DIR, "poppins-latin-400-normal.woff")),
+    readFile(path.join(FONT_DIR, "poppins-latin-500-normal.woff")),
+    readFile(path.join(FONT_DIR, "lora-latin-600-normal.woff")),
+  ]));
+
+/** Logo officiel (logo-principal.svg de la charte), exprimé dans son repère viewBox="-20 -780 3442 1080". */
+const LOGO_VIEWBOX = { x: -20, y: -780, w: 3442, h: 1080 };
+const LOGO_CHECK = [[72.8, -427.8], [322.4, -22.2], [759.2, -677.4]] as const;
+const LOGO_DOTS = [[384.8, -563.0, 98.8], [982 + 1596.5, -697.0, 78.3]] as const;
+/** Logotype « vylia » : glyphes en repère y vers le haut, translatés de 982 et retournés (scale(1,-1)). */
+const WORDMARK =
+  "M288 102 444 551H565L355 0H219L10 551H132Z M1161 551 823 -259H705L817 9L600 551H727L882 131L1043 551Z M1375 740V0H1261V740Z M1653 551V0H1539V551Z M2039 560Q2104 560 2152.5 534.5Q2201 509 2230 471V551H2345V0H2230V82Q2201 43 2151.0 17.0Q2101 -9 2037 -9Q1966 -9 1907.0 27.5Q1848 64 1813.5 129.5Q1779 195 1779 278Q1779 361 1813.5 425.0Q1848 489 1907.5 524.5Q1967 560 2039 560ZM2063 461Q2019 461 1981.0 439.5Q1943 418 1919.5 376.5Q1896 335 1896 278Q1896 221 1919.5 178.0Q1943 135 1981.5 112.5Q2020 90 2063 90Q2107 90 2145.0 112.0Q2183 134 2206.5 176.5Q2230 219 2230 276Q2230 333 2206.5 375.0Q2183 417 2145.0 439.0Q2107 461 2063 461Z";
+
+/** Réécrit le tracé du logotype dans le repère du logo : x + 982, y inversé (commandes absolues M L H V Q Z). */
+function wordmarkPath() {
+  const out: string[] = [];
+  for (const [, cmd, args] of WORDMARK.matchAll(/([MLHVQZ])([^MLHVQZ]*)/g)) {
+    const n = (args.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+    const mapped = cmd === "H" ? n.map((x) => x + 982) : cmd === "V" ? n.map((y) => -y) : n.map((v, i) => (i % 2 === 0 ? v + 982 : -v));
+    out.push(cmd + mapped.join(" "));
+  }
+  return out.join("");
+}
+const WORDMARK_LOGO = wordmarkPath();
 
 const WIN_ANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
 
@@ -36,7 +72,7 @@ export function pdfText(input: unknown): string {
   return out;
 }
 
-type TextOpts = { size?: number; bold?: boolean; color?: RGB; indent?: number; lineGap?: number };
+type TextOpts = { size?: number; bold?: boolean; title?: boolean; color?: RGB; indent?: number; lineGap?: number };
 export type Column = { label: string; width: number; align?: "left" | "right" };
 
 export class PdfBuilder {
@@ -44,6 +80,7 @@ export class PdfBuilder {
   private page!: PDFPage;
   private regular!: PDFFont;
   private bold!: PDFFont;
+  private title!: PDFFont;
   private y = 0;
   private footerNote = "";
 
@@ -56,8 +93,11 @@ export class PdfBuilder {
     b.doc.setCreator("Vylia");
     b.doc.setProducer("Vylia");
     b.doc.setCreationDate(new Date());
-    b.regular = await b.doc.embedFont(StandardFonts.Helvetica);
-    b.bold = await b.doc.embedFont(StandardFonts.HelveticaBold);
+    b.doc.registerFontkit(fontkit);
+    const [regular, medium, title] = await fontFiles();
+    b.regular = await b.doc.embedFont(regular, { subset: true }); // Poppins Regular
+    b.bold = await b.doc.embedFont(medium, { subset: true }); // Poppins Medium
+    b.title = await b.doc.embedFont(title, { subset: true }); // Lora SemiBold
     b.newPage();
     return b;
   }
@@ -73,6 +113,23 @@ export class PdfBuilder {
   newPage() {
     this.page = this.doc.addPage(A4);
     this.y = A4[1] - M;
+  }
+
+  /** Logo horizontal officiel, coin supérieur gauche en (x, top), largeur en points (85 pt = 30 mm, minimum d'impression). */
+  private logo(x: number, top: number, width: number) {
+    const k = width / LOGO_VIEWBOX.w;
+    const px = (sx: number) => x + (sx - LOGO_VIEWBOX.x) * k;
+    const py = (sy: number) => top - (sy - LOGO_VIEWBOX.y) * k;
+    const stroke = 140.4 * k;
+    for (let i = 0; i < LOGO_CHECK.length - 1; i++) {
+      const [a, b] = [LOGO_CHECK[i], LOGO_CHECK[i + 1]];
+      this.page.drawLine({ start: { x: px(a[0]), y: py(a[1]) }, end: { x: px(b[0]), y: py(b[1]) }, thickness: stroke, color: BRAND, lineCap: LineCapStyle.Round });
+    }
+    // Jointure arrondie au creux du V
+    this.page.drawCircle({ x: px(LOGO_CHECK[1][0]), y: py(LOGO_CHECK[1][1]), size: stroke / 2, color: BRAND });
+    this.page.drawSvgPath(WORDMARK_LOGO, { x: px(0), y: py(0), scale: k, color: BRAND, borderWidth: 0 });
+    for (const [cx, cy, r] of LOGO_DOTS) this.page.drawCircle({ x: px(cx), y: py(cy), size: r * k, color: AMBRE });
+    return LOGO_VIEWBOX.h * k;
   }
 
   private ensure(h: number) {
@@ -111,18 +168,18 @@ export class PdfBuilder {
     orgLines.filter(Boolean).forEach((l, i) => {
       this.page.drawText(pdfText(l), { x: M, y: top - i * 12, size: i === 0 ? 11 : 8.5, font: i === 0 ? this.bold : this.regular, color: i === 0 ? INK : MUTED });
     });
-    this.page.drawText("Vylia", { x: A4[0] - M - this.bold.widthOfTextAtSize("Vylia", 11), y: top, size: 11, font: this.bold, color: BRAND });
-    this.y = top - Math.max(orgLines.filter(Boolean).length, 1) * 12 - 22;
+    const logoH = this.logo(A4[0] - M - 90, top + 10, 90);
+    this.y = Math.min(top - Math.max(orgLines.filter(Boolean).length, 1) * 12, top + 10 - logoH) - 22;
     this.page.drawLine({ start: { x: M, y: this.y + 10 }, end: { x: A4[0] - M, y: this.y + 10 }, thickness: 0.6, color: LINE });
     this.y -= 14;
-    this.text(title, { size: 18, bold: true });
+    this.text(title, { size: 20, title: true, color: BRAND });
     if (subtitle) this.text(subtitle, { size: 10, color: MUTED });
     this.space(8);
   }
 
   text(text: string, o: TextOpts = {}) {
     const size = o.size ?? 10;
-    const font = o.bold ? this.bold : this.regular;
+    const font = o.title ? this.title : o.bold ? this.bold : this.regular;
     const indent = o.indent ?? 0;
     const lh = size * 1.35 + (o.lineGap ?? 0);
     for (const line of this.wrap(text, font, size, this.width - indent)) {
@@ -135,7 +192,7 @@ export class PdfBuilder {
   heading(text: string) {
     this.space(6);
     this.ensure(28);
-    this.text(text, { size: 12, bold: true });
+    this.text(text, { size: 13, title: true, color: BRAND });
     this.space(2);
   }
 
@@ -165,7 +222,7 @@ export class PdfBuilder {
     const drawHeader = () => {
       this.ensure(20);
       let x = M;
-      this.page.drawRectangle({ x: M, y: this.y - 15, width: this.width, height: 15, color: rgb(0.96, 0.96, 0.97) });
+      this.page.drawRectangle({ x: M, y: this.y - 15, width: this.width, height: 15, color: BRUME });
       cols.forEach((c, i) => {
         this.page.drawText(pdfText(c.label), { x: x + 4, y: this.y - 11, size: size, font: this.bold, color: INK });
         x += widths[i];

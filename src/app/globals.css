@@ -2,259 +2,153 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ───────────── Vylia · design tokens ─────────────
-   Thème sombre par défaut (façon Apple). Les documents officiels (conventions,
-   attestations, relevés) utilisent .theme-paper et s'impriment toujours en clair. */
+/* ───────────── Vylia · charte graphique v1.0 ─────────────
+   Palette resserrée 60 / 30 / 10 : Brume et Blanc (fonds), Pétrole (titres, navigation, actions),
+   Ambre (réussites uniquement). Les échelles ci-dessous prolongent les couleurs de la charte
+   pour les utilitaires Tailwind ; les valeurs officielles sont marquées « charte ».
+   Aucun dégradé, aucune ombre sur les cartes, une seule couleur d'action. */
 :root {
   color-scheme: light;
-  --c-slate-50: 245 245 247;
-  --c-slate-100: 237 237 240;
-  --c-slate-200: 227 227 232;
-  --c-slate-300: 210 210 215;
-  --c-slate-400: 174 174 178;
-  --c-slate-500: 134 134 139;
-  --c-slate-600: 110 110 115;
-  --c-slate-700: 72 72 74;
-  --c-slate-800: 44 44 46;
-  --c-slate-900: 29 29 31;
-  --c-slate-950: 0 0 0;
-  --c-brand-50: 240 247 255;
-  --c-brand-100: 224 239 255;
-  --c-brand-200: 196 224 255;
-  --c-brand-300: 143 195 255;
-  --c-brand-400: 74 161 255;
-  --c-brand-500: 0 119 237;
-  --c-brand-600: 0 113 227;
-  --c-brand-700: 0 102 204;
-  --c-brand-800: 0 85 179;
-  --c-brand-900: 0 64 138;
-  --c-brand-950: 0 42 92;
-  --c-red-50: 254 242 242;
-  --c-red-100: 254 226 226;
-  --c-red-200: 254 202 202;
-  --c-red-300: 252 165 165;
-  --c-red-400: 248 113 113;
-  --c-red-500: 239 68 68;
-  --c-red-600: 220 38 38;
-  --c-red-700: 185 28 28;
-  --c-red-800: 153 27 27;
-  --c-red-900: 127 29 29;
-  --c-red-950: 69 10 10;
-  --c-emerald-50: 236 253 245;
-  --c-emerald-100: 209 250 229;
-  --c-emerald-200: 167 243 208;
-  --c-emerald-300: 110 231 183;
-  --c-emerald-400: 52 211 153;
-  --c-emerald-500: 16 185 129;
-  --c-emerald-600: 5 150 105;
-  --c-emerald-700: 4 120 87;
-  --c-emerald-800: 6 95 70;
-  --c-emerald-900: 6 78 59;
-  --c-emerald-950: 2 44 34;
-  --c-amber-50: 255 251 235;
-  --c-amber-100: 254 243 199;
-  --c-amber-200: 253 230 138;
-  --c-amber-300: 252 211 77;
-  --c-amber-400: 251 191 36;
-  --c-amber-500: 245 158 11;
-  --c-amber-600: 217 119 6;
-  --c-amber-700: 180 83 9;
-  --c-amber-800: 146 64 14;
-  --c-amber-900: 120 53 15;
-  --c-amber-950: 69 26 3;
-  --c-violet-50: 245 243 255;
-  --c-violet-100: 237 233 254;
-  --c-violet-200: 221 214 254;
-  --c-violet-300: 196 181 253;
-  --c-violet-400: 167 139 250;
-  --c-violet-500: 139 92 246;
-  --c-violet-600: 124 58 237;
-  --c-violet-700: 109 40 217;
-  --c-violet-800: 91 33 182;
-  --c-violet-900: 76 29 149;
-  --c-violet-950: 46 16 101;
-  --c-blue-50: 239 246 255;
-  --c-blue-100: 219 234 254;
-  --c-blue-200: 191 219 254;
-  --c-blue-300: 147 197 253;
-  --c-blue-400: 96 165 250;
-  --c-blue-500: 59 130 246;
-  --c-blue-600: 37 99 235;
-  --c-blue-700: 29 78 216;
-  --c-blue-800: 30 64 175;
-  --c-blue-900: 30 58 138;
-  --c-blue-950: 23 37 84;
-  --c-surface: 255 255 255;
-  --c-canvas: 251 251 253;
-  --accent-gradient: linear-gradient(90deg, #0071e3 0%, #5e5ce6 50%, #bf5af2 100%);
+
+  /* Variables officielles (mémo technique de la charte) */
+  --vylia-brume: #f6f8f9;
+  --vylia-petrole: #0e4d5c;
+  --vylia-ambre: #f2b33d;
+  --vylia-blanc: #ffffff;
+  --vylia-ardoise: #17262d;
+  --vylia-gris: #546770;
+  --vylia-contour: #7d8e96;
+  --vylia-bordure: #d6e0e3;
+  --vylia-petrole-900: #0a3a45;
+  --vylia-petrole-50: #e7f0f2;
+  --vylia-ambre-100: #fcefd3;
+  --vylia-succes: #1e7a52;
+  --vylia-succes-50: #e3f2ea;
+  --vylia-erreur: #b3261e;
+  --vylia-erreur-50: #fbe9e7;
+  --font-titre: "Lora", Georgia, serif;
+  --font-texte: "Poppins", Arial, sans-serif;
+  --radius-s: 8px;
+  --radius-m: 10px;
+  --radius-l: 16px;
+  --shadow-float: 0 8px 24px rgba(23, 38, 45, 0.08);
+
+  /* Neutres : Brume → Ardoise */
+  --c-slate-50: 246 248 249;   /* Brume (charte) */
+  --c-slate-100: 237 242 244;
+  --c-slate-200: 214 224 227;  /* Bordure (charte) */
+  --c-slate-300: 188 201 206;
+  --c-slate-400: 125 142 150;  /* Contour (charte) */
+  --c-slate-500: 84 103 112;   /* Gris (charte) */
+  --c-slate-600: 70 89 97;
+  --c-slate-700: 52 70 78;
+  --c-slate-800: 36 53 60;
+  --c-slate-900: 23 38 45;     /* Ardoise (charte) */
+  --c-slate-950: 14 25 30;
+
+  /* Pétrole : couleur d'action et de navigation */
+  --c-brand-50: 231 240 242;   /* Pétrole 50 (charte) */
+  --c-brand-100: 208 226 230;
+  --c-brand-200: 166 200 208;
+  --c-brand-300: 111 162 175;
+  --c-brand-400: 58 122 138;
+  --c-brand-500: 28 96 113;
+  --c-brand-600: 14 77 92;     /* Pétrole (charte) */
+  --c-brand-700: 10 58 69;     /* Pétrole 900 (charte) : survol */
+  --c-brand-800: 8 48 57;
+  --c-brand-900: 6 38 45;
+  --c-brand-950: 3 21 25;
+
+  /* Ambre : réussites, jalons, mises en avant (jamais en texte sur fond clair ni en bouton) → utilitaires « ambre-* » */
+  --c-ambre-50: 254 249 238;
+  --c-ambre-100: 252 239 211;  /* Ambre 100 (charte) */
+  --c-ambre-200: 249 222 165;
+  --c-ambre-300: 246 202 112;
+  --c-ambre-400: 242 179 61;   /* Ambre (charte) */
+  --c-ambre-500: 222 154 31;
+  --c-ambre-600: 143 97 13;
+  --c-ambre-700: 117 80 12;
+  --c-ambre-800: 94 64 11;
+  --c-ambre-900: 74 51 10;
+  --c-ambre-950: 43 29 5;
+
+  /* « amber-* » (alertes, statuts en attente) : l'Ambre étant réservé aux réussites,
+     l'attention s'exprime en Pétrole clair, accompagnée d'un texte ou d'une icône */
+  --c-amber-50: 231 240 242;
+  --c-amber-100: 208 226 230;
+  --c-amber-200: 166 200 208;
+  --c-amber-300: 111 162 175;
+  --c-amber-400: 58 122 138;
+  --c-amber-500: 28 96 113;
+  --c-amber-600: 14 77 92;
+  --c-amber-700: 10 58 69;
+  --c-amber-800: 10 58 69;
+  --c-amber-900: 6 38 45;
+  --c-amber-950: 3 21 25;
+
+  /* Succès */
+  --c-emerald-50: 227 242 234; /* Succès 50 (charte) */
+  --c-emerald-100: 203 232 216;
+  --c-emerald-200: 162 212 185;
+  --c-emerald-300: 109 184 143;
+  --c-emerald-400: 62 154 107;
+  --c-emerald-500: 42 138 93;
+  --c-emerald-600: 30 122 82;  /* Succès (charte) */
+  --c-emerald-700: 24 100 68;
+  --c-emerald-800: 19 79 54;
+  --c-emerald-900: 15 63 43;
+  --c-emerald-950: 8 36 24;
+
+  /* Erreur */
+  --c-red-50: 251 233 231;     /* Erreur 50 (charte) */
+  --c-red-100: 246 211 207;
+  --c-red-200: 237 171 165;
+  --c-red-300: 224 122 114;
+  --c-red-400: 205 75 66;
+  --c-red-500: 192 53 44;
+  --c-red-600: 179 38 30;      /* Erreur (charte) */
+  --c-red-700: 146 31 24;
+  --c-red-800: 118 25 19;
+  --c-red-900: 94 20 15;
+  --c-red-950: 54 11 8;
+
+  /* Hors charte : les anciens tons « bleu » et « violet » sont ramenés au Pétrole et aux neutres */
+  --c-blue-50: 231 240 242;
+  --c-blue-100: 208 226 230;
+  --c-blue-200: 166 200 208;
+  --c-blue-300: 111 162 175;
+  --c-blue-400: 58 122 138;
+  --c-blue-500: 28 96 113;
+  --c-blue-600: 14 77 92;
+  --c-blue-700: 10 58 69;
+  --c-blue-800: 8 48 57;
+  --c-blue-900: 6 38 45;
+  --c-blue-950: 3 21 25;
+  --c-violet-50: 246 248 249;
+  --c-violet-100: 237 242 244;
+  --c-violet-200: 214 224 227;
+  --c-violet-300: 188 201 206;
+  --c-violet-400: 125 142 150;
+  --c-violet-500: 84 103 112;
+  --c-violet-600: 70 89 97;
+  --c-violet-700: 52 70 78;
+  --c-violet-800: 36 53 60;
+  --c-violet-900: 23 38 45;
+  --c-violet-950: 14 25 30;
+
+  --c-surface: 255 255 255;    /* Blanc : cartes, champs */
+  --c-canvas: 246 248 249;     /* Brume : fonds */
 }
 
+/* Documents officiels (conventions, attestations, relevés) : fond Blanc */
 .theme-paper {
-  color-scheme: light;
-  --c-slate-50: 248 250 252;
-  --c-slate-100: 241 245 249;
-  --c-slate-200: 226 232 240;
-  --c-slate-300: 203 213 225;
-  --c-slate-400: 148 163 184;
-  --c-slate-500: 100 116 139;
-  --c-slate-600: 71 85 105;
-  --c-slate-700: 51 65 85;
-  --c-slate-800: 30 41 59;
-  --c-slate-900: 15 23 42;
-  --c-slate-950: 2 6 23;
-  --c-red-50: 254 242 242;
-  --c-red-100: 254 226 226;
-  --c-red-200: 254 202 202;
-  --c-red-300: 252 165 165;
-  --c-red-400: 248 113 113;
-  --c-red-500: 239 68 68;
-  --c-red-600: 220 38 38;
-  --c-red-700: 185 28 28;
-  --c-red-800: 153 27 27;
-  --c-red-900: 127 29 29;
-  --c-red-950: 69 10 10;
-  --c-emerald-50: 236 253 245;
-  --c-emerald-100: 209 250 229;
-  --c-emerald-200: 167 243 208;
-  --c-emerald-300: 110 231 183;
-  --c-emerald-400: 52 211 153;
-  --c-emerald-500: 16 185 129;
-  --c-emerald-600: 5 150 105;
-  --c-emerald-700: 4 120 87;
-  --c-emerald-800: 6 95 70;
-  --c-emerald-900: 6 78 59;
-  --c-emerald-950: 2 44 34;
-  --c-amber-50: 255 251 235;
-  --c-amber-100: 254 243 199;
-  --c-amber-200: 253 230 138;
-  --c-amber-300: 252 211 77;
-  --c-amber-400: 251 191 36;
-  --c-amber-500: 245 158 11;
-  --c-amber-600: 217 119 6;
-  --c-amber-700: 180 83 9;
-  --c-amber-800: 146 64 14;
-  --c-amber-900: 120 53 15;
-  --c-amber-950: 69 26 3;
-  --c-violet-50: 245 243 255;
-  --c-violet-100: 237 233 254;
-  --c-violet-200: 221 214 254;
-  --c-violet-300: 196 181 253;
-  --c-violet-400: 167 139 250;
-  --c-violet-500: 139 92 246;
-  --c-violet-600: 124 58 237;
-  --c-violet-700: 109 40 217;
-  --c-violet-800: 91 33 182;
-  --c-violet-900: 76 29 149;
-  --c-violet-950: 46 16 101;
-  --c-blue-50: 239 246 255;
-  --c-blue-100: 219 234 254;
-  --c-blue-200: 191 219 254;
-  --c-blue-300: 147 197 253;
-  --c-blue-400: 96 165 250;
-  --c-blue-500: 59 130 246;
-  --c-blue-600: 37 99 235;
-  --c-blue-700: 29 78 216;
-  --c-blue-800: 30 64 175;
-  --c-blue-900: 30 58 138;
-  --c-blue-950: 23 37 84;
-  --c-brand-50: 238 244 255;
-  --c-brand-100: 219 230 255;
-  --c-brand-200: 191 211 255;
-  --c-brand-300: 147 180 253;
-  --c-brand-400: 96 139 250;
-  --c-brand-500: 59 102 245;
-  --c-brand-600: 37 71 234;
-  --c-brand-700: 29 54 215;
-  --c-brand-800: 30 47 174;
-  --c-brand-900: 30 45 137;
-  --c-brand-950: 23 32 86;
-  --c-surface: 255 255 255;
-  --c-canvas: 255 255 255;  background: #fff;
-  color: rgb(var(--c-slate-800));
+  --c-canvas: 255 255 255;
+  background: #fff;
+  color: rgb(var(--c-slate-900));
 }
 
 @media print {
-  :root {
-    color-scheme: light;
-  --c-slate-50: 248 250 252;
-  --c-slate-100: 241 245 249;
-  --c-slate-200: 226 232 240;
-  --c-slate-300: 203 213 225;
-  --c-slate-400: 148 163 184;
-  --c-slate-500: 100 116 139;
-  --c-slate-600: 71 85 105;
-  --c-slate-700: 51 65 85;
-  --c-slate-800: 30 41 59;
-  --c-slate-900: 15 23 42;
-  --c-slate-950: 2 6 23;
-  --c-red-50: 254 242 242;
-  --c-red-100: 254 226 226;
-  --c-red-200: 254 202 202;
-  --c-red-300: 252 165 165;
-  --c-red-400: 248 113 113;
-  --c-red-500: 239 68 68;
-  --c-red-600: 220 38 38;
-  --c-red-700: 185 28 28;
-  --c-red-800: 153 27 27;
-  --c-red-900: 127 29 29;
-  --c-red-950: 69 10 10;
-  --c-emerald-50: 236 253 245;
-  --c-emerald-100: 209 250 229;
-  --c-emerald-200: 167 243 208;
-  --c-emerald-300: 110 231 183;
-  --c-emerald-400: 52 211 153;
-  --c-emerald-500: 16 185 129;
-  --c-emerald-600: 5 150 105;
-  --c-emerald-700: 4 120 87;
-  --c-emerald-800: 6 95 70;
-  --c-emerald-900: 6 78 59;
-  --c-emerald-950: 2 44 34;
-  --c-amber-50: 255 251 235;
-  --c-amber-100: 254 243 199;
-  --c-amber-200: 253 230 138;
-  --c-amber-300: 252 211 77;
-  --c-amber-400: 251 191 36;
-  --c-amber-500: 245 158 11;
-  --c-amber-600: 217 119 6;
-  --c-amber-700: 180 83 9;
-  --c-amber-800: 146 64 14;
-  --c-amber-900: 120 53 15;
-  --c-amber-950: 69 26 3;
-  --c-violet-50: 245 243 255;
-  --c-violet-100: 237 233 254;
-  --c-violet-200: 221 214 254;
-  --c-violet-300: 196 181 253;
-  --c-violet-400: 167 139 250;
-  --c-violet-500: 139 92 246;
-  --c-violet-600: 124 58 237;
-  --c-violet-700: 109 40 217;
-  --c-violet-800: 91 33 182;
-  --c-violet-900: 76 29 149;
-  --c-violet-950: 46 16 101;
-  --c-blue-50: 239 246 255;
-  --c-blue-100: 219 234 254;
-  --c-blue-200: 191 219 254;
-  --c-blue-300: 147 197 253;
-  --c-blue-400: 96 165 250;
-  --c-blue-500: 59 130 246;
-  --c-blue-600: 37 99 235;
-  --c-blue-700: 29 78 216;
-  --c-blue-800: 30 64 175;
-  --c-blue-900: 30 58 138;
-  --c-blue-950: 23 37 84;
-  --c-brand-50: 238 244 255;
-  --c-brand-100: 219 230 255;
-  --c-brand-200: 191 211 255;
-  --c-brand-300: 147 180 253;
-  --c-brand-400: 96 139 250;
-  --c-brand-500: 59 102 245;
-  --c-brand-600: 37 71 234;
-  --c-brand-700: 29 54 215;
-  --c-brand-800: 30 47 174;
-  --c-brand-900: 30 45 137;
-  --c-brand-950: 23 32 86;
-  --c-surface: 255 255 255;
-  --c-canvas: 255 255 255;  }
+  :root { --c-canvas: 255 255 255; }
   .no-print { display: none !important; }
   body { background: white !important; }
 }
@@ -262,17 +156,19 @@
 @layer base {
   html { -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility; }
   body {
-    @apply bg-canvas font-sans text-[15px] font-normal leading-relaxed text-slate-900 antialiased;
-    font-optical-sizing: auto;
-    font-feature-settings: "cv11", "ss03";
-    letter-spacing: -0.006em;
+    @apply bg-canvas font-sans text-base font-normal text-slate-900 antialiased;
+    line-height: 1.625; /* 16 / 26 px */
   }
-  ::selection { background: rgb(0 113 227 / 0.18); }
-  h1 { @apply font-display text-3xl font-medium tracking-tight text-slate-900; }
-  h2 { @apply font-display text-lg font-medium tracking-tight text-slate-900; }
-  h3 { @apply font-semibold text-slate-900; }
+  ::selection { background: rgb(var(--c-brand-600) / 0.16); }
+
+  /* Hiérarchie : Lora SemiBold pour H1 et H2 (Pétrole), Poppins Medium pour H3 */
+  h1 { @apply font-title text-[32px] leading-[40px] text-brand-600 md:text-[40px] md:leading-[48px]; }
+  h2 { @apply font-title text-2xl leading-8 text-brand-600; }
+  h3 { @apply font-medium text-slate-900; }
+
   a, button { -webkit-tap-highlight-color: transparent; }
-  :focus-visible { outline: 2px solid rgb(var(--c-brand-600)); outline-offset: 2px; border-radius: 6px; }
+  /* Focus clavier : anneau Pétrole de 2 px séparé par 2 px */
+  :focus-visible { outline: 2px solid rgb(var(--c-brand-600)); outline-offset: 2px; border-radius: 10px; }
   * { scrollbar-width: thin; scrollbar-color: rgb(var(--c-slate-300)) transparent; }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-thumb { background: rgb(var(--c-slate-300)); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
@@ -280,69 +176,69 @@
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium tracking-[-0.01em]
-      transition duration-200 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40;
-  }
-  .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-[0_1px_2px_rgb(0_0_0/0.08),0_6px_16px_-8px_rgb(0_113_227/0.55)]
-      hover:bg-brand-500 hover:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_10px_24px_-8px_rgb(0_113_227/0.6)];
-  }
-  .btn-secondary { @apply btn border border-slate-300/80 bg-surface text-slate-900 shadow-[0_1px_2px_rgb(0_0_0/0.04)] hover:border-slate-400/60 hover:bg-slate-50; }
-  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-500; }
-  .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
-  .btn-sm { @apply px-3 py-1 text-xs; }
-  .btn-lg { @apply px-7 py-3 text-base; }
-  .link { @apply text-brand-700 transition hover:underline hover:underline-offset-4; }
+  .font-title { font-family: var(--font-titre); font-weight: 600; letter-spacing: -0.005em; }
 
+  /* Boutons : rayon 10 px (8 px en petit), Poppins Medium, transition de 150 ms sur le fond uniquement */
+  .btn {
+    @apply inline-flex h-10 select-none items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border border-transparent px-5 text-[15px] font-medium
+      transition-colors duration-150 disabled:pointer-events-none disabled:border-transparent disabled:bg-slate-100 disabled:text-slate-400;
+  }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+  .btn-secondary { @apply btn border-brand-600 bg-surface text-brand-600 hover:bg-brand-50; }
+  .btn-ghost { @apply btn text-brand-600 hover:underline hover:underline-offset-4 disabled:bg-transparent; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .btn-sm { @apply h-8 rounded-lg px-3.5 text-sm; }
+  .btn-lg { @apply h-12 px-6 text-base; }
+  .link { @apply font-medium text-brand-600 underline decoration-brand-600/30 underline-offset-4 transition-colors hover:decoration-brand-600; }
+
+  /* Champs : contour gris, focus Pétrole avec halo */
   .input {
-    @apply block w-full rounded-xl border border-slate-300/80 bg-surface px-3.5 py-2.5 text-sm text-slate-900 transition
-      placeholder:text-slate-400 hover:border-slate-400/70 focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/15
-      disabled:opacity-60;
+    @apply block w-full rounded-[10px] border border-slate-400 bg-surface px-3.5 py-2.5 text-[15px] text-slate-900 transition-colors
+      placeholder:text-slate-500 focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/15
+      disabled:bg-slate-50 disabled:text-slate-500 aria-[invalid=true]:border-red-600;
   }
   select.input { @apply pr-8; }
-  .label { @apply mb-1.5 block text-[13px] font-medium text-slate-600; }
-  .hint { @apply mt-1 text-xs text-slate-500; }
+  .label { @apply mb-1.5 block text-sm font-medium text-slate-900; }
+  .hint { @apply mt-1 text-sm text-slate-500; }
 
-  .card { @apply rounded-[20px] border border-black/[0.06] bg-surface shadow-card; }
-  .card-hover { @apply transition duration-500 ease-out hover:-translate-y-1 hover:shadow-glow; }
-  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide; }
-  .eyebrow { @apply text-xs font-medium uppercase tracking-[0.14em] text-slate-500; }
+  /* Cartes : rayon 16 px, une bordure, pas d'ombre */
+  .card { @apply rounded-2xl border border-slate-200 bg-surface; }
+  .card-hover { @apply transition-colors duration-150 hover:border-brand-300; }
+  .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .eyebrow { @apply text-sm font-medium text-slate-500; }
 
   .table { @apply w-full text-left text-sm; }
-  .table th { @apply border-b border-slate-200 px-3 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500; }
+  .table th { @apply border-b border-slate-200 px-3 py-2.5 text-xs font-medium text-slate-500; }
   .table td { @apply border-b border-slate-100 px-3 py-2.5 align-top; }
   .table tbody tr { @apply transition-colors hover:bg-slate-50; }
 
-  .text-gradient { background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .glass { @apply bg-[rgb(251_251_253/0.8)] backdrop-blur-2xl backdrop-saturate-[1.8]; }
-  .hairline { @apply border-black/[0.06]; }
+  /* Anciennes classes décoratives, neutralisées (pas de dégradé ni de flou dans la charte) */
+  .text-gradient { color: rgb(var(--c-brand-600)); }
+  .glass { @apply bg-surface; }
+  .hairline { @apply border-slate-200; }
   .paper-sign { @apply rounded-lg bg-[#fff] p-1; }
 
-  .prose-lms { @apply max-w-none leading-relaxed text-slate-700; }
-  .prose-lms h1 { @apply mb-3 mt-6 text-2xl font-semibold; }
-  .prose-lms h2 { @apply mb-2 mt-5 text-xl font-semibold; }
-  .prose-lms h3 { @apply mb-2 mt-4 text-lg font-semibold; }
+  .prose-lms { @apply max-w-[75ch] leading-[1.625] text-slate-800; }
+  .prose-lms h1 { @apply mb-3 mt-6 text-[28px] leading-9; }
+  .prose-lms h2 { @apply mb-2 mt-6 text-2xl; }
+  .prose-lms h3 { @apply mb-2 mt-5 text-xl; }
+  .prose-lms h4 { @apply mb-2 mt-4 text-lg font-medium text-slate-900; }
   .prose-lms p { @apply my-3; }
   .prose-lms ul { @apply my-3 list-disc pl-6; }
   .prose-lms ol { @apply my-3 list-decimal pl-6; }
-  .prose-lms a { @apply text-brand-700 underline decoration-brand-700/30 underline-offset-2; }
-  .prose-lms strong { @apply font-semibold text-slate-900; }
-  .prose-lms blockquote { @apply my-4 rounded-r-xl border-l-2 border-brand-600 bg-brand-50 px-4 py-2 italic; }
+  .prose-lms a { @apply text-brand-600 underline decoration-brand-600/30 underline-offset-2; }
+  .prose-lms strong { @apply font-medium text-slate-900; }
+  .prose-lms blockquote { @apply my-4 rounded-r-[10px] border-l-2 border-brand-600 bg-brand-50 px-4 py-2 font-title font-normal italic text-slate-900; }
+  .prose-lms mark { @apply rounded bg-ambre-100 px-0.5 text-slate-900; }
   .prose-lms code { @apply rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900; }
-  .prose-lms pre { @apply my-3 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-800; }
-  .prose-lms img { @apply my-4 rounded-xl; }
-  .prose-lms iframe { @apply my-4 aspect-video w-full rounded-xl; }
+  .prose-lms pre { @apply my-3 overflow-x-auto rounded-[10px] border border-slate-200 bg-slate-50 p-4 text-slate-800; }
+  .prose-lms img { @apply my-4 rounded-[10px]; }
+  .prose-lms iframe { @apply my-4 aspect-video w-full rounded-[10px]; }
   .prose-lms table { @apply my-4 w-full border-collapse text-sm; }
   .prose-lms th, .prose-lms td { @apply border border-slate-200 px-3 py-1.5; }
 }
 
 @layer utilities {
-  .bg-grid {
-    background-image: linear-gradient(rgb(0 0 0 / 0.035) 1px, transparent 1px), linear-gradient(90deg, rgb(0 0 0 / 0.035) 1px, transparent 1px);
-    background-size: 56px 56px;
-  }
-  .mask-fade-b { -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent); }
   .delay-100 { animation-delay: 100ms; }
   .delay-200 { animation-delay: 200ms; }
   .delay-300 { animation-delay: 300ms; }

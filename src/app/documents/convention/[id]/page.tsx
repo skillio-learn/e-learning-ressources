@@ -149,7 +149,7 @@ export default async function Convention({ params }: { params: Promise<{ id: str
           )}
         </div>
       </div>
-      {hasEmployer && <div className="mt-6 text-[13px]"><div className="font-semibold">Pour l&apos;entreprise</div><div className="mt-10 text-xs text-slate-400">Signature et cachet</div></div>}
+      {hasEmployer && <div className="mt-6 text-[13px]"><div className="font-semibold">Pour l&apos;entreprise</div><div className="mt-10 text-xs text-slate-500">Signature et cachet</div></div>}
 
       <section className="mt-10 border-t border-slate-200 pt-4">
         <h2 className="text-sm font-bold">Annexe – Programme</h2>

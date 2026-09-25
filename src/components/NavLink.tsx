@@ -10,8 +10,8 @@ export function NavLink({ href, children }: { href: string; children: React.Reac
     <Link
       href={href}
       className={cn(
-        "relative whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200",
-        active ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-900",
+        "relative whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+        active ? "bg-brand-50 text-brand-600" : "text-slate-600 hover:bg-slate-50 hover:text-brand-600",
       )}
     >
       {children}
@@ -27,17 +27,17 @@ export function SideLink({ href, icon, children, count }: { href: string; icon?:
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-200",
-        active ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-100/60 hover:text-slate-900",
+        "group flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+        active ? "bg-brand-50 text-brand-600" : "text-slate-600 hover:bg-slate-50 hover:text-brand-600",
       )}
     >
       {icon && (
-        <span className={cn("grid h-4 w-4 place-items-center transition-colors [&_svg]:h-4 [&_svg]:w-4", active ? "text-brand-500" : "text-slate-400 group-hover:text-slate-700")}>
+        <span className={cn("grid h-4 w-4 place-items-center transition-colors [&_svg]:h-4 [&_svg]:w-4", active ? "text-brand-600" : "text-slate-500 group-hover:text-brand-600")}>
           {icon}
         </span>
       )}
       <span className="flex-1">{children}</span>
-      {count ? <span className="rounded-full bg-brand-600 px-1.5 py-px text-[10px] font-semibold text-white">{count}</span> : null}
+      {count ? <span className="rounded-full bg-brand-600 px-1.5 py-px text-[11px] font-medium text-white">{count}</span> : null}
     </Link>
   );
 }

@@ -90,7 +90,7 @@ export default async function LearnerDocuments({ params }: { params: Promise<{ s
           <Doc title="Convention / contrat de formation" hint={enrollment.conventionSignedAt ? `Signée le ${formatDate(enrollment.conventionSignedAt, true)}` : "À signer"} href={`/documents/convention/${enrollment.id}`} />
           {signedDocs.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 p-4 text-sm">
-              <FileText className="h-5 w-5 text-slate-400" strokeWidth={1.75} />
+              <FileText className="h-5 w-5 text-slate-500" strokeWidth={1.75} />
               <span className="min-w-0 flex-1">
                 <span className="font-medium text-slate-900">{ENROLLMENT_DOCUMENTS[d.type]?.label ?? d.type}</span>
                 <span className="block text-xs text-slate-500">{d.source === "E_SIGNATURE" ? "Signé en ligne" : d.fileName} · {formatDate(d.createdAt, true)}</span>

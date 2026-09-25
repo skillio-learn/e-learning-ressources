@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <p className="mt-3 text-right text-sm">
           <Link href="/forgot-password" className="link">Mot de passe oublié ?</Link>
         </p>
-        <p className="mt-6 border-t border-black/[0.06] pt-5 text-center text-xs leading-relaxed text-slate-500">
+        <p className="mt-6 border-t border-slate-200 pt-5 text-sm text-slate-500">
           Votre compte est créé par votre organisme de formation. Utilisez le lien d&apos;activation reçu pour choisir votre mot de passe.
         </p>
     </AuthShell>

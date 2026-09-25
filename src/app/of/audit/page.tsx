@@ -53,7 +53,7 @@ export default async function Audit({ searchParams }: { searchParams: Promise<{ 
         <span>{total} évènement(s)</span>
         <span className="flex gap-2">
           {p > 1 && <a href={`?page=${p - 1}${action ? `&action=${action}` : ""}`} className="btn-ghost btn-sm">← Précédent</a>}
-          {p * 100 < total && <a href={`?page=${p + 1}${action ? `&action=${action}` : ""}`} className="btn-ghost btn-sm">Suivant →</a>}
+          {p * 100 < total && <a href={`?page=${p + 1}${action ? `&action=${action}` : ""}`} className="btn-ghost btn-sm">Page suivante</a>}
         </span>
       </div>
     </Container>

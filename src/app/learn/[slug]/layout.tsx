@@ -8,9 +8,9 @@ export default async function LearnLayout({ children, params }: { children: Reac
   const { course, outline, preview, manager } = await getLearnContext(slug);
   return (
     <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row">
-      <aside className="no-print border-b border-black/[0.08] lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:w-80 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div className="border-b border-black/[0.06] p-5">
-          <Link href={`/learn/${course.slug}`} className="font-display text-[15px] font-semibold leading-snug tracking-tight text-slate-900 transition hover:text-brand-500">
+      <aside className="no-print border-b border-slate-200 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-80 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="border-b border-slate-200 p-5">
+          <Link href={`/learn/${course.slug}`} className="font-display text-[15px] font-semibold leading-snug tracking-tight text-slate-900 transition hover:text-brand-600">
             {course.title}
           </Link>
           <div className="mt-3 flex items-center gap-2">
@@ -34,7 +34,7 @@ export default async function LearnLayout({ children, params }: { children: Reac
           )}
           {manager && (
             <Link href={`/of/courses/${course.id}`} className="mt-2 inline-block text-xs text-brand-600 hover:underline">
-              Modifier cette formation →
+              Modifier cette formation
             </Link>
           )}
         </div>

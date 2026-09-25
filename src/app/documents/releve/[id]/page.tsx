@@ -54,7 +54,7 @@ export default async function Releve({ params }: { params: Promise<{ id: string 
               <td className="border px-2 py-1">{d.lessons.join(" · ")}</td>
             </tr>
           ))}
-          {trace.days.length === 0 && <tr><td colSpan={5} className="border px-2 py-2 text-center text-slate-400">Aucune activité enregistrée</td></tr>}
+          {trace.days.length === 0 && <tr><td colSpan={5} className="border px-2 py-2 text-center text-slate-500">Aucune activité enregistrée</td></tr>}
           <tr className="bg-slate-50 font-semibold">
             <td className="border px-2 py-1" colSpan={3}>Total</td>
             <td className="border px-2 py-1 text-center">{formatDuration(trace.totalSeconds)}</td>

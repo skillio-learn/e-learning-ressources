@@ -73,7 +73,7 @@ async function LearnerDashboard({ userId }: { userId: string }) {
       </div>
       {todaySlots.length > 0 && (
         <Link href="/attendance" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:shadow">
-          Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui → Signer maintenant
+          Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui. Signer maintenant
         </Link>
       )}
       {pendingAccess.length > 0 && (
@@ -99,9 +99,9 @@ async function LearnerDashboard({ userId }: { userId: string }) {
           <h2 className="mb-3">Mes dossiers de candidature</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {applications.map((a) => (
-              <Link key={a.id} href={`/applications/${a.id}`} className="card flex items-center justify-between gap-3 p-4 hover:shadow-md">
+              <Link key={a.id} href={`/applications/${a.id}`} className="card flex items-center justify-between gap-3 p-4">
                 <div>
-                  <div className="text-xs text-slate-400">{a.number}</div>
+                  <div className="text-xs text-slate-500">{a.number}</div>
                   <div className="font-medium">{a.course.title}</div>
                 </div>
                 <Badge tone={APPLICATION_STATUS[a.status].tone}>{APPLICATION_STATUS[a.status].label}</Badge>

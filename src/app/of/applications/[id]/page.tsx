@@ -79,7 +79,7 @@ export default async function OfApplication({ params }: { params: Promise<{ id: 
       <Link href="/of/applications" className="text-sm text-slate-500 hover:text-brand-600">← Dossiers</Link>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="font-mono text-xs text-slate-400">{app.number}</div>
+          <div className="font-mono text-xs text-slate-500">{app.number}</div>
           <h1>{app.user.name}</h1>
           <div className="text-sm text-slate-500">
             {app.user.email} · {app.course.title} · déposé le {formatDate(app.submittedAt, true)}
@@ -87,7 +87,7 @@ export default async function OfApplication({ params }: { params: Promise<{ id: 
         </div>
         <div className="flex flex-col items-end gap-2">
           <StatusBadge status={app.status} />
-          <Link href={`/of/learners/${app.user.id}`} className="text-xs text-brand-600 hover:underline">Fiche apprenant complète →</Link>
+          <Link href={`/of/learners/${app.user.id}`} className="link text-sm">Voir la fiche apprenant</Link>
         </div>
       </div>
 
@@ -220,7 +220,7 @@ export default async function OfApplication({ params }: { params: Promise<{ id: 
             <section className="card border-emerald-300 p-5 ring-2 ring-emerald-100">
               <h2 className="mb-1">Inscription définitive</h2>
               <p className="mb-3 text-xs text-slate-500">Crée l&apos;accès à la formation et fixe les éléments du certificat de réalisation.</p>
-              <StateForm action={enrollFromApplicationAction.bind(null, app.id)} submitLabel="✓ Inscrire définitivement" submitClassName="btn-primary w-full">
+              <StateForm action={enrollFromApplicationAction.bind(null, app.id)} submitLabel="Inscrire définitivement" submitClassName="btn-primary w-full">
                 {app.course.sessions.length > 0 && (
                   <label className="block text-sm">
                     <span className="label">Session</span>
@@ -255,7 +255,7 @@ export default async function OfApplication({ params }: { params: Promise<{ id: 
 
           {app.enrollment && (
             <Link href={`/of/learners/${app.user.id}`} className="card block p-4 text-sm text-emerald-800 hover:shadow">
-              Inscrit(e) définitivement — voir le suivi de formation →
+              Inscrit(e) définitivement — voir le suivi de formation
             </Link>
           )}
 

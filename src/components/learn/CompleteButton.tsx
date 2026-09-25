@@ -30,7 +30,7 @@ export function CompleteButton({
     return (
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <span className="font-medium text-emerald-800">✓ Étape terminée</span>
-        <Link href={nextHref} className="btn-primary ml-auto">Étape suivante →</Link>
+        <Link href={nextHref} className="btn-primary ml-auto">Étape suivante</Link>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export function CompleteButton({
           })
         }
       >
-        {pending ? "Enregistrement…" : "✓ Marquer comme terminé et continuer"}
+        {pending ? "Enregistrement…" : "Terminer l'étape"}
       </button>
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
     </div>

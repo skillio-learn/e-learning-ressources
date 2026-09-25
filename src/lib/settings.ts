@@ -4,7 +4,7 @@ import { db } from "./db";
 
 export const DEFAULT_SETTINGS = {
   platformName: "Vylia",
-  tagline: "Apprendre, pas à pas. Prouver chaque minute.",
+  tagline: "L'expertise qui accompagne.", // signature de la charte graphique
   supportEmail: "",
   certificateSignature: "L'équipe pédagogique",
   legalMentions: `## Éditeur de la plateforme

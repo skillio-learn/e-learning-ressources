@@ -98,7 +98,7 @@ export default async function AdminOrganization({ params }: { params: Promise<{ 
       </div>
 
       <div className="max-w-4xl">
-        <OrganizationForm org={org} managers={managers} />
+        <OrganizationForm org={org} managers={managers} mode="admin" />
       </div>
     </div>
   );

@@ -1,42 +1,68 @@
+import Link from "next/link";
+import { Lock } from "lucide-react";
 import type { Organization } from "@prisma/client";
 import { updateOrganizationAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
 import { Field } from "@/components/ui";
-import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
 
-/** « managers » : responsables de l'OF, candidats au rôle de référent support Vylia. */
-export function OrganizationForm({ org, managers = [] }: { org: Organization; managers?: { id: string; name: string; email: string }[] }) {
+/**
+ * « managers » : responsables de l'OF, candidats au rôle de référent support Vylia.
+ * « mode » : côté OF, les informations d'identité déjà renseignées sont verrouillées (modification par ticket).
+ */
+export function OrganizationForm({
+  org,
+  managers = [],
+  mode = "of",
+}: {
+  org: Organization;
+  managers?: { id: string; name: string; email: string }[];
+  mode?: "of" | "admin";
+}) {
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+  const lk = (k: LockedOrgField) => mode === "of" && isOrgFieldFilled(org[k]);
+  const anyLocked = (Object.keys(LOCKED_ORG_FIELDS) as LockedOrgField[]).some(lk);
+  const ticketHref = `/of/tickets?category=ORG_INFO&subject=${encodeURIComponent("Modification des informations de l'organisme")}`;
   return (
     <StateForm action={updateOrganizationAction.bind(null, org.id)} className="space-y-6" submitLabel="Enregistrer les paramètres">
+      {anyLocked && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-100/80 p-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
+          <Lock className="h-4 w-4 shrink-0 text-slate-500" strokeWidth={1.75} />
+          <p className="min-w-0 flex-1">
+            Les informations d&apos;identité, de coordonnées et de signature déjà renseignées sont verrouillées : elles figurent sur vos
+            conventions, attestations et certificats. Pour les modifier, adressez une demande au support Vylia.
+          </p>
+          <Link href={ticketHref} className="btn-secondary btn-sm">Demander une modification</Link>
+        </div>
+      )}
       <section className="card grid gap-4 p-6 md:grid-cols-2">
         <h2 className="md:col-span-2">Identité & réglementaire</h2>
-        <Field label="Nom commercial *"><input name="name" defaultValue={org.name} required className="input" /></Field>
-        <Field label="Raison sociale"><input name="legalName" defaultValue={org.legalName ?? ""} className="input" /></Field>
-        <Field label="SIRET (14 chiffres)"><input name="siret" defaultValue={org.siret ?? ""} className="input" /></Field>
-        <Field label="N° de déclaration d'activité (NDA, 11 chiffres)"><input name="nda" defaultValue={org.nda ?? ""} className="input" /></Field>
-        <Field label="Région / préfecture du NDA"><input name="ndaRegion" defaultValue={org.ndaRegion ?? ""} className="input" /></Field>
-        <Field label="N° de certificat Qualiopi"><input name="qualiopiNumber" defaultValue={org.qualiopiNumber ?? ""} className="input" /></Field>
-        <Field label="Date de certification Qualiopi"><input type="date" name="qualiopiDate" defaultValue={iso(org.qualiopiDate)} className="input" /></Field>
-        <Field label="Logo (URL)"><input name="logoUrl" type="url" defaultValue={org.logoUrl ?? ""} className="input" /></Field>
+        <Field label="Nom commercial *"><input name="name" disabled={lk("name")} title={lk("name") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.name} required className="input" /></Field>
+        <Field label="Raison sociale"><input name="legalName" disabled={lk("legalName")} title={lk("legalName") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.legalName ?? ""} className="input" /></Field>
+        <Field label="SIRET (14 chiffres)"><input name="siret" disabled={lk("siret")} title={lk("siret") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.siret ?? ""} className="input" /></Field>
+        <Field label="N° de déclaration d'activité (NDA, 11 chiffres)"><input name="nda" disabled={lk("nda")} title={lk("nda") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.nda ?? ""} className="input" /></Field>
+        <Field label="Région / préfecture du NDA"><input name="ndaRegion" disabled={lk("ndaRegion")} title={lk("ndaRegion") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.ndaRegion ?? ""} className="input" /></Field>
+        <Field label="N° de certificat Qualiopi"><input name="qualiopiNumber" disabled={lk("qualiopiNumber")} title={lk("qualiopiNumber") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.qualiopiNumber ?? ""} className="input" /></Field>
+        <Field label="Date de certification Qualiopi"><input type="date" name="qualiopiDate" disabled={lk("qualiopiDate")} title={lk("qualiopiDate") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={iso(org.qualiopiDate)} className="input" /></Field>
+        <Field label="Logo (URL)"><input name="logoUrl" disabled={lk("logoUrl")} title={lk("logoUrl") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="url" defaultValue={org.logoUrl ?? ""} className="input" /></Field>
       </section>
       <section className="card grid gap-4 p-6 md:grid-cols-3">
         <h2 className="md:col-span-3">Coordonnées</h2>
-        <Field label="Adresse" className="md:col-span-3"><input name="address" defaultValue={org.address ?? ""} className="input" /></Field>
-        <Field label="Code postal"><input name="postalCode" defaultValue={org.postalCode ?? ""} className="input" /></Field>
-        <Field label="Ville"><input name="city" defaultValue={org.city ?? ""} className="input" /></Field>
-        <Field label="Téléphone"><input name="phone" defaultValue={org.phone ?? ""} className="input" /></Field>
-        <Field label="Email de contact"><input name="email" type="email" defaultValue={org.email ?? ""} className="input" /></Field>
-        <Field label="Site web"><input name="website" type="url" defaultValue={org.website ?? ""} className="input" /></Field>
+        <Field label="Adresse" className="md:col-span-3"><input name="address" disabled={lk("address")} title={lk("address") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.address ?? ""} className="input" /></Field>
+        <Field label="Code postal"><input name="postalCode" disabled={lk("postalCode")} title={lk("postalCode") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.postalCode ?? ""} className="input" /></Field>
+        <Field label="Ville"><input name="city" disabled={lk("city")} title={lk("city") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.city ?? ""} className="input" /></Field>
+        <Field label="Téléphone"><input name="phone" disabled={lk("phone")} title={lk("phone") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.phone ?? ""} className="input" /></Field>
+        <Field label="Email de contact"><input name="email" disabled={lk("email")} title={lk("email") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="email" defaultValue={org.email ?? ""} className="input" /></Field>
+        <Field label="Site web"><input name="website" disabled={lk("website")} title={lk("website") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="url" defaultValue={org.website ?? ""} className="input" /></Field>
       </section>
       <section className="card grid gap-4 p-6 md:grid-cols-2">
         <h2 className="md:col-span-2">Signataire & documents contractuels</h2>
-        <Field label="Nom du signataire des attestations"><input name="managerName" defaultValue={org.managerName ?? ""} className="input" /></Field>
-        <Field label="Fonction du signataire"><input name="managerTitle" defaultValue={org.managerTitle ?? ""} className="input" /></Field>
-        <Field label="Règlement intérieur (URL)"><input name="internalRulesUrl" type="url" defaultValue={org.internalRulesUrl ?? ""} className="input" /></Field>
-                <Field label="Conditions générales de vente (URL)"><input name="cgvUrl" type="url" defaultValue={org.cgvUrl ?? ""} className="input" /></Field>
-        <Field label="Référent handicap (nom, email, téléphone)"><input name="referentHandicap" defaultValue={org.referentHandicap ?? ""} className="input" /></Field>
-        <Field label="Médiateur de la consommation (contrats particuliers)"><input name="mediatorInfo" defaultValue={org.mediatorInfo ?? ""} className="input" /></Field>
+        <Field label="Nom du signataire des attestations"><input name="managerName" disabled={lk("managerName")} title={lk("managerName") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.managerName ?? ""} className="input" /></Field>
+        <Field label="Fonction du signataire"><input name="managerTitle" disabled={lk("managerTitle")} title={lk("managerTitle") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.managerTitle ?? ""} className="input" /></Field>
+        <Field label="Règlement intérieur (URL)"><input name="internalRulesUrl" disabled={lk("internalRulesUrl")} title={lk("internalRulesUrl") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="url" defaultValue={org.internalRulesUrl ?? ""} className="input" /></Field>
+                <Field label="Conditions générales de vente (URL)"><input name="cgvUrl" disabled={lk("cgvUrl")} title={lk("cgvUrl") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="url" defaultValue={org.cgvUrl ?? ""} className="input" /></Field>
+        <Field label="Référent handicap (nom, email, téléphone)"><input name="referentHandicap" disabled={lk("referentHandicap")} title={lk("referentHandicap") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.referentHandicap ?? ""} className="input" /></Field>
+        <Field label="Médiateur de la consommation (contrats particuliers)"><input name="mediatorInfo" disabled={lk("mediatorInfo")} title={lk("mediatorInfo") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.mediatorInfo ?? ""} className="input" /></Field>
       </section>
       <section className="card space-y-4 p-6">
         <h2>Dossiers d&apos;inscription & traçabilité</h2>

@@ -16,10 +16,11 @@ const TABS = [
   { key: "closed", label: "Clôturés" },
 ] as const;
 
-export default async function OfTickets({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function OfTickets({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string; subject?: string }> }) {
   const user = await requireRole("OF_ADMIN");
   const orgId = user.organizationId ?? "__none__";
-  const { tab: t } = await searchParams;
+  const { tab: t, category: preCategory, subject: preSubject } = await searchParams;
+  const defaultCategory = preCategory && preCategory in TICKET_CATEGORIES ? preCategory : "";
   const tab = t === "closed" ? "closed" : "active";
   const [org, tickets, counts] = await Promise.all([
     db.organization.findUnique({ where: { id: orgId }, select: { supportReferent: { select: { id: true, name: true, email: true } } } }),
@@ -89,7 +90,7 @@ export default async function OfTickets({ searchParams }: { searchParams: Promis
             <p className="mb-4 text-xs text-slate-500">Décrivez le contexte, les étapes pour reproduire et joignez une capture si possible.</p>
             <StateForm action={openTicketAction} submitLabel="Envoyer au support" submitClassName="btn-primary w-full">
               <Field label="Catégorie">
-                <select name="category" required className="input" defaultValue="">
+                <select name="category" required className="input" defaultValue={defaultCategory}>
                   <option value="" disabled>Choisir…</option>
                   {Object.entries(TICKET_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
@@ -101,8 +102,8 @@ export default async function OfTickets({ searchParams }: { searchParams: Promis
                   ))}
                 </select>
               </Field>
-              <Field label="Objet"><input name="subject" required maxLength={140} className="input" placeholder="ex. Export CSV des connexions vide" /></Field>
-              <Field label="Description"><textarea name="body" required rows={6} className="input" placeholder="Que se passe-t-il ? Depuis quand ? Quels apprenants ou formations sont concernés ?" /></Field>
+              <Field label="Objet"><input name="subject" required maxLength={140} defaultValue={preSubject?.slice(0, 140) ?? ""} className="input" placeholder="ex. Export CSV des connexions vide" /></Field>
+              <Field label="Description"><textarea name="body" required rows={6} className="input" placeholder={defaultCategory === "ORG_INFO" ? "Indiquez les informations à modifier et leur nouvelle valeur (joignez le justificatif : Kbis, récépissé NDA, certificat Qualiopi…)." : "Que se passe-t-il ? Depuis quand ? Quels apprenants ou formations sont concernés ?"} /></Field>
               <Field label="Pièce jointe (facultatif)" hint="PDF, image ou document · 10 Mo max.">
                 <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.odt" className="input" />
               </Field>

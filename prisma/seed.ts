@@ -14,6 +14,11 @@ const MODULE_URL =
   "https://ressources-e-learning-skillio3.vercel.app/modules/production-de-contenus-audiovisuels-sur-les-rese-module-1-bienvenue/";
 
 async function main() {
+  // Les comptes de démonstration ont un mot de passe public : jamais sur une base distante (production)
+  const url = process.env.DATABASE_URL ?? "";
+  if (!/@(localhost|127\.0\.0\.1|db|postgres)(:\d+)?\//.test(url) && process.env.ALLOW_DEMO_SEED !== "1") {
+    throw new Error("Seed de démonstration refusé sur une base distante (définissez ALLOW_DEMO_SEED=1 pour forcer).");
+  }
   const hash = await bcrypt.hash(PASSWORD, 10);
   const org = await db.organization.upsert({
     where: { slug: "skillio-formation" },
@@ -61,7 +66,16 @@ async function main() {
   await db.organization.update({ where: { id: org.id }, data: { supportReferentId: ofAdmin.id } });
   const trainer = await upsertUser("formateur@skillio.fr", "Camille Formatrice", "TRAINER");
   const learner = await upsertUser("apprenant@skillio.fr", "Alex Apprenant", "LEARNER");
-  await upsertUser("candidat@skillio.fr", "Chris Candidat", "LEARNER");
+  const candidate = await upsertUser("candidat@skillio.fr", "Chris Candidat", "LEARNER");
+  // Comptes apprenants de démonstration validés : profil administratif complet (verrouillé après validation)
+  for (const [u, first, last, city, pc] of [[learner, "Alex", "APPRENANT", "Paris", "75011"], [candidate, "Chris", "CANDIDAT", "Lyon", "69001"]] as const) {
+    const profile = {
+      civility: "M.", firstName: first, lastName: last, birthDate: new Date("1990-05-12"), birthPlace: `${city}`, nationality: "Française",
+      address: "5 rue des Lilas", postalCode: pc, city, country: "France", phone: "06 12 34 56 78",
+      employmentStatus: "EMPLOYEE" as const, educationLevel: "Niveau 4 (Baccalauréat)",
+    };
+    await db.learnerProfile.upsert({ where: { userId: u.id }, create: { userId: u.id, ...profile }, update: {} });
+  }
 
   const slug = "production-de-contenus-audiovisuels-sur-les-reseaux-sociaux";
   if (await db.course.findUnique({ where: { slug } })) {

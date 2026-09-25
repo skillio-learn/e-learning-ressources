@@ -10,12 +10,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!user) return new NextResponse("Non authentifié", { status: 401 });
   const lesson = await db.lesson.findUnique({
     where: { id },
-    select: { htmlContent: true, module: { select: { courseId: true } } },
+    select: { htmlContent: true, published: true, module: { select: { courseId: true } } },
   });
   if (!lesson?.htmlContent) return new NextResponse("Introuvable", { status: 404 });
-  const enrolled = await db.enrollment.findFirst({
-    where: { userId: user.id, courseId: lesson.module.courseId, status: { not: "SUSPENDED" } },
-  });
+  // Apprenant : leçon publiée d'une formation dont l'accès est ouvert (compte validé)
+  const enrolled =
+    lesson.published && user.role === "LEARNER" && user.accountStatus === "ACTIVE"
+      ? await db.enrollment.findFirst({ where: { userId: user.id, courseId: lesson.module.courseId, status: { not: "SUSPENDED" }, accessStatus: "GRANTED" } })
+      : null;
   if (!enrolled && !(await canManageCourse(user, lesson.module.courseId))) {
     return new NextResponse("Accès refusé", { status: 403 });
   }

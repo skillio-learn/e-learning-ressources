@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { renderMarkdown } from "@/lib/markdown";
 import { formatDate, pct } from "@/lib/utils";
 import { submitAssignmentAction } from "@/app/actions/learner";
-import { SubmitButton } from "@/components/SubmitButton";
+import { AssignmentForm } from "./AssignmentForm";
 import { RubricTable, rubricInclude } from "@/components/rubric/RubricTable";
 import { Badge } from "@/components/ui";
 
@@ -78,21 +78,7 @@ export async function AssignmentPanel({
       {canSubmit ? (
         <section className="card p-6">
           <h2 className="mb-3">{submission ? "Mettre à jour mon rendu" : "Remettre mon travail"}</h2>
-          <form action={submitAssignmentAction.bind(null, lessonId)} className="space-y-4">
-            <label className="block">
-              <span className="label">Réponse écrite</span>
-              <textarea name="text" rows={8} className="input" defaultValue={submission?.text ?? ""} placeholder="Rédigez votre réponse…" />
-            </label>
-            <label className="block">
-              <span className="label">Lien (vidéo, document en ligne, portfolio…)</span>
-              <input name="linkUrl" type="url" className="input" defaultValue={submission?.linkUrl ?? ""} placeholder="https://…" />
-            </label>
-            <label className="block">
-              <span className="label">Fichier (8 Mo max)</span>
-              <input name="file" type="file" className="block text-sm" />
-            </label>
-            <SubmitButton pendingLabel="Envoi…">{submission ? "Mettre à jour" : "Remettre le devoir"}</SubmitButton>
-          </form>
+          <AssignmentForm action={submitAssignmentAction.bind(null, lessonId)} submission={submission ? { text: submission.text, linkUrl: submission.linkUrl } : null} />
         </section>
       ) : preview ? (
         <p className="text-sm text-amber-700">Mode aperçu : le formulaire de remise est visible par les apprenants.</p>

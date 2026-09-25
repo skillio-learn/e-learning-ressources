@@ -10,7 +10,8 @@ export type RawAnswer = { selectedOptionIds: string[]; text: string | null };
 /** Corrige une réponse. Les questions ouvertes sont mises en attente de correction manuelle. */
 export function gradeAnswer(q: Q, a: RawAnswer) {
   const correctIds = q.options.filter((o) => o.isCorrect).map((o) => o.id);
-  const selected = a.selectedOptionIds.filter((id) => q.options.some((o) => o.id === id));
+  // Identifiants dédoublonnés et limités aux propositions de la question (réponses forgées ignorées)
+  const selected = [...new Set(a.selectedOptionIds)].filter((id) => q.options.some((o) => o.id === id));
 
   switch (q.type) {
     case "SINGLE":
@@ -23,7 +24,7 @@ export function gradeAnswer(q: Q, a: RawAnswer) {
       if (!correctIds.length) return { pointsAwarded: 0, isCorrect: selected.length === 0, needsReview: false };
       const good = selected.filter((id) => correctIds.includes(id)).length;
       const bad = selected.length - good;
-      const ratio = Math.max(0, (good - bad) / correctIds.length);
+      const ratio = Math.min(1, Math.max(0, (good - bad) / correctIds.length));
       return { pointsAwarded: round2(ratio * q.points), isCorrect: ratio === 1, needsReview: false };
     }
     case "SHORT": {
@@ -49,7 +50,7 @@ export async function recomputeAttempt(attemptId: string) {
 
   const maxScore = attempt.quiz.questions.reduce((s, q) => s + q.points, 0);
   const score = attempt.answers.reduce((s, a) => s + a.pointsAwarded, 0);
-  const percent = maxScore > 0 ? round2((score / maxScore) * 100) : 100;
+  const percent = maxScore > 0 ? Math.min(100, round2((score / maxScore) * 100)) : 100;
   const pending = attempt.answers.some((a) => a.needsReview);
   const passed = !pending && percent >= attempt.quiz.passingScore;
 

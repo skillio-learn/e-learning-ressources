@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { enrollLearnersAction, removeEnrollmentAction, setEnrollmentStatusAction } from "@/app/actions/of";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CourseLearners({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireCourseManager(id);
   const enrollments = await db.enrollment.findMany({
     where: { courseId: id },
     include: { user: { select: { id: true, name: true, email: true } } },

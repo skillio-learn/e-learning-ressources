@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canManageCourse } from "@/lib/permissions";
+import { fileResponseHeaders } from "@/lib/uploads";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) return new NextResponse("Non authentifié", { status: 401 });
@@ -15,11 +16,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (sub.userId !== user.id && !(await canManageCourse(user, sub.lesson.module.courseId))) {
     return new NextResponse("Accès refusé", { status: 403 });
   }
-  return new NextResponse(Buffer.from(sub.fileData), {
-    headers: {
-      "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(sub.fileName ?? "fichier")}`,
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  const inline = new URL(req.url).searchParams.get("inline") === "1";
+  return new NextResponse(Buffer.from(sub.fileData), { headers: fileResponseHeaders(sub.fileName ?? "fichier", sub.fileType ?? "application/octet-stream", inline) });
 }

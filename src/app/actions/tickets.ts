@@ -6,7 +6,7 @@ import type { TicketPriority, TicketStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireRole, requireUser, type CurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from "@/lib/applications";
+import { readUpload } from "@/lib/uploads";
 import { TICKET_CATEGORIES, TICKET_PRIORITY, TICKET_STATUS } from "@/lib/labels";
 import { nextTicketNumber, notifySupportTeam, notifyTicketOrg } from "@/lib/tickets";
 import { str } from "@/lib/utils";
@@ -34,13 +34,10 @@ function revalidateTicket(id: string) {
 }
 
 /** Pièce jointe facultative (capture d'écran, export, courrier…). */
-async function readAttachment(fd: FormData): Promise<{ error: string } | { file: null } | { file: { fileName: string; fileType: string; size: number; data: Uint8Array<ArrayBuffer> } }> {
-  const f = fd.get("file");
-  if (!(f instanceof File) || f.size === 0) return { file: null };
-  if (f.size > MAX_UPLOAD_BYTES) return { error: "Pièce jointe trop volumineuse (10 Mo maximum)." };
-  const type = f.type || "application/octet-stream";
-  if (!ALLOWED_UPLOAD_TYPES.includes(type)) return { error: "Format non accepté : PDF, image (JPG, PNG, WEBP, HEIC) ou document texte." };
-  return { file: { fileName: f.name.slice(0, 200), fileType: type, size: f.size, data: new Uint8Array(await f.arrayBuffer()) } };
+async function readAttachment(fd: FormData) {
+  const up = await readUpload(fd, { required: false });
+  if ("error" in up) return up;
+  return { file: up.file };
 }
 
 async function rateLimited(userId: string) {

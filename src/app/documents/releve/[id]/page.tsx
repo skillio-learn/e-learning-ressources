@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Relevé de connexions" };
 
 const EVT = { LOGIN: "Connexion", LOGOUT: "Déconnexion", FAILED: "Échec", LOCKED: "Verrouillé" } as const;
-const time = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const time = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
 export default async function Releve({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

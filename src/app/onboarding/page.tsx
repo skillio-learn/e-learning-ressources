@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { CheckCircle2, Circle, Clock3, ShieldCheck, XCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { accountChecklist } from "@/lib/onboarding";
 import { toProfileData } from "@/lib/profile";
-import { ACCOUNT_STATUS } from "@/lib/labels";
+import { ACCESS_STATUS, ACCOUNT_STATUS } from "@/lib/labels";
 import { saveProfileAction } from "@/app/actions/applications";
 import { deleteAccountDocumentAction, submitAccountAction, uploadAccountDocumentAction } from "@/app/actions/accounts";
 import { ProfileForm } from "@/components/applications/ProfileForm";
@@ -28,6 +30,13 @@ export default async function Onboarding() {
   const { user, missingFields, docs, blockers } = await accountChecklist(me.id);
   const status = user.accountStatus;
   const editable = status === "PENDING_PROFILE" || status === "PENDING_REVIEW";
+  // Pendant la vérification par l'OF, le dossier est figé : seul l'OF peut demander des compléments
+  const canEdit = status === "PENDING_PROFILE";
+  const enrollments = await db.enrollment.findMany({
+    where: { userId: me.id },
+    orderBy: { enrolledAt: "desc" },
+    select: { id: true, accessStatus: true, course: { select: { title: true } } },
+  });
   const orgName = user.organization?.name ?? "l'équipe Vylia";
   const steps = [
     { n: 1, label: "Informations administratives", done: missingFields.length === 0 },
@@ -51,7 +60,7 @@ export default async function Onboarding() {
           <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" strokeWidth={1.75} />
           <div className="text-sm">
             <div className="font-semibold text-slate-900">Dossier envoyé le {formatDate(user.accountSubmittedAt, true)} — en cours de vérification</div>
-            <p className="mt-1 text-slate-600">Vous serez notifié(e) dès que {orgName} aura validé votre compte. Vous pouvez encore corriger vos informations ci-dessous.</p>
+            <p className="mt-1 text-slate-600">Vous serez notifié(e) dès que {orgName} aura validé votre compte. Votre dossier est figé pendant la vérification : l&apos;organisme vous contactera si une correction est nécessaire.</p>
           </div>
         </div>
       )}
@@ -107,12 +116,12 @@ export default async function Onboarding() {
             {missingFields.length > 0 && (
               <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">À compléter : {missingFields.join(", ")}</p>
             )}
-            <ProfileForm action={saveProfileAction.bind(null, null)} profile={toProfileData(user.profile)} />
+            <ProfileForm action={saveProfileAction.bind(null, null)} profile={toProfileData(user.profile)} disabled={!canEdit} />
           </section>
 
           <section className="card mb-6 p-6">
             <h2>2. Mes pièces justificatives</h2>
-            <p className="mb-5 mt-1 text-sm text-slate-500">PDF, photo ou document Word, 10 Mo maximum par fichier. Plusieurs fichiers possibles (recto / verso).</p>
+            <p className="mb-5 mt-1 text-sm text-slate-500">PDF, photo ou document Word, 4 Mo maximum par fichier. Plusieurs fichiers possibles (recto / verso).</p>
             <ul className="space-y-4">
               {docs.map((d) => (
                 <li key={d.type} className="rounded-2xl border border-slate-200 p-4">
@@ -130,7 +139,7 @@ export default async function Onboarding() {
                         <a href={`/api/learner-documents/${f.id}?inline=1`} target="_blank" className="link">{f.fileName}</a>
                         <span>{formatDate(f.createdAt, true)}</span>
                         {f.status === "REJECTED" && f.comment && <span className="text-red-600">Motif : {f.comment}</span>}
-                        {f.status === "PENDING" && f.source === "LEARNER_UPLOAD" && (
+                        {canEdit && f.status === "PENDING" && f.source === "LEARNER_UPLOAD" && (
                           <form action={deleteAccountDocumentAction.bind(null, f.id)}>
                             <button className="text-red-600 hover:underline">Supprimer</button>
                           </form>
@@ -138,7 +147,7 @@ export default async function Onboarding() {
                       </li>
                     ))}
                   </ul>
-                  {d.state !== "VALIDATED" && (
+                  {canEdit && d.state !== "VALIDATED" && (
                     <div className="mt-3">
                       <DocumentUpload action={uploadAccountDocumentAction} type={d.type} label={d.files.length ? "Ajouter un fichier" : "Déposer"} />
                     </div>
@@ -168,6 +177,25 @@ export default async function Onboarding() {
             </section>
           )}
         </>
+      )}
+      {status !== "REJECTED" && enrollments.length > 0 && (
+        <section className="card mt-6 p-6">
+          <h2>Mes formations à finaliser</h2>
+          <p className="mb-4 mt-1 text-sm text-slate-500">
+            Vous pouvez dès maintenant signer ou déposer vos documents d&apos;inscription. L&apos;accès aux formations s&apos;ouvre après la validation de votre compte et de vos documents.
+          </p>
+          <ul className="divide-y divide-slate-100">
+            {enrollments.map((e) => (
+              <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <span className="font-medium text-slate-900">{e.course.title}</span>
+                <span className="flex items-center gap-2">
+                  <Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge>
+                  <Link href={`/enrollments/${e.id}`} className="btn-secondary btn-sm">{e.accessStatus === "PENDING_DOCUMENTS" ? "Fournir mes documents" : "Voir"}</Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <p className="mt-8 text-center text-xs text-slate-400">Statut : {ACCOUNT_STATUS[status].label}</p>
     </Container>

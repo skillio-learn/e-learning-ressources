@@ -7,12 +7,14 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireRole, STAFF_ROLES } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { assertCanManageCourse, canManageRubric, courseIdForLesson, courseIdForModule } from "@/lib/permissions";
+import { notify } from "@/lib/notify";
+import { assertCanManageCourse, canManageOrg, canManageRubric, canViewRubric, courseIdForLesson, courseIdForModule } from "@/lib/permissions";
 import { completeLesson, evaluateCourseCompletion } from "@/lib/progress";
 import { recomputeAttempt } from "@/lib/quiz";
 import { bool, optFloat, optInt, optStr, randomCode, round2, safeUrl, slugify, str } from "@/lib/utils";
 import { announceEnrollment, createActivationLink, initialAccessStatus } from "@/lib/onboarding";
-import { appUrl } from "@/lib/email";
+import { appUrl, emailEnabled } from "@/lib/email";
+import { sendActivationEmail } from "@/lib/emails";
 
 const staff = () => requireRole(...STAFF_ROLES);
 
@@ -92,10 +94,17 @@ export async function setCourseStatusAction(courseId: string, status: CourseStat
   revalidatePath("/courses");
 }
 
+/** Suppression d'une formation : responsables de l'OF uniquement, et jamais si des apprenants y ont été inscrits (preuves). */
 export async function deleteCourseAction(courseId: string) {
   const user = await staff();
   await assertCanManageCourse(user, courseId);
+  const c = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true, organizationId: true, _count: { select: { enrollments: true, applications: true } } } });
+  if (!canManageOrg(user, c.organizationId)) throw new Error("Seuls les responsables de l'organisme peuvent supprimer une formation");
+  if (c._count.enrollments || c._count.applications) {
+    throw new Error("Cette formation a des inscrits : archivez-la (Dépublier) pour conserver les preuves de formation.");
+  }
   await db.course.delete({ where: { id: courseId } });
+  await audit("course.delete", { actorId: user.id, organizationId: c.organizationId, entityType: "Course", entityId: courseId, details: c.title });
   redirect("/of/courses");
 }
 
@@ -193,7 +202,13 @@ export async function deleteModuleAction(moduleId: string) {
   const user = await staff();
   const courseId = await courseIdForModule(moduleId);
   await assertCanManageCourse(user, courseId);
-  await db.module.delete({ where: { id: moduleId } });
+  // Les traces de suivi (temps, progression, tentatives, devoirs) sont des preuves : pas de suppression si elles existent
+  const traces = await db.lesson.count({
+    where: { moduleId, OR: [{ timeLogs: { some: {} } }, { progress: { some: {} } }, { submissions: { some: {} } }, { quiz: { attempts: { some: {} } } }] },
+  });
+  if (traces) throw new Error("Des apprenants ont suivi ce module : masquez ses étapes (non visibles) au lieu de le supprimer.");
+  const m = await db.module.delete({ where: { id: moduleId }, select: { title: true, course: { select: { organizationId: true } } } });
+  await audit("module.delete", { actorId: user.id, organizationId: m.course.organizationId, entityType: "Module", entityId: moduleId, details: m.title });
   await normalizeModulePositions(courseId);
   revalidatePath(`/of/courses/${courseId}`);
 }
@@ -274,10 +289,7 @@ export async function updateLessonAction(lessonId: string, fd: FormData) {
   if (bool(fd, "removeHtml")) htmlContent = null;
 
   const rubricId = optStr(fd, "rubricId");
-  if (rubricId && !(await canManageRubric(user, rubricId))) {
-    const r = await db.rubric.findUnique({ where: { id: rubricId }, select: { courseId: true } });
-    if (!r || (r.courseId && r.courseId !== courseId)) throw new Error("Grille non autorisée");
-  }
+  if (rubricId && !(await canViewRubric(user, rubricId))) throw new Error("Grille non autorisée");
 
   const newModuleId = optStr(fd, "moduleId");
   let moveTo: { moduleId: string; position: number } | null = null;
@@ -324,7 +336,13 @@ export async function deleteLessonAction(lessonId: string) {
   const user = await staff();
   const courseId = await courseIdForLesson(lessonId);
   await assertCanManageCourse(user, courseId);
+  const traces = await db.lesson.count({
+    where: { id: lessonId, OR: [{ timeLogs: { some: {} } }, { progress: { some: {} } }, { submissions: { some: {} } }, { quiz: { attempts: { some: {} } } }] },
+  });
+  if (traces) throw new Error("Des apprenants ont suivi cette étape : décochez « Visible par les apprenants » au lieu de la supprimer.");
   const l = await db.lesson.delete({ where: { id: lessonId } });
+  const org = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true } });
+  await audit("lesson.delete", { actorId: user.id, organizationId: org?.organizationId, entityType: "Lesson", entityId: lessonId, details: l.title });
   await normalizeLessonPositions(l.moduleId);
   redirect(`/of/courses/${courseId}`);
 }
@@ -406,6 +424,8 @@ export type QuestionInput = {
 
 function normalizeQuestion(q: QuestionInput) {
   const type = q.type;
+  if (!["SINGLE", "MULTIPLE", "TRUE_FALSE", "SHORT", "OPEN"].includes(type)) throw new Error("Type de question invalide");
+  if ((q.options ?? []).length > 10) throw new Error("10 propositions maximum");
   let options = (q.options ?? []).filter((o) => o.text.trim()).map((o, i) => ({ text: o.text.trim(), isCorrect: !!o.isCorrect, position: i }));
   if (type === "TRUE_FALSE") {
     const trueCorrect = q.options?.[0]?.isCorrect ?? true;
@@ -544,27 +564,35 @@ export async function importQuestionsAction(quizId: string, fd: FormData) {
  * Inscrit des apprenants par email (un par ligne). Les comptes manquants sont créés « à compléter » :
  * l'apprenant reçoit un lien d'activation, complète son dossier administratif, puis l'OF valide son compte.
  */
-export type EnrollResult = { enrolled: number; created: { email: string; link: string }[]; notFound: string[] } | null;
+export type EnrollResult = { enrolled: number; created: { email: string; link: string }[]; notFound: string[]; error?: string } | null;
 
 export async function enrollLearnersAction(courseId: string, _prev: EnrollResult, fd: FormData): Promise<EnrollResult> {
   const user = await staff();
   await assertCanManageCourse(user, courseId);
+  const course = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true, slug: true, organizationId: true, organization: { select: { enrollmentRequiredDocuments: true } } } });
+  // Inscrire ou créer des comptes engage l'organisme : réservé à ses responsables
+  if (!canManageOrg(user, course.organizationId)) return { enrolled: 0, created: [], notFound: [], error: "Seuls les responsables de l'organisme peuvent inscrire des apprenants." };
   const createMissing = bool(fd, "createMissing");
   const lines = str(fd, "emails")
     .split(/[\n,;]+/)
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, 200);
   const created: { email: string; link: string }[] = [];
-  const course = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true, slug: true, organizationId: true, organization: { select: { enrollmentRequiredDocuments: true } } } });
   const notFound: string[] = [];
   let enrolled = 0;
   for (const line of lines) {
     // Format : email  ou  Nom <email>  ou  email Nom Prénom
     const m = line.match(/^(.*?)<([^>]+)>$/);
-    const email = (m ? m[2] : line.split(/\s+/)[0]).toLowerCase();
-    const name = (m ? m[1] : line.split(/\s+/).slice(1).join(" ")).trim() || email.split("@")[0];
+    const email = (m ? m[2] : line.split(/\s+/)[0]).toLowerCase().slice(0, 200);
+    const name = ((m ? m[1] : line.split(/\s+/).slice(1).join(" ")).trim() || email.split("@")[0]).slice(0, 120);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) continue;
     let learner = await db.user.findUnique({ where: { email } });
+    // Un compte existant n'est inscrit que s'il s'agit d'un apprenant de cet organisme (pas de rattachement d'un apprenant d'un autre OF)
+    if (learner && (learner.role !== "LEARNER" || (learner.organizationId && learner.organizationId !== course.organizationId))) {
+      notFound.push(email);
+      continue;
+    }
     if (!learner) {
       if (!createMissing) {
         notFound.push(email);
@@ -577,8 +605,12 @@ export async function enrollLearnersAction(courseId: string, _prev: EnrollResult
           accountStatus: "PENDING_PROFILE", createdVia: "OF",
         },
       });
-      created.push({ email, link: appUrl(await createActivationLink(learner.id)) });
+      const link = await createActivationLink(learner.id);
+      const sent = emailEnabled() ? await sendActivationEmail(learner.id, link, [course.title]) : false;
+      created.push({ email, link: sent ? "" : appUrl(link) });
       await audit("account.invite", { actorId: user.id, organizationId: course.organizationId, entityType: "User", entityId: learner.id });
+    } else if (!learner.organizationId) {
+      await db.user.update({ where: { id: learner.id }, data: { organizationId: course.organizationId } });
     }
     const existing = await db.enrollment.findUnique({ where: { userId_courseId: { userId: learner.id, courseId } }, select: { id: true } });
     const enr = await db.enrollment.upsert({
@@ -589,8 +621,9 @@ export async function enrollLearnersAction(courseId: string, _prev: EnrollResult
       },
       update: { status: "ACTIVE" },
     });
-    if (!existing) await announceEnrollment(enr, course);
-    await audit("enrollment.create", { actorId: user.id, entityType: "Enrollment", entityId: enr.id, details: { direct: true, email } });
+    // Compte tout juste créé : l'email d'activation annonce déjà la formation
+    if (!existing && !created.some((c) => c.email === email)) await announceEnrollment(enr, course);
+    await audit("enrollment.create", { actorId: user.id, organizationId: course.organizationId, entityType: "Enrollment", entityId: enr.id, details: { direct: true, email } });
     enrolled++;
   }
   revalidatePath(`/of/courses/${courseId}/learners`);
@@ -601,7 +634,10 @@ export async function setEnrollmentStatusAction(enrollmentId: string, status: "A
   const user = await staff();
   const e = await db.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } });
   await assertCanManageCourse(user, e.courseId);
+  if (status !== "ACTIVE" && status !== "SUSPENDED") throw new Error("Statut invalide");
   await db.enrollment.update({ where: { id: enrollmentId }, data: { status } });
+  const c = await db.course.findUnique({ where: { id: e.courseId }, select: { organizationId: true } });
+  await audit("enrollment.status", { actorId: user.id, organizationId: c?.organizationId, entityType: "Enrollment", entityId: enrollmentId, details: status });
   revalidatePath(`/of/courses/${e.courseId}/learners`);
 }
 
@@ -609,7 +645,14 @@ export async function removeEnrollmentAction(enrollmentId: string) {
   const user = await staff();
   const e = await db.enrollment.findUniqueOrThrow({ where: { id: enrollmentId } });
   await assertCanManageCourse(user, e.courseId);
+  const c = await db.course.findUniqueOrThrow({ where: { id: e.courseId }, select: { organizationId: true } });
+  if (!canManageOrg(user, c.organizationId)) throw new Error("Seuls les responsables de l'organisme peuvent supprimer une inscription");
+  const traces = await db.timeLog.count({ where: { userId: e.userId, courseId: e.courseId } });
+  if (traces || e.status === "COMPLETED" || e.conventionSignedAt) {
+    throw new Error("Cette inscription contient des preuves de formation : suspendez-la ou déclarez un abandon au lieu de la supprimer.");
+  }
   await db.enrollment.delete({ where: { id: enrollmentId } });
+  await audit("enrollment.delete", { actorId: user.id, organizationId: c.organizationId, entityType: "Enrollment", entityId: enrollmentId, details: { userId: e.userId } });
   revalidatePath(`/of/courses/${e.courseId}/learners`);
 }
 
@@ -618,8 +661,10 @@ export async function forceCompleteLessonAction(courseId: string, userId: string
   const user = await staff();
   await assertCanManageCourse(user, courseId);
   if ((await courseIdForLesson(lessonId)) !== courseId) throw new Error("Leçon hors formation");
+  const e = await db.enrollment.findUnique({ where: { userId_courseId: { userId: String(userId), courseId } }, select: { id: true, course: { select: { organizationId: true } } } });
+  if (!e) throw new Error("Cet apprenant n'est pas inscrit à la formation");
   await completeLesson(userId, lessonId);
-  await audit("lesson.force_complete", { actorId: user.id, entityType: "Lesson", entityId: lessonId, details: { learner: userId, courseId } });
+  await audit("lesson.force_complete", { actorId: user.id, organizationId: e.course.organizationId, entityType: "Lesson", entityId: lessonId, details: { learner: userId, courseId } });
   revalidatePath(`/of/courses/${courseId}/learners/${userId}`);
 }
 
@@ -729,7 +774,14 @@ export async function gradeSubmissionAction(submissionId: string, fd: FormData) 
     },
   });
   await evaluateCourseCompletion(sub.userId, courseId);
-  const orgOfSub = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true } });
+  const orgOfSub = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true, slug: true } });
+  const lessonTitle = await db.lesson.findUnique({ where: { id: sub.lesson.id }, select: { title: true } });
+  await notify(
+    sub.userId,
+    decision === "revision" ? `Devoir à reprendre : ${lessonTitle?.title ?? ""}` : `Devoir corrigé : ${lessonTitle?.title ?? ""}`,
+    decision === "revision" ? "Votre formateur vous demande de reprendre votre travail : consultez ses commentaires." : `Note : ${round2(score)} / ${round2(maxScore)} (${percent} %). Consultez les commentaires de votre formateur.`,
+    `/learn/${orgOfSub?.slug}/${sub.lesson.id}`,
+  );
   await audit("grade.submission", { actorId: user.id, organizationId: orgOfSub?.organizationId, entityType: "Submission", entityId: submissionId, details: { score, maxScore, decision } });
   revalidatePath(`/of/grading`);
   redirect(`/of/grading/submissions/${submissionId}?saved=1`);
@@ -803,6 +855,7 @@ export async function saveRubricAction(rubricId: string | null, input: RubricInp
 
 export async function duplicateRubricAction(rubricId: string) {
   const user = await staff();
+  if (!(await canViewRubric(user, rubricId))) throw new Error("Grille introuvable");
   const r = await db.rubric.findUniqueOrThrow({
     where: { id: rubricId },
     include: { criteria: { include: { levels: true } } },

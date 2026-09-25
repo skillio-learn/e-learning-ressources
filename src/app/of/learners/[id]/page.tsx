@@ -213,6 +213,8 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                 <Link href={`/documents/releve/${e.id}`} className="btn-secondary btn-sm">Relevé de connexions</Link>
                 <Link href={`/documents/assiduite/${e.id}`} className="btn-secondary btn-sm">Attestation d&apos;assiduité</Link>
                 <Link href={`/documents/realisation/${e.id}`} className="btn-secondary btn-sm">Certificat de réalisation</Link>
+                <a href={`/api/pdf/enrollments/${e.id}/realisation`} className="btn-secondary btn-sm">Certificat (PDF)</a>
+                <a href={`/api/pdf/enrollments/${e.id}/releve`} className="btn-secondary btn-sm">Relevé (PDF)</a>
                 <a href={`/api/of/reports/timelogs?enrollment=${e.id}`} className="btn-secondary btn-sm">⬇ Détail des temps (CSV)</a>
                 <Link href={`/of/courses/${e.courseId}/learners/${id}`} className="btn-ghost btn-sm">Détail pédagogique →</Link>
               </div>

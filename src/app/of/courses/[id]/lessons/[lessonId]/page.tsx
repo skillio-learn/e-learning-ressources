@@ -1,3 +1,4 @@
+import { requireCourseManager } from "@/lib/permissions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LessonEditor({ params }: { params: Promise<{ id: string; lessonId: string }> }) {
   const { id, lessonId } = await params;
+  await requireCourseManager(id);
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
     include: {
@@ -28,7 +30,7 @@ export default async function LessonEditor({ params }: { params: Promise<{ id: s
   const [modules, rubrics, course] = await Promise.all([
     db.module.findMany({ where: { courseId: id }, orderBy: { position: "asc" }, select: { id: true, title: true } }),
     db.rubric.findMany({
-      where: { OR: [{ courseId: id }, { courseId: null }] },
+      where: { OR: [{ courseId: id }, { courseId: null, author: { organization: { courses: { some: { id } } } } }] },
       orderBy: { title: "asc" },
       select: { id: true, title: true, courseId: true },
     }),

@@ -92,7 +92,7 @@ export function InteractivePlayer({
         title={title}
         className={height ? "block w-full bg-surface" : "block h-[75vh] min-h-[520px] w-full bg-surface"}
         style={height ? { height } : undefined}
-        allow="autoplay; fullscreen; clipboard-write; encrypted-media; microphone; camera"
+        allow="autoplay; fullscreen; clipboard-write; encrypted-media"
         allowFullScreen
         sandbox={src.startsWith("/api/") ? "allow-scripts allow-forms allow-popups allow-modals allow-downloads" : undefined}
       />

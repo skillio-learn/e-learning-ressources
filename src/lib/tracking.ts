@@ -44,36 +44,47 @@ export async function recordHeartbeat(
   userId: string,
   input: { lessonId?: string | null; seconds: number; ip: string | null; userAgent: string | null },
 ) {
-  const seconds = Math.max(0, Math.min(MAX_BEAT_SEC, Math.round(input.seconds)));
+  const claimed = Math.max(0, Math.min(MAX_BEAT_SEC, Math.round(Number.isFinite(input.seconds) ? input.seconds : 0)));
   const now = new Date();
-    const t = await timeoutsFor(userId);
+  const t = await timeoutsFor(userId);
   const timeoutMs = Math.max(t.standard, t.interactive) * 60_000;
 
-  // 1. Session de connexion
+  // 1. Session de connexion. Le temps crédité ne peut jamais dépasser le temps réellement écoulé depuis le
+  //    battement précédent (anti-falsification : rafales de requêtes, horloge du navigateur modifiée…).
+  let seconds = 0;
   let session = await db.activitySession.findFirst({ where: { userId, endedAt: null }, orderBy: { lastSeenAt: "desc" } });
   if (session && now.getTime() - session.lastSeenAt.getTime() > timeoutMs + MAX_BEAT_SEC * 1000) {
     await db.activitySession.update({ where: { id: session.id }, data: { endedAt: session.lastSeenAt } });
     session = null;
   }
   if (session) {
-    session = await db.activitySession.update({
-      where: { id: session.id },
+    const elapsed = Math.max(0, Math.floor((now.getTime() - session.lastSeenAt.getTime()) / 1000) + 2);
+    seconds = Math.min(claimed, elapsed);
+    // Mise à jour conditionnelle : si un autre battement a été compté entre-temps, celui-ci ne crédite rien
+    const updated = await db.activitySession.updateMany({
+      where: { id: session.id, lastSeenAt: session.lastSeenAt },
       data: { lastSeenAt: now, activeSeconds: { increment: seconds } },
     });
+    if (updated.count === 0) seconds = 0;
+    session = await db.activitySession.findUniqueOrThrow({ where: { id: session.id } });
   } else {
+    seconds = Math.min(claimed, HEARTBEAT_SEC);
     session = await db.activitySession.create({
       data: { userId, startedAt: new Date(now.getTime() - seconds * 1000), lastSeenAt: now, activeSeconds: seconds, ip: input.ip, userAgent: input.userAgent },
     });
   }
 
-  // 2. Temps passé sur la leçon (uniquement pour un apprenant inscrit)
+  // 2. Temps passé sur la leçon : uniquement sur une leçon publiée d'une formation dont l'accès est ouvert
   let lessonSeconds: number | null = null;
   if (input.lessonId) {
-    const lesson = await db.lesson.findUnique({ where: { id: input.lessonId }, select: { id: true, module: { select: { courseId: true } } } });
-    if (lesson) {
+    const lesson = await db.lesson.findUnique({ where: { id: input.lessonId }, select: { id: true, published: true, module: { select: { courseId: true } } } });
+    if (lesson?.published) {
       const courseId = lesson.module.courseId;
-      const enrolled = await db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } }, select: { id: true, status: true } });
-      if (enrolled && enrolled.status !== "SUSPENDED") {
+      const [enrolled, u] = await Promise.all([
+        db.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } }, select: { id: true, status: true, accessStatus: true } }),
+        db.user.findUnique({ where: { id: userId }, select: { accountStatus: true } }),
+      ]);
+      if (enrolled && enrolled.status !== "SUSPENDED" && enrolled.accessStatus === "GRANTED" && u?.accountStatus === "ACTIVE") {
         if (seconds > 0) {
           const recent = await db.timeLog.findFirst({
             where: { userId, lessonId: lesson.id, endedAt: { gte: new Date(now.getTime() - MAX_BEAT_SEC * 1000 - 5000) } },

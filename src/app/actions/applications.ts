@@ -11,14 +11,14 @@ import { audit } from "@/lib/audit";
 import { notify, notifyOrgManagers } from "@/lib/notify";
 import {
   ACTIVE_STATUSES,
-  ALLOWED_UPLOAD_TYPES,
   EDITABLE_STATUSES,
-  MAX_UPLOAD_BYTES,
   STAFF_TRANSITIONS,
   applicationBlockers,
   nextApplicationNumber,
 } from "@/lib/applications";
-import { APPLICATION_STATUS, DOCUMENT_TYPES, FUNDING_TYPES } from "@/lib/labels";
+import { APPLICATION_STATUS, DOCUMENT_TYPES, FUNDING_TYPES, learnerProfileEditable } from "@/lib/labels";
+import { parseProfileForm } from "@/lib/profile";
+import { readUpload } from "@/lib/uploads";
 import { bool, optFloat, optStr, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -56,8 +56,10 @@ function revalidateApp(id: string) {
 export async function startApplicationAction(courseId: string) {
   // La candidature suppose un compte validé par l'OF
   const user = await requireActiveLearnerAccount();
-  const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true, status: true, enrollmentPolicy: true } });
+  const course = await db.course.findUnique({ where: { id: String(courseId) }, select: { id: true, status: true, enrollmentPolicy: true, organizationId: true } });
   if (!course || course.status !== "PUBLISHED") throw new Error("Formation indisponible");
+  // Pas de catalogue : candidature uniquement sur une formation « sur dossier » de son propre organisme
+  if (course.enrollmentPolicy !== "APPLICATION" || course.organizationId !== user.organizationId) throw new Error("Formation indisponible");
   const existing = await db.application.findFirst({
     where: { userId: user.id, courseId, status: { in: ACTIVE_STATUSES } },
     select: { id: true },
@@ -120,62 +122,30 @@ function dateOrNull(v: string) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Profil administratif (utilisé dans le dossier et dans « Mon profil »). */
+/**
+ * Profil administratif : saisi par l'apprenant pendant la constitution de son dossier de compte uniquement.
+ * Une fois le dossier envoyé ou validé, toute modification passe par une demande à l'OF (anti-fraude).
+ */
 export async function saveProfileAction(applicationId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (user.role !== "LEARNER") return { error: "Réservé aux apprenants." };
+  if (!learnerProfileEditable(user.accountStatus)) {
+    return { error: "Vos informations sont verrouillées depuis la validation de votre dossier. Demandez une modification depuis « Mon profil »." };
+  }
   if (applicationId) {
     const app = await loadOwnApp(applicationId, user);
     if (!EDITABLE_STATUSES.includes(app.status)) return { error: "Ce dossier n'est plus modifiable." };
   }
-  const postalCode = str(fd, "postalCode");
-  if (postalCode && !/^\d{5}$/.test(postalCode) && (str(fd, "country") || "France") === "France") {
-    return { error: "Code postal invalide (5 chiffres)." };
-  }
-  const phone = str(fd, "phone");
-  if (phone && !/^[+\d][\d\s.-]{8,}$/.test(phone)) return { error: "Numéro de téléphone invalide." };
-  const siret = str(fd, "employerSiret").replace(/\s/g, "");
-  if (siret && !/^\d{14}$/.test(siret)) return { error: "Le SIRET doit comporter 14 chiffres." };
-  const birthDate = dateOrNull(str(fd, "birthDate"));
-  if (birthDate) {
-    const age = (Date.now() - birthDate.getTime()) / (365.25 * 24 * 3600 * 1000);
-    if (age < 15 || age > 100) return { error: "Date de naissance invalide." };
-  }
-  const employmentStatus = (str(fd, "employmentStatus") || null) as EmploymentStatus | null;
-  const data = {
-    civility: optStr(fd, "civility"),
-    firstName: optStr(fd, "firstName"),
-    lastName: optStr(fd, "lastName")?.toUpperCase() ?? null,
-    birthName: optStr(fd, "birthName"),
-    birthDate,
-    birthPlace: optStr(fd, "birthPlace"),
-    nationality: optStr(fd, "nationality"),
-    address: optStr(fd, "address"),
-    postalCode: postalCode || null,
-    city: optStr(fd, "city"),
-    country: optStr(fd, "country") ?? "France",
-    phone: phone || null,
-    employmentStatus,
-    franceTravailId: optStr(fd, "franceTravailId"),
-    franceTravailAgency: optStr(fd, "franceTravailAgency"),
-    educationLevel: optStr(fd, "educationLevel"),
-    lastDiploma: optStr(fd, "lastDiploma"),
-    currentJob: optStr(fd, "currentJob"),
-    employerName: optStr(fd, "employerName"),
-    employerSiret: siret || null,
-    employerAddress: optStr(fd, "employerAddress"),
-    employerContactName: optStr(fd, "employerContactName"),
-    employerContactEmail: optStr(fd, "employerContactEmail"),
-    employerContactPhone: optStr(fd, "employerContactPhone"),
-    opcoName: optStr(fd, "opcoName"),
-    disability: bool(fd, "disability"),
-    disabilityNeeds: optStr(fd, "disabilityNeeds"),
-  };
+  const parsed = parseProfileForm(fd);
+  if ("error" in parsed) return parsed;
+  const data = parsed.data;
   await db.learnerProfile.upsert({ where: { userId: user.id }, create: { userId: user.id, ...data }, update: data });
   if (data.firstName && data.lastName) {
     await db.user.update({ where: { id: user.id }, data: { name: `${data.firstName} ${data.lastName}`, phone: data.phone } });
   }
   if (applicationId) revalidateApp(applicationId);
   revalidatePath("/profile");
+  revalidatePath("/onboarding");
   return { ok: "Informations enregistrées." };
 }
 
@@ -222,11 +192,9 @@ export async function uploadDocumentAction(applicationId: string, _: ActionState
   if (!EDITABLE_STATUSES.includes(app.status)) return { error: "Ce dossier n'est plus modifiable." };
   const type = str(fd, "type");
   if (!(type in DOCUMENT_TYPES)) return { error: "Type de justificatif invalide." };
-  const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choisissez un fichier." };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "Fichier trop volumineux (10 Mo maximum)." };
-  const mime = file.type || "application/octet-stream";
-  if (!ALLOWED_UPLOAD_TYPES.includes(mime)) return { error: "Format non accepté (PDF, JPG, PNG, WEBP, HEIC, DOC, DOCX, ODT)." };
+  const up = await readUpload(fd);
+  if ("error" in up) return up;
+  const file = up.file!;
 
     // Plusieurs fichiers possibles par justificatif (ex. recto / verso), 5 maximum
   const count = await db.applicationDocument.count({ where: { applicationId, type, status: { not: "REJECTED" } } });
@@ -235,14 +203,14 @@ export async function uploadDocumentAction(applicationId: string, _: ActionState
     data: {
       applicationId,
       type,
-      fileName: file.name.slice(0, 200),
-      fileType: mime,
+      fileName: file.fileName,
+      fileType: file.fileType,
       size: file.size,
-      data: new Uint8Array(await file.arrayBuffer()),
+      data: file.data,
     },
   });
   await db.applicationEvent.create({
-    data: { applicationId, type: "DOCUMENT", authorId: user.id, message: `Justificatif déposé : ${DOCUMENT_TYPES[type].label} (${file.name})` },
+    data: { applicationId, type: "DOCUMENT", authorId: user.id, message: `Justificatif déposé : ${DOCUMENT_TYPES[type].label} (${file.fileName})` },
   });
   revalidateApp(applicationId);
   return { ok: `${DOCUMENT_TYPES[type].label} déposé(e).` };
@@ -328,6 +296,8 @@ export async function sendApplicationMessageAction(applicationId: string, _: Act
   if (!staff && app.userId !== user.id) return { error: "Accès refusé." };
   const message = str(fd, "message");
   if (!message) return { error: "Message vide." };
+  const recent = await db.applicationEvent.count({ where: { authorId: user.id, type: { in: ["MESSAGE", "NOTE"] }, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } });
+  if (recent >= 30) return { error: "Trop de messages envoyés : réessayez dans quelques minutes." };
   const internal = staff && bool(fd, "internal");
   await db.applicationEvent.create({ data: { applicationId, type: internal ? "NOTE" : "MESSAGE", authorId: user.id, message: message.slice(0, 5000) } });
   if (!internal) {
@@ -472,7 +442,7 @@ export async function enrollFromApplicationAction(applicationId: string, _: Acti
           fromStatus: "ACCEPTED",
           toStatus: "ENROLLED",
           authorId: user.id,
-          message: `Inscription définitive du ${startDate.toLocaleDateString("fr-FR")} au ${endDate.toLocaleDateString("fr-FR")} (${plannedHours} h)`,
+          message: `Inscription définitive du ${startDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })} au ${endDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })} (${plannedHours} h)`,
         },
       },
     },

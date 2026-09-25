@@ -50,12 +50,15 @@ export function ProfileForm({
   disabled,
   nextHref,
   submitLabel = "Enregistrer mes informations",
+  extra,
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
   profile: ProfileData | null;
   disabled?: boolean;
   nextHref?: string;
   submitLabel?: string;
+  /** Champs supplémentaires (motif, justificatif) affichés avant le bouton. */
+  extra?: React.ReactNode;
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const flow = useFormFlow(state?.ok, nextHref);
@@ -160,6 +163,7 @@ export function ProfileForm({
           )}
         </div>
       </fieldset>
+      {extra}
       {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
       {state?.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.ok}</p>}
       {!disabled && <SubmitButton>{submitLabel}</SubmitButton>}

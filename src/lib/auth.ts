@@ -13,11 +13,19 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const store = await cookies();
   const session = await verifySession(store.get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  const user = await db.user.findUnique({
+  const u = await db.user.findUnique({
     where: { id: session.uid },
-    select: { id: true, email: true, name: true, role: true, active: true, organizationId: true, accountStatus: true },
+    select: {
+      id: true, email: true, name: true, role: true, active: true, organizationId: true, accountStatus: true, sessionVersion: true,
+      organization: { select: { active: true } },
+    },
   });
-  if (!user || !user.active) return null;
+  if (!u || !u.active) return null;
+  // Session émise avant le dernier changement de mot de passe / révocation : invalide
+  if ((session.sv ?? 0) !== u.sessionVersion) return null;
+  // Organisme désactivé par Vylia : ses membres et apprenants n'ont plus accès
+  if (u.role !== "ADMIN" && u.organization && !u.organization.active) return null;
+  const { sessionVersion: _sv, organization: _org, ...user } = u;
   return user;
 });
 

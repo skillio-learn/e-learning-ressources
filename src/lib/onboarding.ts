@@ -16,6 +16,10 @@ export const PENDING_ACCOUNT_ALLOWED = [
   "/support",
   "/notifications",
   "/legal",
+  // Documents d'inscription aux formations : fournis en même temps que le dossier de compte
+  "/enrollments",
+  "/documents/convention",
+  "/documents/signed",
   "/api/support",
   "/api/learner-documents",
   "/api/me",

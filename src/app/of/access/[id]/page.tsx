@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireOfManager } from "@/lib/auth";
 import { canManageOrg } from "@/lib/permissions";
 import { accessChecklist } from "@/lib/onboarding";
-import { grantAccessAction, refuseAccessAction, reopenAccessAction, reviewEnrollmentDocumentAction, uploadEnrollmentDocumentAction } from "@/app/actions/access";
+import { grantAccessAction, refuseAccessAction, reopenAccessAction, requestEnrollmentInfoAction, reviewEnrollmentDocumentAction, uploadEnrollmentDocumentAction } from "@/app/actions/access";
 import { StateForm } from "@/components/StateForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { DocumentUpload } from "@/components/applications/DocumentUpload";
@@ -112,6 +112,12 @@ export default async function AccessReview({ params }: { params: Promise<{ id: s
                 <StateForm action={grantAccessAction.bind(null, e.id)} submitLabel="Ouvrir l'accès à la formation" submitClassName="btn-primary w-full" className="space-y-2">
                   {!allValidated && <p className="text-xs text-amber-700">Tous les documents obligatoires doivent être validés.</p>}
                   <input name="note" placeholder="Note (facultative)" className="input" />
+                </StateForm>
+                <StateForm action={requestEnrollmentInfoAction.bind(null, e.id)} submitLabel="Demander des compléments" submitClassName="btn-secondary w-full" className="space-y-2">
+                  {e.accessRequestNote && e.accessRequestAt && (
+                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Dernière demande le {formatDate(e.accessRequestAt, true)} : « {e.accessRequestNote} »</p>
+                  )}
+                  <textarea name="note" rows={2} placeholder="Informations ou documents attendus (visible par l'apprenant)" className="input" />
                 </StateForm>
                 <StateForm action={refuseAccessAction.bind(null, e.id)} submitLabel="Refuser l'accès" submitClassName="btn-danger w-full" className="space-y-2">
                   <textarea name="note" rows={2} required placeholder="Motif du refus (visible par l'apprenant)" className="input" />

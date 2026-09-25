@@ -29,6 +29,8 @@ export async function openNotificationAction(id: string) {
 
 export async function signAttendanceAction(slotId: string, signature: string) {
   const user = await requireUser();
+  // Un apprenant dont le compte n'est pas validé ne peut pas agir sur une formation
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") throw new Error("Votre compte doit d'abord être validé par votre organisme.");
   if (!signature.startsWith("data:image/png;base64,") || signature.length < 2000 || signature.length > 400_000) {
     throw new Error("Signature invalide : tracez votre signature dans le cadre.");
   }
@@ -58,6 +60,8 @@ export async function signAttendanceAction(slotId: string, signature: string) {
 
 export async function submitSatisfactionAction(enrollmentId: string, kind: "HOT" | "COLD", _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  // Un apprenant dont le compte n'est pas validé ne peut pas agir sur une formation
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") throw new Error("Votre compte doit d'abord être validé par votre organisme.");
   const enrollment = await db.enrollment.findUnique({
     where: { id: enrollmentId },
     include: { satisfactions: { where: { kind } }, course: { select: { organizationId: true, title: true } } },
@@ -94,24 +98,19 @@ export async function createComplaintAction(_: ActionState, fd: FormData): Promi
   const user = await requireUser();
   const courseId = optStr(fd, "courseId");
   const category = str(fd, "category");
-  const subject = str(fd, "subject");
-  const message = str(fd, "message");
+  const subject = str(fd, "subject").slice(0, 200);
+  const message = str(fd, "message").slice(0, 5000);
   if (!COMPLAINT_CATEGORIES.includes(category)) return { error: "Catégorie invalide." };
   if (subject.length < 3 || message.length < 10) return { error: "Merci de préciser l'objet et votre message." };
-  let organizationId: string | null = null;
-  if (courseId) {
-    const c = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true } });
-    organizationId = c?.organizationId ?? null;
-  }
-  if (!organizationId) {
-    const u = await db.user.findUnique({ where: { id: user.id }, select: { organizationId: true } });
-    organizationId = u?.organizationId ?? null;
-  }
-  if (!organizationId) {
-    const any = await db.organization.findFirst({ select: { id: true }, orderBy: { createdAt: "asc" } });
-    organizationId = any?.id ?? null;
-  }
+  const recent = await db.complaint.count({ where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 3600_000) } } });
+  if (recent >= 5) return { error: "Trop de demandes envoyées : réessayez plus tard." };
+  // La demande va à l'organisme de l'apprenant ; la formation citée doit être une de ses formations
+  const organizationId = user.organizationId;
   if (!organizationId) return { error: "Aucun organisme de rattachement." };
+  if (courseId) {
+    const linked = await db.enrollment.count({ where: { userId: user.id, courseId } }) + (await db.application.count({ where: { userId: user.id, courseId } }));
+    if (!linked) return { error: "Formation invalide." };
+  }
   const c = await db.complaint.create({ data: { userId: user.id, organizationId, courseId, category, subject, message } });
   await notifyOrgManagers(organizationId, `${category} : ${subject}`, `${user.name}`, `/of/quality?complaint=${c.id}`);
   revalidatePath("/support");

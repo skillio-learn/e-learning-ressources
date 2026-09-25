@@ -145,7 +145,7 @@ npm run dev                 # http://localhost:3000
 3. Déployez : le build lance `prisma generate && next build`.
 
 ### Comptes de démonstration
-Mot de passe : `Skillio2026!` — **changez-le ou désactivez ces comptes avant la mise en production** (menu Administration).
+Mot de passe (base locale uniquement) : `Skillio2026!` — le seed refuse une base distante sauf `ALLOW_DEMO_SEED=1`. En production, les comptes de démonstration ont des mots de passe distincts et non publiés.
 
 | Email | Rôle |
 |---|---|

@@ -1,20 +1,21 @@
 /**
  * Données de démonstration.
  *   npm run db:seed
- * Comptes créés (mot de passe : Skillio2026!) :
- *   admin@skillio.fr (Super admin) · of@skillio.fr (Responsable OF) · formateur@skillio.fr (Formateur)
- *   apprenant@skillio.fr (Apprenant inscrit) · candidat@skillio.fr (Apprenant sans inscription : test du dossier)
+ * Crée un compte par rôle (super admin, responsable OF, formateur, deux apprenants).
+ * Mot de passe : variable SEED_PASSWORD (fichier .env local, jamais commité),
+ * sinon un mot de passe aléatoire affiché une seule fois dans le terminal.
  */
 import { PrismaClient, type LessonType } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
 const db = new PrismaClient();
-const PASSWORD = "Skillio2026!";
+const PASSWORD = process.env.SEED_PASSWORD || `Demo-${randomBytes(9).toString("base64url")}`;
 const MODULE_URL =
   "https://ressources-e-learning-skillio3.vercel.app/modules/production-de-contenus-audiovisuels-sur-les-rese-module-1-bienvenue/";
 
 async function main() {
-  // Les comptes de démonstration ont un mot de passe public : jamais sur une base distante (production)
+  // Données de démonstration : jamais sur une base distante (production)
   const url = process.env.DATABASE_URL ?? "";
   if (!/@(localhost|127\.0\.0\.1|db|postgres)(:\d+)?\//.test(url) && process.env.ALLOW_DEMO_SEED !== "1") {
     throw new Error("Seed de démonstration refusé sur une base distante (définissez ALLOW_DEMO_SEED=1 pour forcer).");

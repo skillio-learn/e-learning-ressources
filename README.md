@@ -144,16 +144,8 @@ npm run dev                 # http://localhost:3000
    Pour l'envoi d'emails (notifications, mot de passe oublié) : `RESEND_API_KEY`, `EMAIL_FROM` (ex. `Skillio <noreply@votre-domaine.fr>`) et, facultativement, `APP_URL`. Sans clé, les notifications restent dans la plateforme et les demandes de mot de passe sont transmises à l'OF.
 3. Déployez : le build lance `prisma generate && next build`.
 
-### Comptes de démonstration
-Mot de passe (base locale uniquement) : `Skillio2026!` — le seed refuse une base distante sauf `ALLOW_DEMO_SEED=1`. En production, les comptes de démonstration ont des mots de passe distincts et non publiés.
-
-| Email | Rôle |
-|---|---|
-| admin@skillio.fr | Super admin Skillio |
-| of@skillio.fr | Responsable OF (Skillio Formation) |
-| formateur@skillio.fr | Formateur |
-| apprenant@skillio.fr | Apprenant inscrit à la formation de démo |
-| candidat@skillio.fr | Apprenant sans inscription, pour tester le dossier de candidature |
+### Données de démonstration (base locale)
+`npm run db:seed` crée une organisation de démo avec un compte par rôle. Le mot de passe provient de la variable `SEED_PASSWORD` de votre `.env` local (jamais commité) ; sans elle, un mot de passe aléatoire est affiché dans le terminal. Le seed refuse toute base distante sauf `ALLOW_DEMO_SEED=1`.
 
 La formation de démo « Production de contenus audiovisuels sur les réseaux sociaux » contient un Module 1 de 13 leçons : votre module interactif Vercel, des contenus, une vidéo, une ressource, un quiz de 5 questions (tous les types) et un devoir évalué avec sa grille à 4 critères.
 

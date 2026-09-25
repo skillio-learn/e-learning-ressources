@@ -68,3 +68,7 @@ export const isOfManager = (u: Pick<CurrentUser, "role"> | null) => !!u && OF_MA
 
 export const requireStaff = () => requireRole(...STAFF_ROLES);
 export const requireOfManager = () => requireRole(...OF_MANAGER_ROLES);
+
+/** Assistance des apprenants : réservée aux responsables de l'organisme concerné (ni formateurs, ni admin plateforme). */
+export const canHandleSupport = (u: Pick<CurrentUser, "role" | "organizationId"> | null, organizationId: string | null) =>
+  !!u && u.role === "OF_ADMIN" && !!organizationId && organizationId === u.organizationId;

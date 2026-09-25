@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupportStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { isStaff, requireStaff, requireUser, type CurrentUser } from "@/lib/auth";
+import { canHandleSupport, isStaff, requireStaff, requireUser, type CurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { notify, notifyOrgManagers } from "@/lib/notify";
 import { SUPPORT_CATEGORIES } from "@/lib/labels";
@@ -15,8 +15,7 @@ const MAX_BODY = 4000;
 
 /** Accès d'un membre de l'équipe OF à une conversation de son organisme. */
 function staffCanAccess(user: CurrentUser, organizationId: string | null) {
-  if (!isStaff(user) || user.role === "ADMIN") return false;
-  return !!organizationId && organizationId === user.organizationId;
+  return canHandleSupport(user, organizationId);
 }
 
 async function loadConversation(id: string) {
@@ -32,7 +31,11 @@ async function rateLimited(userId: string) {
 
 async function notifyTeam(c: { id: string; organizationId: string | null; assignedToId: string | null }, title: string, body: string) {
   const link = `/of/support/${c.id}`;
-  if (c.assignedToId) return notify(c.assignedToId, title, body, link);
+  if (c.assignedToId) {
+    // Conversation prise en charge : prévenir le responsable, s'il a toujours accès à l'assistance
+    const assignee = await db.user.findUnique({ where: { id: c.assignedToId }, select: { role: true, organizationId: true, active: true } });
+    if (assignee?.active && canHandleSupport(assignee, c.organizationId)) return notify(c.assignedToId, title, body, link);
+  }
   if (c.organizationId) return notifyOrgManagers(c.organizationId, title, body, link);
 }
 

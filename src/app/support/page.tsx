@@ -16,7 +16,7 @@ export default async function Support() {
   // Espace apprenant : les équipes ont leurs propres outils d'assistance
   if (user.role === "ADMIN") redirect("/admin/support");
   if (user.role === "OF_ADMIN") redirect("/of/tickets");
-  if (user.role === "TRAINER") redirect("/of/support");
+  if (user.role === "TRAINER") redirect("/of/messages");
   const [courses, complaints] = await Promise.all([
     db.course.findMany({
       where: { OR: [{ enrollments: { some: { userId: user.id } } }, { applications: { some: { userId: user.id } } }] },

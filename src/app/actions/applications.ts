@@ -1,5 +1,6 @@
 "use server";
 
+import { createWithUniqueNumber } from "@/lib/numbering";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ApplicationStatus, EmploymentStatus, FundingType } from "@prisma/client";
@@ -68,14 +69,14 @@ export async function startApplicationAction(courseId: string) {
   const enrolled = await db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId } } });
   if (enrolled) throw new Error("Vous êtes déjà inscrit(e) à cette formation");
 
-  const app = await db.application.create({
+  const app = await createWithUniqueNumber(nextApplicationNumber, (number) => db.application.create({
     data: {
-      number: await nextApplicationNumber(),
+      number,
       userId: user.id,
       courseId,
       events: { create: { type: "STATUS", toStatus: "DRAFT", authorId: user.id, message: "Dossier de candidature créé" } },
     },
-  });
+  }));
   if (user.role === "LEARNER") {
     const org = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true } });
     const u = await db.user.findUnique({ where: { id: user.id }, select: { organizationId: true } });
@@ -100,14 +101,14 @@ export async function openApplicationForLearnerAction(learnerId: string, _: Acti
   if (await db.application.findFirst({ where: { userId: learner.id, courseId: course.id, status: { in: ACTIVE_STATUSES } }, select: { id: true } })) {
     return { error: "Un dossier est déjà en cours pour cette formation." };
   }
-  const app = await db.application.create({
+  const app = await createWithUniqueNumber(nextApplicationNumber, (number) => db.application.create({
     data: {
-      number: await nextApplicationNumber(),
+      number,
       userId: learner.id,
       courseId: course.id,
       events: { create: { type: "STATUS", toStatus: "DRAFT", authorId: staff.id, message: "Dossier de candidature ouvert par l'organisme" } },
     },
-  });
+  }));
   if (!learner.organizationId) await db.user.update({ where: { id: learner.id }, data: { organizationId: course.organizationId } });
   await audit("application.create", { actorId: staff.id, organizationId: course.organizationId, entityType: "Application", entityId: app.id, details: "ouvert par l'OF" });
   await notify(learner.id, `Dossier de candidature : ${course.title}`, "Votre organisme a ouvert votre dossier : complétez vos informations et déposez vos justificatifs.", `/applications/${app.id}`);

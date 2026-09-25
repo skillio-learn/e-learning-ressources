@@ -53,7 +53,7 @@ export default async function OfLayout({ children }: { children: React.ReactNode
           {manager && <SideLink href="/of/access" icon={<KeyRound strokeWidth={1.75} />} count={pendingAccess}>Accès aux parcours</SideLink>}
           <SideLink href="/of/learners" icon={<Users strokeWidth={1.75} />}>Apprenants</SideLink>
           <SideLink href="/of/messages" icon={<MessagesSquare strokeWidth={1.75} />} count={unreadMessages}>Messagerie pédagogique</SideLink>
-          <SideLink href="/of/support" icon={<Headset strokeWidth={1.75} />} count={openSupport}>Assistance</SideLink>
+          {user.role === "OF_ADMIN" && <SideLink href="/of/support" icon={<Headset strokeWidth={1.75} />} count={openSupport}>Assistance</SideLink>}
           <div className="mx-3 my-2 hidden h-px bg-black/[0.06] lg:block" />
           <SideLink href="/of/courses" icon={<BookOpen strokeWidth={1.75} />}>Formations</SideLink>
           <SideLink href="/of/sessions" icon={<CalendarDays strokeWidth={1.75} />}>Sessions & émargement</SideLink>

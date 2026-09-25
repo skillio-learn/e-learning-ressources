@@ -87,6 +87,10 @@ model User {
   supportConversations SupportConversation[]  @relation("SupportRequester")
   assignedSupport      SupportConversation[]  @relation("SupportAssignee")
   supportMessages      SupportMessage[]
+  ticketsRequested     SupportTicket[]        @relation("TicketRequester")
+  ticketsAssigned      SupportTicket[]        @relation("TicketAssignee")
+  ticketMessages       SupportTicketMessage[]
+  supportReferentOf    Organization[]         @relation("OrgSupportReferent")
 }
 
 model Setting {
@@ -571,6 +575,9 @@ model Organization {
   supportHours         String? // ex. « Du lundi au vendredi, 9 h – 18 h »
   supportResponseHours Int      @default(24) // Engagement de délai de première réponse (heures ouvrées)
   supportAutoReply     String?  @db.Text // Message automatique à l'ouverture d'une conversation
+  // Support Vylia : interlocuteur de l'OF pour les tickets avec l'administrateur
+  supportReferentId    String?
+  supportReferent      User?    @relation("OrgSupportReferent", fields: [supportReferentId], references: [id], onDelete: SetNull)
   active               Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -579,6 +586,7 @@ model Organization {
   feedbacks            FunderFeedback[]
   learnerDocuments     LearnerDocument[]
   supportConversations SupportConversation[]
+  supportTickets       SupportTicket[]
   courses              Course[]
   auditLogs            AuditLog[]
   complaints           Complaint[]
@@ -1041,4 +1049,69 @@ model SupportMessage {
   createdAt      DateTime            @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// ─────────────────────────────── Support Vylia : tickets OF ↔ administrateur ───────────────────────────────
+
+enum TicketStatus {
+  OPEN // Nouveau, pas encore pris en charge
+  IN_PROGRESS // Pris en charge par le support Vylia
+  WAITING_OF // Réponse apportée, en attente de l'OF
+  RESOLVED // Solution apportée, en attente de confirmation
+  CLOSED // Clôturé
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+/// Ticket d'assistance ouvert par le référent d'un OF auprès du support Vylia (administrateur)
+model SupportTicket {
+  id              String                 @id @default(cuid())
+  number          String                 @unique // TCK-2026-00001
+  organizationId  String
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requesterId     String
+  requester       User                   @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignedToId    String?
+  assignedTo      User?                  @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  category        String // TECH, BUG, ACCOUNT, BILLING, FEATURE, COMPLIANCE, OTHER
+  priority        TicketPriority         @default(NORMAL)
+  status          TicketStatus           @default(OPEN)
+  subject         String
+  lastMessageAt   DateTime               @default(now())
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  rating          Int? // Satisfaction 1–5 à la clôture
+  ratingComment   String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  messages        SupportTicketMessage[]
+
+  @@index([status, priority, lastMessageAt])
+  @@index([organizationId, status, lastMessageAt])
+}
+
+model SupportTicketMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  fromAdmin Boolean       @default(false)
+  internal  Boolean       @default(false) // Note interne du support, invisible pour l'OF
+  system    Boolean       @default(false) // Évènement automatique (changement de statut, assignation…)
+  body      String        @db.Text
+  fileName  String?
+  fileType  String?
+  size      Int?
+  data      Bytes?
+  readAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
 }

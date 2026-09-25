@@ -99,7 +99,8 @@ export async function submitAccountAction(_: ActionState, fd: FormData): Promise
   if (user.organizationId) await notifyOrgManagers(user.organizationId, title, body, `/of/accounts/${user.id}`);
   else {
     const admins = await db.user.findMany({ where: { role: "ADMIN", active: true }, select: { id: true } });
-    await Promise.all(admins.map((a) => notify(a.id, title, body, `/of/accounts/${user.id}`)));
+    // Apprenant sans organisme : l'administrateur doit le rattacher à un OF qui validera son compte
+    await Promise.all(admins.map((a) => notify(a.id, `${title} (sans organisme)`, `${body} Rattachez-le à un organisme de formation.`, `/admin/users?q=${encodeURIComponent(u.email)}`)));
   }
   revalidateAccount(user.id);
   return { ok: "Dossier envoyé ! L'organisme va vérifier vos informations." };

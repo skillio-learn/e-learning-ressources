@@ -1,7 +1,7 @@
 import { requireStaff, isOfManager } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  BarChart3, BookOpen, CalendarDays, ClipboardList, Headset, Home, Inbox, KeyRound, MessagesSquare, PenLine, ScrollText, Settings, Star, UserCheck, Users, UserCog,
+  BarChart3, BookOpen, CalendarDays, ClipboardList, Headset, Home, Inbox, KeyRound, LifeBuoy, MessagesSquare, PenLine, ScrollText, Settings, Star, UserCheck, Users, UserCog,
 } from "lucide-react";
 import { SideLink } from "@/components/NavLink";
 
@@ -14,7 +14,11 @@ export default async function OfLayout({ children }: { children: React.ReactNode
     manager ? db.enrollment.count({ where: { accessStatus: "UNDER_REVIEW", ...(user.role === "ADMIN" ? {} : { course: orgScope }) } }) : Promise.resolve(0),
     db.supportConversation.count({ where: { status: "OPEN", ...orgScope } }),
   ]);
-    const [org, pendingApps, pendingGrading, unreadMessages] = await Promise.all([
+  const ticketReplies =
+    user.role === "OF_ADMIN" && user.organizationId
+      ? await db.supportTicketMessage.count({ where: { fromAdmin: true, internal: false, system: false, readAt: null, ticket: { organizationId: user.organizationId } } })
+      : 0;
+  const [org, pendingApps, pendingGrading, unreadMessages] = await Promise.all([
     user.organizationId ? db.organization.findUnique({ where: { id: user.organizationId }, select: { name: true } }) : null,
     manager
       ? db.application.count({
@@ -56,6 +60,8 @@ export default async function OfLayout({ children }: { children: React.ReactNode
           {manager && <SideLink href="/of/audit" icon={<ScrollText strokeWidth={1.75} />}>Journal d&apos;audit</SideLink>}
           {manager && <SideLink href="/of/team" icon={<UserCog strokeWidth={1.75} />}>Équipe</SideLink>}
           {manager && user.role !== "ADMIN" && <SideLink href="/of/settings" icon={<Settings strokeWidth={1.75} />}>Paramètres de l&apos;OF</SideLink>}
+          {user.role === "OF_ADMIN" && <div className="mx-3 my-2 hidden h-px bg-black/[0.06] lg:block" />}
+          {user.role === "OF_ADMIN" && <SideLink href="/of/tickets" icon={<LifeBuoy strokeWidth={1.75} />} count={ticketReplies}>Support Vylia</SideLink>}
         </nav>
       </aside>
       <div className="min-w-0 flex-1">{children}</div>

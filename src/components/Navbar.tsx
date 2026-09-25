@@ -26,7 +26,7 @@ export async function Navbar() {
   return (
     <header className="no-print glass sticky top-0 z-40 border-b border-black/[0.08]">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:gap-6">
-        <Link href={user ? (staff ? "/of" : "/dashboard") : "/"} className="shrink-0 transition-opacity hover:opacity-80" aria-label={settings.platformName}>
+        <Link href={user ? (user.role === "ADMIN" ? "/admin" : staff ? "/of" : "/dashboard") : "/"} className="shrink-0 transition-opacity hover:opacity-80" aria-label={settings.platformName}>
           <Logo name={settings.platformName} />
         </Link>
         <nav className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto px-1 [scrollbar-width:none]">
@@ -35,7 +35,7 @@ export async function Navbar() {
           {user && !staff && <NavLink href="/applications">Mes dossiers</NavLink>}
           {user && !staff && <NavLink href="/attendance">Émargement</NavLink>}
           {user && !staff && <NavLink href="/support">Aide</NavLink>}
-          {staff && <NavLink href="/of">Espace OF{org ? ` · ${org.name}` : ""}</NavLink>}
+          {staff && user?.role !== "ADMIN" && <NavLink href="/of">Espace OF{org ? ` · ${org.name}` : ""}</NavLink>}
           {user?.role === "ADMIN" && <NavLink href="/admin">Administration</NavLink>}
         </nav>
         {user ? (

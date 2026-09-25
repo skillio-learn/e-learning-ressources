@@ -54,6 +54,13 @@ Skillio héberge plusieurs **organismes de formation (OF)**. Chacun a son espace
 - **Mot de passe oublié** (lien par email) et réinitialisation par l'OF.
 - **Temps sur les modules interactifs** : délai d'inactivité spécifique (paramétrable par OF) quand l'apprenant travaille dans un module embarqué.
 
+### Inscription à la plateforme, accès aux parcours et assistance (lot 3)
+
+- **Compte apprenant validé par l'OF** : auto-inscription (choix de l'organisme) ou création par l'OF (lien d'activation 7 jours). L'apprenant complète son dossier administratif et ses pièces (`/onboarding`) ; tant que le compte n'est pas validé, il n'accède qu'à son onboarding, son profil, l'assistance et le catalogue. L'OF valide, demande des compléments ou refuse (`/of/accounts`).
+- **Accès aux parcours** : toute inscription (par l'OF, après candidature ou sur demande de l'apprenant) exige les documents paramétrés par l'OF — convention / contrat signé, CGV, règlement intérieur, accord de financement… Signature en ligne (horodatage, IP, empreinte SHA-256 et copie du texte signé) ou dépôt d'un scan ; l'OF est notifié, valide ou refuse chaque pièce, puis ouvre ou refuse l'accès (`/of/access`). Le parcours reste fermé tant que l'accès n'est pas ouvert. Option : ouverture automatique quand tout est validé.
+- **Chat d'assistance** : widget flottant pour les apprenants (même compte en attente), catégories, message automatique, horaires et engagement de délai ; boîte de réception OF (`/of/support`) avec assignation, résolution, délai de première réponse et satisfaction.
+- Paramètres correspondants dans **Paramètres de l'OF** ; toutes les décisions sont journalisées (journal d'audit).
+
 ### Qualité et RGPD
 - Questionnaire de **satisfaction** à chaud (6 critères + recommandation + commentaire), avec statistiques par critère (Qualiopi, indicateur 30).
 - **Réclamations et demandes** avec suivi du traitement et réponse notifiée (Qualiopi, indicateur 31).

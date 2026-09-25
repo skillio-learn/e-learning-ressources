@@ -76,6 +76,8 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
 
   const orgSlug = String(fd.get("of") ?? "");
   const org = orgSlug ? await db.organization.findUnique({ where: { slug: orgSlug }, select: { id: true, active: true } }) : null;
+  const choosable = await db.organization.count({ where: { active: true, allowSelfRegistration: true } });
+  if (choosable > 0 && !org?.active) return { error: "Choisissez votre organisme de formation." };
   const { ip, userAgent } = await getClientInfo();
   const user = await db.user.create({
     data: {
@@ -86,6 +88,9 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       lastLoginAt: new Date(),
       consentAt: new Date(),
       organizationId: org?.active ? org.id : null,
+      // Le compte est utilisable après saisie des informations administratives et validation par l'OF
+      accountStatus: "PENDING_PROFILE",
+      createdVia: "SELF",
     },
   });
   await db.loginEvent.create({ data: { userId: user.id, email, type: "LOGIN", ip, userAgent } });
@@ -93,7 +98,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
   await audit("auth.register", { actorId: user.id, organizationId: user.organizationId, entityType: "User", entityId: user.id });
   const token = await signSession({ uid: user.id, role: user.role, name: user.name });
   (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions);
-  redirect(safeNext(fd.get("next")));
+  redirect("/onboarding");
 }
 
 export async function logoutAction() {

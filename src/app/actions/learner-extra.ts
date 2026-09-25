@@ -38,7 +38,7 @@ export async function signAttendanceAction(slotId: string, signature: string) {
   });
   if (!slot) throw new Error("Créneau introuvable");
   const enrollment = await db.enrollment.findFirst({
-    where: { userId: user.id, courseId: slot.session.courseId, sessionId: slot.sessionId, status: { not: "SUSPENDED" } },
+    where: { userId: user.id, courseId: slot.session.courseId, sessionId: slot.sessionId, status: { not: "SUSPENDED" }, accessStatus: "GRANTED" },
   });
   if (!enrollment) throw new Error("Vous n'êtes pas inscrit(e) à cette session");
   // Signature possible uniquement le jour du créneau

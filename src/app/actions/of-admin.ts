@@ -8,7 +8,7 @@ import { requireOfManager, requireStaff } from "@/lib/auth";
 import { assertCanManageCourse, canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
-import { DOCUMENT_TYPES } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS } from "@/lib/labels";
 import { bool, optFloat, optInt, optStr, randomCode, safeUrl, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -34,6 +34,8 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
   if (interactiveTimeout < timeout || interactiveTimeout > 180) {
     return { error: "Délai d'inactivité des modules interactifs : entre le délai standard et 180 minutes." };
   }
+  const supportResponseHours = optInt(fd, "supportResponseHours") ?? 24;
+  if (supportResponseHours < 1 || supportResponseHours > 168) return { error: "Délai de réponse de l'assistance : entre 1 et 168 heures." };
   const data = {
     name: str(fd, "name") || "Organisme",
     legalName: optStr(fd, "legalName"),
@@ -58,6 +60,20 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
     interactiveTimeoutMin: interactiveTimeout,
     referentHandicap: optStr(fd, "referentHandicap"),
     mediatorInfo: optStr(fd, "mediatorInfo"),
+    // Inscription à la plateforme
+    requireAccountValidation: bool(fd, "requireAccountValidation"),
+    allowSelfRegistration: bool(fd, "allowSelfRegistration"),
+    accountRequiredDocuments: fd.getAll("accountRequiredDocuments").map(String).filter((c) => (ACCOUNT_DOCUMENT_CHOICES as readonly string[]).includes(c)),
+    // Accès aux parcours
+    enrollmentRequiredDocuments: fd.getAll("enrollmentRequiredDocuments").map(String).filter((c) => c in ENROLLMENT_DOCUMENTS),
+    autoGrantAccess: bool(fd, "autoGrantAccess"),
+    cgvText: optStr(fd, "cgvText")?.slice(0, 100_000) ?? null,
+    internalRulesText: optStr(fd, "internalRulesText")?.slice(0, 100_000) ?? null,
+    // Assistance
+    supportEnabled: bool(fd, "supportEnabled"),
+    supportHours: optStr(fd, "supportHours"),
+    supportResponseHours,
+    supportAutoReply: optStr(fd, "supportAutoReply"),
   };
   await db.organization.update({ where: { id: orgId }, data });
   await audit("organization.update", { actorId: user.id, organizationId: orgId, entityType: "Organization", entityId: orgId });

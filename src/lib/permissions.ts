@@ -78,6 +78,10 @@ export async function canManageRubric(user: CurrentUser, rubricId: string) {
 export async function canViewLearner(user: CurrentUser, learnerId: string) {
   if (user.role === "ADMIN") return true;
   if (user.role === "LEARNER") return user.id === learnerId;
+  if (user.role === "OF_ADMIN" && user.organizationId) {
+    const own = await db.user.count({ where: { id: learnerId, organizationId: user.organizationId } });
+    if (own) return true;
+  }
   const courseWhere = manageableCoursesWhere(user);
   const [enr, app] = await Promise.all([
     db.enrollment.count({ where: { userId: learnerId, course: courseWhere } }),

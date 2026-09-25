@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { timeoutsFor } from "@/lib/tracking";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/brand/Logo";
+import { SupportWidget } from "@/components/support/SupportWidget";
 import { ActivityTracker } from "@/components/tracking/ActivityTracker";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,7 +33,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="flex min-h-screen flex-col">
         <Navbar />
         {user && <ActivityTracker timeoutMin={timeouts.standard} interactiveTimeoutMin={timeouts.interactive} />}
-        <div className="flex-1 animate-fade-in">{children}</div>
+        <div className={user?.role === "LEARNER" ? "flex-1 animate-fade-in pb-20" : "flex-1 animate-fade-in"}>{children}</div>
+        {user?.role === "LEARNER" && <SupportWidget />}
         <footer className="no-print border-t border-black/[0.08]">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 sm:flex-row">
             <Logo name={settings.platformName} className="scale-90 opacity-70" />

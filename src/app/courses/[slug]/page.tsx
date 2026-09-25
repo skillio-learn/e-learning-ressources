@@ -89,8 +89,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               // eslint-disable-next-line @next/next/no-img-element
               <img src={course.coverUrl} alt="" className="mb-4 aspect-video w-full rounded-lg object-cover" />
             )}
-            {enrollment ? (
+            {enrollment && enrollment.accessStatus !== "GRANTED" ? (
+              <Link href={`/enrollments/${enrollment.id}`} className="btn-primary w-full">Finaliser mon inscription</Link>
+            ) : enrollment ? (
               <Link href={`/learn/${course.slug}`} className="btn-primary w-full">Continuer la formation</Link>
+            ) : user && user.role === "LEARNER" && user.accountStatus !== "ACTIVE" ? (
+              <div className="space-y-2">
+                <Link href="/onboarding" className="btn-primary w-full">Finaliser mon inscription à la plateforme</Link>
+                <p className="text-xs text-slate-500">Votre compte doit être validé par l&apos;organisme avant de pouvoir candidater.</p>
+              </div>
             ) : manager ? (
               <Link href={`/learn/${course.slug}`} className="btn-primary w-full">Prévisualiser comme apprenant</Link>
             ) : !user ? (

@@ -17,6 +17,14 @@ enum Role {
   LEARNER // Apprenant : candidate et suit les formations
 }
 
+/// Statut du compte apprenant sur la plateforme (validation par l'OF avant tout accès)
+enum AccountStatus {
+  PENDING_PROFILE // Informations administratives à compléter (ou compléments demandés par l'OF)
+  PENDING_REVIEW // Dossier de compte envoyé, en attente de validation par l'OF
+  ACTIVE // Compte validé
+  REJECTED // Inscription à la plateforme refusée
+}
+
 model User {
   id                  String        @id @default(cuid())
   email               String        @unique
@@ -33,6 +41,15 @@ model User {
   lockedUntil         DateTime?
   consentAt           DateTime? // Acceptation CGU / politique de confidentialité
   deletionRequestedAt DateTime?
+
+  // Validation du compte (apprenants) — les comptes équipe sont ACTIVE d'office
+  accountStatus       AccountStatus @default(ACTIVE)
+  createdVia          String        @default("SELF") // SELF (auto-inscription), OF (créé par l'organisme), ADMIN, SEED
+  accountSubmittedAt  DateTime?
+  accountReviewedAt   DateTime?
+  accountReviewedById String?
+  accountReviewedBy   User?         @relation("AccountReviewer", fields: [accountReviewedById], references: [id], onDelete: SetNull)
+  accountReviewNote   String?       @db.Text // Motif de refus ou compléments demandés
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -62,6 +79,14 @@ model User {
   gradedSubmissions    Submission[]           @relation("SubmissionGrader")
   rubrics              Rubric[]
   certificates         Certificate[]
+  reviewedAccounts     User[]                 @relation("AccountReviewer")
+  learnerDocuments     LearnerDocument[]      @relation("DocumentOwner")
+  uploadedDocuments    LearnerDocument[]      @relation("DocumentUploader")
+  reviewedLearnerDocs  LearnerDocument[]      @relation("DocumentReviewer")
+  accessDecisions      Enrollment[]           @relation("AccessDecider")
+  supportConversations SupportConversation[]  @relation("SupportRequester")
+  assignedSupport      SupportConversation[]  @relation("SupportAssignee")
+  supportMessages      SupportMessage[]
 }
 
 model Setting {
@@ -397,6 +422,14 @@ model RubricScore {
 
 // ─────────────────────────────── Inscriptions & progression ───────────────────────────────
 
+/// Accès effectif au parcours (distinct du statut pédagogique)
+enum AccessStatus {
+  PENDING_DOCUMENTS // Documents d'inscription à fournir
+  UNDER_REVIEW // Documents envoyés, en attente de validation par l'OF
+  GRANTED // Accès ouvert
+  REFUSED // Accès refusé par l'OF
+}
+
 enum EnrollmentStatus {
   ACTIVE
   COMPLETED
@@ -441,6 +474,16 @@ model Enrollment {
 
   // Auto-évaluation de sortie sur les compétences visées (positionnement de sortie)
   exitAssessment Json?
+
+  // Accès au parcours : documents d'inscription (convention signée, CGV, règlement intérieur…) validés par l'OF
+  accessStatus       AccessStatus      @default(PENDING_DOCUMENTS)
+  origin             String            @default("OF") // OF (inscrit par l'organisme), APPLICATION (candidature), SELF (demande directe)
+  accessSubmittedAt  DateTime? // Dossier d'accès envoyé par l'apprenant
+  accessDecidedAt    DateTime?
+  accessDecidedById  String?
+  accessDecidedBy    User?             @relation("AccessDecider", fields: [accessDecidedById], references: [id], onDelete: SetNull)
+  accessDecisionNote String?           @db.Text
+  documents          LearnerDocument[]
 
   satisfactions SatisfactionResponse[]
   messages      PedagogicalMessage[]
@@ -511,15 +554,34 @@ model Organization {
   signatureImage        String?   @db.Text // Signature / cachet de l'OF (PNG data URL) apposé sur les documents
   referentHandicap      String? // Nom / contact du référent handicap
   mediatorInfo          String?   @db.Text // Médiateur de la consommation (contrats particuliers)
-  active                Boolean   @default(true)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  cgvText               String?   @db.Text // Conditions générales de vente (signées en ligne par l'apprenant)
+  internalRulesText     String?   @db.Text // Règlement intérieur (signé en ligne par l'apprenant)
 
-  users      User[]
-  feedbacks  FunderFeedback[]
-  courses    Course[]
-  auditLogs  AuditLog[]
-  complaints Complaint[]
+  // Inscription à la plateforme
+  requireAccountValidation Boolean  @default(true) // Les comptes apprenants doivent être validés par l'OF
+  accountRequiredDocuments String[] @default(["ID"]) // Pièces demandées à la création du compte
+  allowSelfRegistration    Boolean  @default(true) // L'OF apparaît dans la liste d'auto-inscription
+
+  // Accès aux parcours
+  enrollmentRequiredDocuments String[] @default(["CONVENTION", "CGV", "INTERNAL_RULES"])
+  autoGrantAccess             Boolean  @default(false) // Ouvrir l'accès dès que toutes les pièces sont validées
+
+  // Chat d'assistance
+  supportEnabled       Boolean  @default(true)
+  supportHours         String? // ex. « Du lundi au vendredi, 9 h – 18 h »
+  supportResponseHours Int      @default(24) // Engagement de délai de première réponse (heures ouvrées)
+  supportAutoReply     String?  @db.Text // Message automatique à l'ouverture d'une conversation
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  users                User[]
+  feedbacks            FunderFeedback[]
+  learnerDocuments     LearnerDocument[]
+  supportConversations SupportConversation[]
+  courses              Course[]
+  auditLogs            AuditLog[]
+  complaints           Complaint[]
 }
 
 // ─────────────────────────────── Dossier apprenant & candidatures ───────────────────────────────
@@ -897,4 +959,86 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+// ─────────────────────────────── Lot 3 : comptes, accès, assistance ───────────────────────────────
+
+/// Pièce du dossier apprenant : compte (identité…) ou inscription à un parcours (convention signée, CGV, règlement intérieur…)
+model LearnerDocument {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("DocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId  String?
+  organization    Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  enrollmentId    String? // null = pièce de compte
+  enrollment      Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  type            String // Code (voir ACCOUNT_DOCUMENTS / ENROLLMENT_DOCUMENTS)
+  source          String // LEARNER_UPLOAD, STAFF_UPLOAD, E_SIGNATURE
+  // Fichier déposé
+  fileName        String?
+  fileType        String?
+  size            Int?
+  data            Bytes?
+  // Signature électronique
+  signature       String?        @db.Text // Image PNG de la signature
+  signedIp        String?
+  signedUserAgent String?
+  contentHash     String? // Empreinte SHA-256 du texte signé (preuve de la version)
+  signedContent   String?        @db.Text // Copie du texte signé (CGV, règlement intérieur) au moment de la signature
+  // Revue
+  status          DocumentStatus @default(PENDING)
+  comment         String?
+  uploadedById    String?
+  uploadedBy      User?          @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  reviewedById    String?
+  reviewedBy      User?          @relation("DocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@index([userId, enrollmentId])
+  @@index([organizationId, status])
+}
+
+enum SupportStatus {
+  OPEN // En attente d'une réponse de l'équipe
+  WAITING // Répondu, en attente de l'utilisateur
+  RESOLVED
+}
+
+/// Chat d'assistance (technique, administratif, pédagogique, financement)
+model SupportConversation {
+  id              String           @id @default(cuid())
+  userId          String
+  user            User             @relation("SupportRequester", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId  String? // OF qui traite ; null = support Vylia
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  category        String // TECH, ACCOUNT, ENROLLMENT, PEDAGOGY, FUNDING, OTHER
+  subject         String
+  status          SupportStatus    @default(OPEN)
+  assignedToId    String?
+  assignedTo      User?            @relation("SupportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  lastMessageAt   DateTime         @default(now())
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  rating          Int? // Satisfaction 1–5 après résolution
+  createdAt       DateTime         @default(now())
+  messages        SupportMessage[]
+
+  @@index([organizationId, status, lastMessageAt])
+  @@index([userId, lastMessageAt])
+}
+
+model SupportMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String?
+  author         User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  fromStaff      Boolean             @default(false)
+  system         Boolean             @default(false) // Message automatique
+  body           String              @db.Text
+  readAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@index([conversationId, createdAt])
 }

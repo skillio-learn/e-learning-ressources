@@ -1,13 +1,19 @@
 import { requireStaff, isOfManager } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  BarChart3, BookOpen, CalendarDays, ClipboardList, Home, Inbox, MessagesSquare, PenLine, ScrollText, Settings, Star, Users, UserCog,
+  BarChart3, BookOpen, CalendarDays, ClipboardList, Headset, Home, Inbox, KeyRound, MessagesSquare, PenLine, ScrollText, Settings, Star, UserCheck, Users, UserCog,
 } from "lucide-react";
 import { SideLink } from "@/components/NavLink";
 
 export default async function OfLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
   const manager = isOfManager(user);
+  const orgScope = user.role === "ADMIN" ? {} : { organizationId: user.organizationId ?? "__none__" };
+  const [pendingAccounts, pendingAccess, openSupport] = await Promise.all([
+    manager ? db.user.count({ where: { role: "LEARNER", accountStatus: "PENDING_REVIEW", ...orgScope } }) : Promise.resolve(0),
+    manager ? db.enrollment.count({ where: { accessStatus: "UNDER_REVIEW", ...(user.role === "ADMIN" ? {} : { course: orgScope }) } }) : Promise.resolve(0),
+    db.supportConversation.count({ where: { status: "OPEN", ...orgScope } }),
+  ]);
     const [org, pendingApps, pendingGrading, unreadMessages] = await Promise.all([
     user.organizationId ? db.organization.findUnique({ where: { id: user.organizationId }, select: { name: true } }) : null,
     manager
@@ -33,9 +39,12 @@ export default async function OfLayout({ children }: { children: React.ReactNode
         </div>
         <nav className="flex gap-0.5 overflow-x-auto p-3 lg:flex-col">
           <SideLink href="/of/home" icon={<Home strokeWidth={1.75} />}>Tableau de bord</SideLink>
-          {manager && <SideLink href="/of/applications" icon={<Inbox strokeWidth={1.75} />} count={pendingApps}>Dossiers d&apos;inscription</SideLink>}
+          {manager && <SideLink href="/of/accounts" icon={<UserCheck strokeWidth={1.75} />} count={pendingAccounts}>Comptes apprenants</SideLink>}
+          {manager && <SideLink href="/of/applications" icon={<Inbox strokeWidth={1.75} />} count={pendingApps}>Dossiers de candidature</SideLink>}
+          {manager && <SideLink href="/of/access" icon={<KeyRound strokeWidth={1.75} />} count={pendingAccess}>Accès aux parcours</SideLink>}
           <SideLink href="/of/learners" icon={<Users strokeWidth={1.75} />}>Apprenants</SideLink>
-          <SideLink href="/of/messages" icon={<MessagesSquare strokeWidth={1.75} />} count={unreadMessages}>Messagerie</SideLink>
+          <SideLink href="/of/messages" icon={<MessagesSquare strokeWidth={1.75} />} count={unreadMessages}>Messagerie pédagogique</SideLink>
+          <SideLink href="/of/support" icon={<Headset strokeWidth={1.75} />} count={openSupport}>Assistance</SideLink>
           <div className="mx-3 my-2 hidden h-px bg-black/[0.06] lg:block" />
           <SideLink href="/of/courses" icon={<BookOpen strokeWidth={1.75} />}>Formations</SideLink>
           <SideLink href="/of/sessions" icon={<CalendarDays strokeWidth={1.75} />}>Sessions & émargement</SideLink>

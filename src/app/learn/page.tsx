@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getCourseOutline } from "@/lib/progress";
 import { CourseCard } from "@/components/CourseCard";
-import { Container, Empty, PageHeader } from "@/components/ui";
+import { Badge, Container, Empty, PageHeader } from "@/components/ui";
+import { ACCESS_STATUS } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Mes formations" };
@@ -31,9 +32,23 @@ export default async function MyCourses() {
         </Empty>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map(({ e, outline }) => (
-            <CourseCard key={e.id} href={`/learn/${e.course.slug}`} course={e.course} progress={outline?.percent ?? 0} />
-          ))}
+          {items.map(({ e, outline }) =>
+            e.accessStatus === "GRANTED" ? (
+              <CourseCard key={e.id} href={`/learn/${e.course.slug}`} course={e.course} progress={outline?.percent ?? 0} />
+            ) : (
+              <CourseCard
+                key={e.id}
+                href={`/enrollments/${e.id}`}
+                course={e.course}
+                footer={
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge>
+                    <span className="link">Finaliser mon inscription →</span>
+                  </div>
+                }
+              />
+            ),
+          )}
         </div>
       )}
       {certificates.length > 0 && (

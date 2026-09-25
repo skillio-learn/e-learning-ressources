@@ -6,6 +6,8 @@ import { canViewLearner, manageableCoursesWhere } from "@/lib/permissions";
 import { updateEnrollmentAction } from "@/app/actions/of-admin";
 import { createFunderFeedbackAction, requestColdEvaluationAction, sendConvocationAction } from "@/app/actions/compliance";
 import { ofResetLearnerPasswordAction } from "@/app/actions/password";
+import { enrollLearnerInCourseAction } from "@/app/actions/access";
+import { ACCESS_STATUS, ACCOUNT_STATUS } from "@/lib/labels";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StateForm } from "@/components/StateForm";
 import { StatusBadge } from "@/components/applications/StatusBadge";
@@ -54,6 +56,14 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
   const timeMap = new Map(timeByCourse.map((t) => [t.courseId, t]));
   const totalSec = timeByCourse.reduce((s, t) => s + (t._sum.seconds ?? 0), 0);
   const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+  const enrollable = manager
+    ? await db.course.findMany({
+        where: { ...courseWhere, status: "PUBLISHED", id: { notIn: courseIds } },
+        select: { id: true, title: true, sessions: { where: { open: true }, select: { id: true, name: true } } },
+        orderBy: { title: "asc" },
+      })
+    : [];
+  const acc = ACCOUNT_STATUS[learner.accountStatus];
   const p = learner.profile;
 
   return (
@@ -64,9 +74,12 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                 subtitle={`${learner.email}${p?.phone ? ` · ${p.phone}` : ""} · compte créé le ${formatDate(learner.createdAt)}`}
         actions={
           manager ? (
+            <>
+            <Link href={`/of/accounts/${id}`} className="inline-flex"><Badge tone={acc.tone}>Compte : {acc.label}</Badge></Link>
             <StateForm action={ofResetLearnerPasswordAction.bind(null, id)} submitLabel="Réinitialiser le mot de passe" submitClassName="btn-secondary btn-sm" className="max-w-xs space-y-2">
               <></>
             </StateForm>
+            </>
           ) : null
         }
       />
@@ -79,6 +92,28 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
 
       <section className="space-y-4">
         <h2>Inscriptions & suivi</h2>
+        {manager && enrollable.length > 0 && (
+          <details className="card p-5">
+            <summary className="cursor-pointer font-medium text-slate-900">Inscrire à une formation</summary>
+            <p className="mt-1 text-xs text-slate-500">L&apos;apprenant est notifié et doit fournir ses documents d&apos;inscription ; vous ouvrez ensuite son accès.</p>
+            <StateForm action={enrollLearnerInCourseAction.bind(null, id)} submitLabel="Inscrire" submitClassName="btn-primary self-end" className="mt-3 grid gap-3 md:grid-cols-5">
+              <label className="text-sm md:col-span-2"><span className="label">Formation *</span>
+                <select name="courseId" required className="input">
+                  {enrollable.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </label>
+              <label className="text-sm"><span className="label">Session</span>
+                <select name="sessionId" className="input">
+                  <option value="">—</option>
+                  {enrollable.flatMap((c) => c.sessions.map((s) => <option key={s.id} value={s.id}>{c.title.slice(0, 20)}… · {s.name}</option>))}
+                </select>
+              </label>
+              <label className="text-sm"><span className="label">Début</span><input type="date" name="startDate" className="input" /></label>
+              <label className="text-sm"><span className="label">Fin</span><input type="date" name="endDate" className="input" /></label>
+              <label className="text-sm"><span className="label">Heures prévues</span><input type="number" step="0.5" name="plannedHours" className="input" /></label>
+            </StateForm>
+          </details>
+        )}
         {learner.enrollments.map((e, i) => {
           const o = outlines[i];
           const t = timeMap.get(e.courseId);
@@ -94,7 +129,10 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                     {e.satisfactions.map((x) => ` · satisfaction ${x.kind === "COLD" ? "à froid" : "à chaud"} ${x.globalScore}/5`).join("")}
                   </div>
                 </div>
-                <Badge tone={ENROLLMENT_STATUS[e.status].tone}>{ENROLLMENT_STATUS[e.status].label}</Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/of/access/${e.id}`}><Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge></Link>
+                  <Badge tone={ENROLLMENT_STATUS[e.status].tone}>{ENROLLMENT_STATUS[e.status].label}</Badge>
+                </div>
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-4">
                 <div>

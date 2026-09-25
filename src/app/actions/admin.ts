@@ -25,7 +25,13 @@ export async function createUserAction(_: AdminState, fd: FormData): Promise<Adm
   if (password.length < 8) return { error: "Mot de passe : 8 caractères minimum." };
   const organizationId = str(fd, "organizationId") || null;
   if ((role === "OF_ADMIN" || role === "TRAINER") && !organizationId) return { error: "Choisissez l'organisme de rattachement." };
-  const created = await db.user.create({ data: { email, name, role, organizationId, passwordHash: await bcrypt.hash(password, 10) } });
+  const created = await db.user.create({
+    data: {
+      email, name, role, organizationId, passwordHash: await bcrypt.hash(password, 10), createdVia: "ADMIN",
+      // Un apprenant complète son dossier administratif, validé ensuite par son OF
+      ...(role === "LEARNER" ? { accountStatus: "PENDING_PROFILE" as const } : {}),
+    },
+  });
   await audit("user.create", { actorId: admin.id, organizationId, entityType: "User", entityId: created.id, details: { role } });
   revalidatePath("/admin/users");
   return { ok: `Compte créé pour ${email} — mot de passe : ${password}` };

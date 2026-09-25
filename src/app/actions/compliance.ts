@@ -11,6 +11,7 @@ import { appUrl } from "@/lib/email";
 import { getClientInfo } from "@/lib/request";
 import { FUNDER_QUESTIONS, RESPONDENT_TYPES } from "@/lib/labels";
 import { optStr, str } from "@/lib/utils";
+import { refreshAccessStatus, sha256 } from "@/lib/onboarding";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
 
@@ -38,14 +39,33 @@ export async function signConventionAction(enrollmentId: string, signature: stri
   const e = await loadEnrollment(enrollmentId);
   if (e.userId !== user.id) throw new Error("Seul le stagiaire peut signer sa convention");
   if (e.conventionSignedAt) return;
-  const { ip } = await getClientInfo();
+  const { ip, userAgent } = await getClientInfo();
+  const full = await db.enrollment.findUniqueOrThrow({ where: { id: enrollmentId }, include: { course: { select: { price: true } } } });
   await db.enrollment.update({
     where: { id: enrollmentId },
     data: { conventionSignedAt: new Date(), conventionSignature: signature, conventionSignedIp: ip },
   });
+  // Pièce du dossier d'accès : la convention signée en ligne est vérifiée par l'OF
+  await db.learnerDocument.create({
+    data: {
+      userId: user.id,
+      organizationId: e.course.organizationId,
+      enrollmentId,
+      type: "CONVENTION",
+      source: "E_SIGNATURE",
+      signature,
+      signedIp: ip,
+      signedUserAgent: userAgent,
+      // Empreinte des éléments contractuels signés (formation, dates, durée, financement, prix)
+      contentHash: sha256(JSON.stringify([e.course.title, full.startDate, full.endDate, full.plannedHours, full.fundingType, full.fundingReference, full.course.price])),
+      uploadedById: user.id,
+    },
+  });
+  await refreshAccessStatus(enrollmentId, user.id);
   await audit("enrollment.convention_signed", { actorId: user.id, organizationId: e.course.organizationId, entityType: "Enrollment", entityId: enrollmentId });
   await notifyOrgManagers(e.course.organizationId, `Convention signée – ${user.name}`, e.course.title, `/documents/convention/${enrollmentId}`);
   revalidatePath(`/documents/convention/${enrollmentId}`);
+  revalidatePath(`/enrollments/${enrollmentId}`);
 }
 
 export async function sendConvocationAction(enrollmentId: string) {

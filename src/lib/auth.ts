@@ -1,12 +1,12 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { Role, User } from "@prisma/client";
 import { db } from "./db";
 import { SESSION_COOKIE, verifySession } from "./session";
 
-export type CurrentUser = Pick<User, "id" | "email" | "name" | "role" | "active" | "organizationId">;
+export type CurrentUser = Pick<User, "id" | "email" | "name" | "role" | "active" | "organizationId" | "accountStatus">;
 
 /** Utilisateur connecté (relu en base à chaque requête pour refléter désactivation / changement de rôle). */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
@@ -15,15 +15,32 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (!session) return null;
   const user = await db.user.findUnique({
     where: { id: session.uid },
-    select: { id: true, email: true, name: true, role: true, active: true, organizationId: true },
+    select: { id: true, email: true, name: true, role: true, active: true, organizationId: true, accountStatus: true },
   });
   if (!user || !user.active) return null;
   return user;
 });
 
+/**
+ * Utilisateur connecté obligatoire.
+ * Un apprenant dont le compte n'est pas validé par l'OF est cantonné à son onboarding
+ * (profil, pièces, assistance) : toute autre page le redirige vers /onboarding.
+ */
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") {
+    const pathname = (await headers()).get("x-pathname");
+    const { isAllowedWhilePending } = await import("./onboarding");
+    if (!isAllowedWhilePending(pathname)) redirect("/onboarding");
+  }
+  return user;
+}
+
+/** Apprenant au compte validé (pour les actions sensibles : candidature, inscription, suivi). */
+export async function requireActiveLearnerAccount(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role === "LEARNER" && user.accountStatus !== "ACTIVE") redirect("/onboarding");
   return user;
 }
 

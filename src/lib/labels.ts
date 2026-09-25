@@ -133,3 +133,49 @@ export const RESPONDENT_TYPES: Record<string, string> = {
   FRANCE_TRAVAIL: "France Travail",
   OTHER: "Autre financeur / partenaire",
 };
+
+// ─────────────── Lot 3 : comptes, accès aux parcours, assistance ───────────────
+
+export const ACCOUNT_STATUS = {
+  PENDING_PROFILE: { label: "Informations à compléter", tone: "amber" },
+  PENDING_REVIEW: { label: "En attente de validation", tone: "blue" },
+  ACTIVE: { label: "Compte validé", tone: "green" },
+  REJECTED: { label: "Inscription refusée", tone: "red" },
+} as const;
+
+export const ACCESS_STATUS = {
+  PENDING_DOCUMENTS: { label: "Documents à fournir", tone: "amber" },
+  UNDER_REVIEW: { label: "En cours de validation", tone: "blue" },
+  GRANTED: { label: "Accès ouvert", tone: "green" },
+  REFUSED: { label: "Accès refusé", tone: "red" },
+} as const;
+
+/** Pièces possibles au niveau du compte (codes partagés avec DOCUMENT_TYPES). */
+export const ACCOUNT_DOCUMENT_CHOICES = ["ID", "PROOF_ADDRESS", "VITALE", "PHOTO", "CV", "DIPLOMA", "RQTH"] as const;
+
+/** Documents d'inscription à un parcours. `esign` : peut être signé en ligne sur la plateforme. */
+export const ENROLLMENT_DOCUMENTS: Record<string, { label: string; hint: string; esign: "convention" | "text" | null }> = {
+  CONVENTION: { label: "Convention / contrat de formation signé(e)", hint: "Signez en ligne ou déposez la version signée.", esign: "convention" },
+  CGV: { label: "Conditions générales de vente signées", hint: "Lisez et signez les CGV de l'organisme.", esign: "text" },
+  INTERNAL_RULES: { label: "Règlement intérieur signé", hint: "Lisez et signez le règlement intérieur de l'organisme.", esign: "text" },
+  FUNDING_AGREEMENT: { label: "Accord de prise en charge (financeur)", hint: "OPCO, France Travail, employeur, CPF…", esign: null },
+  IMAGE_RIGHTS: { label: "Autorisation de droit à l'image", hint: "Si des captations sont prévues pendant la formation.", esign: null },
+  IT_CHARTER: { label: "Charte d'utilisation de la plateforme", hint: "Charte informatique signée.", esign: null },
+};
+
+export const DOC_SOURCE = { LEARNER_UPLOAD: "Déposé par l'apprenant", STAFF_UPLOAD: "Déposé par l'organisme", E_SIGNATURE: "Signé en ligne" } as const;
+
+export const SUPPORT_CATEGORIES: Record<string, string> = {
+  ACCOUNT: "Mon compte / inscription",
+  ENROLLMENT: "Accès à une formation",
+  TECH: "Problème technique",
+  PEDAGOGY: "Question pédagogique",
+  FUNDING: "Financement",
+  OTHER: "Autre",
+};
+
+export const SUPPORT_STATUS = {
+  OPEN: { label: "En attente de réponse", tone: "amber" },
+  WAITING: { label: "Répondu", tone: "blue" },
+  RESOLVED: { label: "Résolu", tone: "green" },
+} as const;

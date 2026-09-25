@@ -37,12 +37,21 @@ async function main() {
       referentHandicap: "Camille Formatrice – handicap@skillio.fr – 01 23 45 67 89",
       mediatorInfo: "Médiateur de la consommation (à compléter par l'OF)",
     },
-    update: {},
+    // L'organisme par défaut est créé par la migration initiale : on complète ses paramètres de démonstration
+    update: {
+      referentHandicap: "Camille Formatrice – handicap@skillio.fr – 01 23 45 67 89",
+      supportHours: "Du lundi au vendredi, 9 h – 18 h",
+      supportResponseHours: 24,
+      cgvText:
+        "## Conditions générales de vente (modèle à adapter)\n\n**Objet.** Les présentes conditions s'appliquent aux formations dispensées par l'organisme.\n\n**Inscription.** L'inscription est définitive après validation du dossier et signature de la convention ou du contrat de formation.\n\n**Tarifs et paiement.** Les prix sont indiqués hors taxes. Pour un financement personnel, aucune somme n'est exigible avant la fin du délai de rétractation de 10 jours ; l'acompte est limité à 30 %.\n\n**Annulation, abandon.** En cas d'abandon, seules les prestations effectivement dispensées sont dues au prorata temporis.\n\n**Données personnelles.** Voir la politique de confidentialité de la plateforme.",
+      internalRulesText:
+        "## Règlement intérieur (modèle à adapter)\n\n*Articles L.6352-3 et R.6352-1 et suivants du Code du travail.*\n\n**Discipline.** Le stagiaire suit la formation personnellement, respecte les horaires et les consignes, et émarge ou se connecte pour justifier de sa présence.\n\n**Usage de la plateforme.** Les identifiants sont personnels ; le temps de connexion et les activités sont enregistrés pour justifier la réalisation de la formation auprès des financeurs.\n\n**Sanctions.** Tout manquement peut donner lieu à un avertissement ou à une exclusion, après que le stagiaire a été informé des griefs et entendu.\n\n**Représentation des stagiaires.** Pour les actions de plus de 500 heures, un délégué est élu.",
+    },
   });
   const upsertUser = (email: string, name: string, role: "ADMIN" | "OF_ADMIN" | "TRAINER" | "LEARNER") =>
     db.user.upsert({
       where: { email },
-      create: { email, name, role, passwordHash: hash, organizationId: role === "ADMIN" ? null : org.id, consentAt: new Date() },
+      create: { email, name, role, passwordHash: hash, organizationId: role === "ADMIN" ? null : org.id, consentAt: new Date(), createdVia: "SEED" },
       update: {},
     });
 
@@ -220,6 +229,9 @@ async function main() {
       endDate: session.endDate,
       plannedHours: 14,
       fundingType: "CPF",
+      origin: "OF",
+      accessStatus: "GRANTED", // inscription de démonstration déjà validée
+      accessDecidedAt: new Date(),
     },
   });
   console.log("✅ Données de démonstration créées. Mot de passe des comptes :", PASSWORD);

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireActiveLearnerAccount, requireUser } from "@/lib/auth";
+import { notifyOrgManagers } from "@/lib/notify";
+import { audit } from "@/lib/audit";
+import { initialAccessStatus, learnerCanAccess } from "@/lib/onboarding";
 import { completeLesson, getCourseOutline } from "@/lib/progress";
 import { gradeAnswer, recomputeAttempt } from "@/lib/quiz";
 import { safeUrl } from "@/lib/utils";
@@ -19,24 +22,29 @@ async function loadLessonForLearner(lessonId: string) {
     where: { userId_courseId: { userId: user.id, courseId: lesson.module.courseId } },
   });
   if (!enrollment || enrollment.status === "SUSPENDED") throw new Error("Vous n'êtes pas inscrit à cette formation");
+  if (!learnerCanAccess(user.accountStatus, enrollment)) throw new Error("Votre accès à cette formation n'est pas encore ouvert par l'organisme");
   const outline = await getCourseOutline(lesson.module.courseId, user.id);
   const entry = outline?.flat.find((l) => l.id === lessonId);
   if (!entry || entry.locked) throw new Error("Cette étape est verrouillée : terminez d'abord les étapes précédentes");
   return { user, lesson, slug: lesson.module.course.slug };
 }
 
+/** Demande d'inscription directe à une formation « ouverte » : l'OF valide les documents puis ouvre l'accès. */
 export async function enrollAction(courseId: string) {
-  const user = await requireUser();
-  const course = await db.course.findUnique({ where: { id: courseId } });
+  const user = await requireActiveLearnerAccount();
+  const course = await db.course.findUnique({ where: { id: courseId }, include: { organization: { select: { enrollmentRequiredDocuments: true } } } });
   if (!course || course.status !== "PUBLISHED" || course.enrollmentPolicy !== "OPEN") {
     throw new Error("Inscription impossible à cette formation");
   }
-  await db.enrollment.upsert({
-    where: { userId_courseId: { userId: user.id, courseId } },
-    create: { userId: user.id, courseId },
-    update: {},
+  const existing = await db.enrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId } } });
+  if (existing) redirect(`/enrollments/${existing.id}`);
+  const e = await db.enrollment.create({
+    data: { userId: user.id, courseId, origin: "SELF", accessStatus: initialAccessStatus(course.organization, "SELF"), startDate: new Date() },
   });
-  redirect(`/learn/${course.slug}`);
+  if (!user.organizationId) await db.user.update({ where: { id: user.id }, data: { organizationId: course.organizationId } });
+  await audit("enrollment.create", { actorId: user.id, organizationId: course.organizationId, entityType: "Enrollment", entityId: e.id, details: "demande de l'apprenant" });
+  await notifyOrgManagers(course.organizationId, `Demande d'inscription – ${user.name}`, `${user.name} demande à suivre « ${course.title} ».`, `/of/access/${e.id}`);
+  redirect(`/enrollments/${e.id}`);
 }
 
 export async function completeLessonAction(lessonId: string, score?: number | null) {

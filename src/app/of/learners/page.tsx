@@ -20,6 +20,9 @@ export default async function OfLearners({ searchParams }: { searchParams: Promi
     OR: [
       { enrollments: { some: { courseId: { in: ids } } } },
       ...(user.role !== "TRAINER" ? [{ applications: { some: { courseId: { in: ids }, status: { not: "DRAFT" as const } } } }] : []),
+      // Comptes rattachés à l'OF (y compris sans inscription) — hors filtre formation
+      ...(!course && user.role === "OF_ADMIN" && user.organizationId ? [{ organizationId: user.organizationId }] : []),
+      ...(!course && user.role === "ADMIN" ? [{ role: "LEARNER" as const }] : []),
     ],
     ...(q ? { AND: [{ OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] }] } : {}),
   };

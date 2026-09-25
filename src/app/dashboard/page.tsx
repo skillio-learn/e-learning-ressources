@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getCourseOutline } from "@/lib/progress";
 import { Container, Empty, PageHeader, ProgressBar, Stat } from "@/components/ui";
 import { formatDate, pct } from "@/lib/utils";
-import { APPLICATION_STATUS } from "@/lib/labels";
+import { ACCESS_STATUS, APPLICATION_STATUS } from "@/lib/labels";
 import { Badge } from "@/components/ui";
 
 export const metadata = { title: "Tableau de bord" };
@@ -59,8 +59,9 @@ async function LearnerDashboard({ userId }: { userId: string }) {
       include: { quiz: { select: { lesson: { select: { title: true, module: { select: { course: { select: { title: true } } } } } } } } },
     }),
   ]);
+  const pendingAccess = enrollments.filter((e) => e.accessStatus !== "GRANTED");
   const withProgress = await Promise.all(
-    enrollments.map(async (e) => ({ e, outline: await getCourseOutline(e.course.id, userId) })),
+    enrollments.filter((e) => e.accessStatus === "GRANTED").map(async (e) => ({ e, outline: await getCourseOutline(e.course.id, userId) })),
   );
   return (
     <div className="space-y-8">
@@ -73,6 +74,24 @@ async function LearnerDashboard({ userId }: { userId: string }) {
         <Link href="/attendance" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:shadow">
           Vous avez <b>{todaySlots.length}</b> émargement(s) à signer aujourd&apos;hui → Signer maintenant
         </Link>
+      )}
+      {pendingAccess.length > 0 && (
+        <section>
+          <h2 className="mb-3">Inscriptions à finaliser</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {pendingAccess.map((e) => (
+              <Link key={e.id} href={`/enrollments/${e.id}`} className="card card-hover flex items-center justify-between gap-3 p-4">
+                <div>
+                  <div className="font-medium text-slate-900">{e.course.title}</div>
+                  <div className="text-xs text-slate-500">
+                    {e.accessStatus === "PENDING_DOCUMENTS" ? "Signez ou déposez vos documents d'inscription" : e.accessStatus === "UNDER_REVIEW" ? "L'organisme vérifie vos documents" : e.accessDecisionNote ?? "Accès refusé"}
+                  </div>
+                </div>
+                <Badge tone={ACCESS_STATUS[e.accessStatus].tone}>{ACCESS_STATUS[e.accessStatus].label}</Badge>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
       {applications.length > 0 && (
         <section>

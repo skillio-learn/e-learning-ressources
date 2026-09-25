@@ -48,7 +48,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
       documents: { orderBy: { uploadedAt: "asc" }, select: { id: true, type: true, fileName: true, size: true, status: true, comment: true, uploadedAt: true } },
       events: { orderBy: { createdAt: "asc" }, include: { author: { select: { name: true, role: true } } } },
       session: true,
-      enrollment: { select: { id: true, conventionSignedAt: true } },
+      enrollment: { select: { id: true, conventionSignedAt: true, accessStatus: true } },
     },
   });
   if (!app || app.userId !== user.id) notFound();
@@ -108,9 +108,17 @@ export default async function ApplicationPage({ params, searchParams }: { params
       )}
       {app.status === "ENROLLED" && app.enrollment && (
         <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-          <span>Vous êtes inscrit(e) définitivement.{!app.enrollment.conventionSignedAt && " Dernière étape : signez votre convention / contrat de formation."}</span>
-          {!app.enrollment.conventionSignedAt && <Link href={`/documents/convention/${app.enrollment.id}`} className="btn-secondary ml-auto">Signer ma convention</Link>}
-          <Link href={`/learn/${app.course.slug}`} className="btn-primary">Accéder à la formation</Link>
+          {app.enrollment.accessStatus === "GRANTED" ? (
+            <>
+              <span>Vous êtes inscrit(e) définitivement et votre accès est ouvert.</span>
+              <Link href={`/learn/${app.course.slug}`} className="btn-primary ml-auto">Accéder à la formation</Link>
+            </>
+          ) : (
+            <>
+              <span>Candidature acceptée. Dernière étape : signez votre convention et vos documents d&apos;inscription pour que l&apos;organisme ouvre votre accès.</span>
+              <Link href={`/enrollments/${app.enrollment.id}`} className="btn-primary ml-auto">Finaliser mon inscription</Link>
+            </>
+          )}
         </div>
       )}
 

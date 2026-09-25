@@ -25,18 +25,18 @@ export function EnrollForm({ action }: { action: (prev: EnrollResult, fd: FormDa
           {state.notFound.length > 0 && <div className="text-amber-800">Comptes introuvables : {state.notFound.join(", ")}</div>}
           {state.created.length > 0 && (
             <div>
-              <div className="font-medium">Comptes créés — transmettez ces identifiants :</div>
+              <div className="font-medium">Comptes créés — transmettez ces liens d&apos;activation (valables 7 jours) :</div>
               <table className="mt-1 w-full text-xs">
                 <tbody>
                   {state.created.map((c) => (
                     <tr key={c.email}>
                       <td className="pr-2">{c.email}</td>
-                      <td className="font-mono">{c.password}</td>
+                      <td className="break-all font-mono">{c.link}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="mt-1 text-xs text-emerald-700">Ces mots de passe ne seront plus affichés. L&apos;apprenant pourra le modifier dans son profil.</p>
+              <p className="mt-1 text-xs text-emerald-700">L&apos;apprenant choisit son mot de passe, complète son dossier administratif, puis vous validez son compte (Comptes apprenants).</p>
             </div>
           )}
         </div>

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ApplicationStatus, EmploymentStatus, FundingType } from "@prisma/client";
 import { db } from "@/lib/db";
-import { requireUser, type CurrentUser } from "@/lib/auth";
+import { requireActiveLearnerAccount, requireUser, type CurrentUser } from "@/lib/auth";
+import { announceEnrollment, initialAccessStatus } from "@/lib/onboarding";
 import { canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { notify, notifyOrgManagers } from "@/lib/notify";
@@ -53,7 +54,8 @@ function revalidateApp(id: string) {
 // ═══════════════════════════════ Apprenant ═══════════════════════════════
 
 export async function startApplicationAction(courseId: string) {
-  const user = await requireUser();
+  // La candidature suppose un compte validé par l'OF
+  const user = await requireActiveLearnerAccount();
   const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true, status: true, enrollmentPolicy: true } });
   if (!course || course.status !== "PUBLISHED") throw new Error("Formation indisponible");
   const existing = await db.application.findFirst({
@@ -421,9 +423,11 @@ export async function enrollFromApplicationAction(applicationId: string, _: Acti
     plannedHours,
     enrolledById: user.id,
   };
+  const org = await db.organization.findUniqueOrThrow({ where: { id: app.course.organizationId }, select: { enrollmentRequiredDocuments: true } });
+  const previous = await db.enrollment.findUnique({ where: { userId_courseId: { userId: app.userId, courseId: app.courseId } }, select: { id: true } });
   const enrollment = await db.enrollment.upsert({
     where: { userId_courseId: { userId: app.userId, courseId: app.courseId } },
-    create: { userId: app.userId, courseId: app.courseId, ...data },
+    create: { userId: app.userId, courseId: app.courseId, ...data, origin: "APPLICATION", accessStatus: initialAccessStatus(org, "APPLICATION") },
     update: data,
   });
   await db.application.update({
@@ -443,12 +447,7 @@ export async function enrollFromApplicationAction(applicationId: string, _: Acti
   });
   const learner = await db.user.findUnique({ where: { id: app.userId }, select: { organizationId: true } });
   if (!learner?.organizationId) await db.user.update({ where: { id: app.userId }, data: { organizationId: app.course.organizationId } });
-  await notify(
-    app.userId,
-    `Inscription confirmée : ${app.course.title}`,
-    `Votre formation débute le ${startDate.toLocaleDateString("fr-FR")}. Vous pouvez y accéder dès maintenant depuis « Mes formations ».`,
-    `/learn/${app.course.slug}`,
-  );
+  if (!previous) await announceEnrollment(enrollment, app.course);
   await audit("enrollment.create", {
     actorId: user.id,
     organizationId: app.course.organizationId,

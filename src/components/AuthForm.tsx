@@ -8,17 +8,32 @@ export function AuthForm({
   mode,
   next,
   of,
+  organizations,
 }: {
   action: (s: FormState, fd: FormData) => Promise<FormState>;
   mode: "login" | "register";
   next?: string;
   of?: string;
+  /** Organismes proposés à l'auto-inscription (si aucun n'est imposé par le lien). */
+  organizations?: { slug: string; name: string; city: string | null }[];
 }) {
   const [state, formAction] = useActionState(action, undefined);
   return (
     <form action={formAction} className="space-y-4">
       {next && <input type="hidden" name="next" value={next} />}
       {of && <input type="hidden" name="of" value={of} />}
+      {mode === "register" && !of && organizations && (
+        <label className="block">
+          <span className="label">Organisme de formation</span>
+          <select name="of" required className="input" defaultValue={organizations.length === 1 ? organizations[0].slug : ""}>
+            <option value="" disabled>Choisissez votre organisme…</option>
+            {organizations.map((o) => (
+              <option key={o.slug} value={o.slug}>{o.name}{o.city ? ` — ${o.city}` : ""}</option>
+            ))}
+          </select>
+          <span className="hint block">C&apos;est lui qui validera votre inscription à la plateforme.</span>
+        </label>
+      )}
       {mode === "register" && (
         <label className="block">
           <span className="label">Nom complet</span>
@@ -44,8 +59,8 @@ export function AuthForm({
         <label className="flex items-start gap-2 text-sm text-slate-600">
           <input type="checkbox" name="consent" required className="mt-1 accent-brand-600" />
           <span>
-            J&apos;accepte les <a href="/legal/cgu" target="_blank" className="text-brand-600 underline">conditions générales d&apos;utilisation</a> et
-            la <a href="/legal/confidentialite" target="_blank" className="text-brand-600 underline">politique de confidentialité</a>{" "}
+            J&apos;accepte les <a href="/legal/cgu" target="_blank" className="link underline">conditions générales d&apos;utilisation</a> et
+            la <a href="/legal/confidentialite" target="_blank" className="link underline">politique de confidentialité</a>{" "}
             (traitement de mes données pour la gestion de ma formation).
           </span>
         </label>

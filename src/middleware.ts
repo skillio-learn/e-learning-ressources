@@ -1,11 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
-const PROTECTED = ["/dashboard", "/learn", "/of", "/admin", "/profile", "/applications", "/apply", "/attendance", "/support", "/notifications"];
+const PROTECTED = [
+  "/dashboard", "/learn", "/of", "/admin", "/profile", "/applications", "/apply", "/attendance", "/support", "/notifications",
+  "/onboarding", "/enrollments",
+];
+
+/** Transmet le chemin demandé aux composants serveur (garde « compte non validé » dans requireUser). */
+function next(req: NextRequest) {
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return NextResponse.next();
+  if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return next(req);
 
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) {
@@ -19,12 +29,10 @@ export async function middleware(req: NextRequest) {
   if ((pathname === "/of" || pathname.startsWith("/of/")) && session.role === "LEARNER") {
     return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
   }
-  return NextResponse.next();
+  return next(req);
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*", "/learn/:path*", "/of/:path*", "/of", "/admin/:path*", "/admin", "/profile/:path*",
-    "/applications/:path*", "/apply/:path*", "/attendance/:path*", "/support/:path*", "/notifications/:path*",
-  ],
+  // Toutes les pages et API, hors fichiers statiques.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|opengraph-image.png|twitter-image.png|brand/|lms-bridge.js).*)"],
 };

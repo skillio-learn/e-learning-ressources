@@ -11,6 +11,8 @@ import { assertCanManageCourse, canManageRubric, courseIdForLesson, courseIdForM
 import { completeLesson, evaluateCourseCompletion } from "@/lib/progress";
 import { recomputeAttempt } from "@/lib/quiz";
 import { bool, optFloat, optInt, optStr, randomCode, round2, safeUrl, slugify, str } from "@/lib/utils";
+import { announceEnrollment, createActivationLink, initialAccessStatus } from "@/lib/onboarding";
+import { appUrl } from "@/lib/email";
 
 const staff = () => requireRole(...STAFF_ROLES);
 
@@ -538,8 +540,11 @@ export async function importQuestionsAction(quizId: string, fd: FormData) {
 
 // ─────────────────────────────── Inscriptions ───────────────────────────────
 
-/** Inscrit des apprenants par email (un par ligne). Crée les comptes manquants avec un mot de passe temporaire. */
-export type EnrollResult = { enrolled: number; created: { email: string; password: string }[]; notFound: string[] } | null;
+/**
+ * Inscrit des apprenants par email (un par ligne). Les comptes manquants sont créés « à compléter » :
+ * l'apprenant reçoit un lien d'activation, complète son dossier administratif, puis l'OF valide son compte.
+ */
+export type EnrollResult = { enrolled: number; created: { email: string; link: string }[]; notFound: string[] } | null;
 
 export async function enrollLearnersAction(courseId: string, _prev: EnrollResult, fd: FormData): Promise<EnrollResult> {
   const user = await staff();
@@ -549,7 +554,8 @@ export async function enrollLearnersAction(courseId: string, _prev: EnrollResult
     .split(/[\n,;]+/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const created: { email: string; password: string }[] = [];
+  const created: { email: string; link: string }[] = [];
+  const course = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { title: true, slug: true, organizationId: true, organization: { select: { enrollmentRequiredDocuments: true } } } });
   const notFound: string[] = [];
   let enrolled = 0;
   for (const line of lines) {
@@ -564,18 +570,26 @@ export async function enrollLearnersAction(courseId: string, _prev: EnrollResult
         notFound.push(email);
         continue;
       }
-      const password = randomCode(10) + "7";
-      const courseOrg = await db.course.findUnique({ where: { id: courseId }, select: { organizationId: true } });
       learner = await db.user.create({
-        data: { email, name, passwordHash: await bcrypt.hash(password, 10), role: "LEARNER", organizationId: courseOrg?.organizationId },
+        data: {
+          email, name, role: "LEARNER", organizationId: course.organizationId,
+          passwordHash: await bcrypt.hash(randomCode(24), 10),
+          accountStatus: "PENDING_PROFILE", createdVia: "OF",
+        },
       });
-      created.push({ email, password });
+      created.push({ email, link: appUrl(await createActivationLink(learner.id)) });
+      await audit("account.invite", { actorId: user.id, organizationId: course.organizationId, entityType: "User", entityId: learner.id });
     }
+    const existing = await db.enrollment.findUnique({ where: { userId_courseId: { userId: learner.id, courseId } }, select: { id: true } });
     const enr = await db.enrollment.upsert({
       where: { userId_courseId: { userId: learner.id, courseId } },
-      create: { userId: learner.id, courseId, enrolledById: user.id, startDate: new Date() },
+      create: {
+        userId: learner.id, courseId, enrolledById: user.id, startDate: new Date(),
+        origin: "OF", accessStatus: initialAccessStatus(course.organization, "OF"),
+      },
       update: { status: "ACTIVE" },
     });
+    if (!existing) await announceEnrollment(enr, course);
     await audit("enrollment.create", { actorId: user.id, entityType: "Enrollment", entityId: enr.id, details: { direct: true, email } });
     enrolled++;
   }

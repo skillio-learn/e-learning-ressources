@@ -2,7 +2,7 @@ import type { Organization } from "@prisma/client";
 import { updateOrganizationAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
 import { Field } from "@/components/ui";
-import { DOCUMENT_TYPES } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES } from "@/lib/labels";
 
 export function OrganizationForm({ org }: { org: Organization }) {
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
@@ -59,6 +59,73 @@ export function OrganizationForm({ org }: { org: Organization }) {
           hint="L'activité à l'intérieur d'un module intégré (iframe) n'est visible que si le module inclut lms-bridge.js. Ce délai plus long évite de sous-compter le temps passé dans vos modules."
         >
           <input name="interactiveTimeoutMin" type="number" min={2} max={180} defaultValue={org.interactiveTimeoutMin} className="input max-w-[140px]" />
+        </Field>
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <h2>Inscription à la plateforme</h2>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="requireAccountValidation" defaultChecked={org.requireAccountValidation} className="mt-1" />
+          <span><b>Valider chaque compte apprenant</b> avant qu&apos;il accède à la plateforme (recommandé). Sinon, le compte est actif dès l&apos;envoi du dossier complet.</span>
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="allowSelfRegistration" defaultChecked={org.allowSelfRegistration} className="mt-1" />
+          <span>Proposer l&apos;organisme dans la liste d&apos;<b>auto-inscription</b> (sinon, seuls les comptes que vous créez ou votre lien d&apos;inscription sont possibles).</span>
+        </label>
+        <div>
+          <span className="label">Pièces demandées à la création du compte</span>
+          <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+            {ACCOUNT_DOCUMENT_CHOICES.map((code) => (
+              <label key={code} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="accountRequiredDocuments" value={code} defaultChecked={org.accountRequiredDocuments.includes(code)} />
+                {DOCUMENT_TYPES[code].label}
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <h2>Accès aux parcours</h2>
+        <div>
+          <span className="label">Documents d&apos;inscription exigés avant l&apos;ouverture de l&apos;accès</span>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {Object.entries(ENROLLMENT_DOCUMENTS).map(([code, d]) => (
+              <label key={code} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="enrollmentRequiredDocuments" value={code} defaultChecked={org.enrollmentRequiredDocuments.includes(code)} />
+                {d.label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="autoGrantAccess" defaultChecked={org.autoGrantAccess} className="mt-1" />
+          <span>Ouvrir l&apos;accès <b>automatiquement</b> dès que tous les documents sont validés (sinon, ouverture manuelle).</span>
+        </label>
+        <Field label="Conditions générales de vente — texte signé en ligne (Markdown)" hint="Si renseigné, l'apprenant peut lire et signer les CGV sur la plateforme ; la version signée est archivée avec son empreinte.">
+          <textarea name="cgvText" rows={8} defaultValue={org.cgvText ?? ""} className="input font-mono text-xs" />
+        </Field>
+        <Field label="Règlement intérieur — texte signé en ligne (Markdown)" hint="Art. L.6352-3 et R.6352-1 du Code du travail.">
+          <textarea name="internalRulesText" rows={8} defaultValue={org.internalRulesText ?? ""} className="input font-mono text-xs" />
+        </Field>
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <h2>Chat d&apos;assistance</h2>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="supportEnabled" defaultChecked={org.supportEnabled} className="mt-1" />
+          <span>Activer le chat d&apos;assistance pour vos apprenants</span>
+        </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Horaires de l'assistance" hint="ex. Du lundi au vendredi, 9 h – 18 h">
+            <input name="supportHours" defaultValue={org.supportHours ?? ""} className="input" />
+          </Field>
+          <Field label="Engagement de première réponse (heures ouvrées)">
+            <input name="supportResponseHours" type="number" min={1} max={168} defaultValue={org.supportResponseHours} className="input max-w-[140px]" />
+          </Field>
+        </div>
+        <Field label="Message automatique à l'ouverture d'une conversation" hint="Laisser vide pour le message par défaut (horaires et délai).">
+          <textarea name="supportAutoReply" rows={3} defaultValue={org.supportAutoReply ?? ""} className="input" />
         </Field>
       </section>
     </StateForm>

@@ -5,6 +5,7 @@ import { StateForm } from "@/components/StateForm";
 import { Badge, Container, Field, PageHeader } from "@/components/ui";
 import { COMPLAINT_CATEGORIES, COMPLAINT_STATUS } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
+import { OpenSupportButton } from "@/components/support/OpenSupportButton";
 
 export const metadata = { title: "Aide & réclamations" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,14 @@ export default async function Support() {
         title="Aide, questions & réclamations"
         subtitle="Une question pédagogique, un problème technique, une réclamation ? L'organisme de formation vous répond et trace le traitement de votre demande."
       />
+      <div className="card mb-6 flex flex-wrap items-center justify-between gap-4 p-6">
+        <div>
+          <h2>Chat d&apos;assistance</h2>
+          <p className="mt-1 text-sm text-slate-500">Pour une question rapide (inscription, accès, technique, financement) : échangez directement avec l&apos;équipe.</p>
+        </div>
+        <OpenSupportButton />
+      </div>
+      <h2 className="mb-3 text-base text-slate-600">Réclamation formelle</h2>
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="card p-6">
           <h2 className="mb-4">Nouvelle demande</h2>

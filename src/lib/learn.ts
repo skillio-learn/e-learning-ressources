@@ -5,6 +5,7 @@ import { db } from "./db";
 import { requireUser } from "./auth";
 import { canManageCourse } from "./permissions";
 import { getCourseOutline } from "./progress";
+import { learnerCanAccess } from "./onboarding";
 
 /**
  * Contexte d'apprentissage d'une formation : apprenant inscrit, ou formateur/admin en mode aperçu.
@@ -25,6 +26,8 @@ export const getLearnContext = cache(async (slug: string) => {
       notFound();
     }
   }
+  // Apprenant inscrit : le parcours n'est accessible qu'une fois l'accès ouvert par l'OF (documents validés)
+  if (enrollment && !manager && !learnerCanAccess(user.accountStatus, enrollment)) redirect(`/enrollments/${enrollment.id}`);
   const preview = !enrollment && manager;
   const outline = await getCourseOutline(course.id, user.id, { ignoreLocks: preview });
   if (!outline) notFound();

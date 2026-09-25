@@ -183,6 +183,7 @@ export const SUPPORT_STATUS = {
 // ─────────────── Support Vylia : tickets OF ↔ administrateur ───────────────
 
 export const TICKET_CATEGORIES: Record<string, string> = {
+  ORG_INFO: "Modification des informations de l'organisme",
   TECH: "Incident technique",
   BUG: "Anomalie / comportement inattendu",
   ACCOUNT: "Comptes, accès & équipe",
@@ -206,3 +207,33 @@ export const TICKET_STATUS = {
   RESOLVED: { label: "Résolu", ofLabel: "Résolu, à confirmer", tone: "green" },
   CLOSED: { label: "Clôturé", ofLabel: "Clôturé", tone: "gray" },
 } as const;
+
+/**
+ * Informations d'identité de l'organisme : une fois renseignées par l'OF, elles ne sont plus modifiables
+ * que par le support Vylia (demande par ticket, catégorie ORG_INFO).
+ */
+export const LOCKED_ORG_FIELDS = {
+  name: "Nom commercial",
+  legalName: "Raison sociale",
+  siret: "SIRET",
+  nda: "N° de déclaration d'activité",
+  ndaRegion: "Région / préfecture du NDA",
+  qualiopiNumber: "N° de certificat Qualiopi",
+  qualiopiDate: "Date de certification Qualiopi",
+  logoUrl: "Logo",
+  address: "Adresse",
+  postalCode: "Code postal",
+  city: "Ville",
+  phone: "Téléphone",
+  email: "Email de contact",
+  website: "Site web",
+  managerName: "Nom du signataire",
+  managerTitle: "Fonction du signataire",
+  internalRulesUrl: "Règlement intérieur (URL)",
+  cgvUrl: "CGV (URL)",
+  referentHandicap: "Référent handicap",
+  mediatorInfo: "Médiateur de la consommation",
+} as const;
+export type LockedOrgField = keyof typeof LOCKED_ORG_FIELDS;
+
+export const isOrgFieldFilled = (v: unknown) => v !== null && v !== undefined && String(v).trim() !== "";

@@ -7,8 +7,8 @@ import { db } from "@/lib/db";
 import { requireOfManager, requireStaff } from "@/lib/auth";
 import { assertCanManageCourse, canManageOrg } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
-import { notify } from "@/lib/notify";
-import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS } from "@/lib/labels";
+import { notify, notifyOrgManagers } from "@/lib/notify";
+import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
 import { bool, optFloat, optInt, optStr, randomCode, safeUrl, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -79,8 +79,30 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
     supportResponseHours,
     supportAutoReply: optStr(fd, "supportAutoReply"),
   };
+  const current = await db.organization.findUniqueOrThrow({ where: { id: orgId } });
+  const lockedKeys = Object.keys(LOCKED_ORG_FIELDS) as LockedOrgField[];
+  const same = (a: unknown, b: unknown) => (a instanceof Date ? a.getTime() : a ?? null) === (b instanceof Date ? b.getTime() : b ?? null);
+  if (user.role !== "ADMIN") {
+    // Informations déjà renseignées : seul le support Vylia peut les modifier (sur demande par ticket)
+    for (const k of lockedKeys) if (isOrgFieldFilled(current[k])) delete (data as Partial<typeof data>)[k];
+  }
+  const changedIdentity = lockedKeys.filter((k) => k in data && !same(data[k], current[k]));
   await db.organization.update({ where: { id: orgId }, data });
-  await audit("organization.update", { actorId: user.id, organizationId: orgId, entityType: "Organization", entityId: orgId });
+  await audit("organization.update", {
+    actorId: user.id,
+    organizationId: orgId,
+    entityType: "Organization",
+    entityId: orgId,
+    details: changedIdentity.length ? { identite: changedIdentity.map((k) => LOCKED_ORG_FIELDS[k]).join(", ") } : undefined,
+  });
+  if (user.role === "ADMIN" && changedIdentity.length) {
+    await notifyOrgManagers(
+      orgId,
+      "Informations de l'organisme mises à jour",
+      `Le support Vylia a modifié : ${changedIdentity.map((k) => LOCKED_ORG_FIELDS[k]).join(", ")}.`,
+      "/of/settings",
+    );
+  }
   revalidatePath("/of", "layout");
   revalidatePath(`/admin/organizations/${orgId}`);
   return { ok: "Paramètres enregistrés." };

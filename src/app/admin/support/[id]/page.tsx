@@ -124,6 +124,9 @@ export default async function AdminTicket({ params }: { params: Promise<{ id: st
           <section className="card space-y-1 p-5 text-sm text-slate-600">
             <h2 className="mb-1 text-base">Organisme</h2>
             <Link href={`/admin/organizations/${t.organization.id}`} className="link font-medium">{t.organization.name}</Link>
+            {t.category === "ORG_INFO" && (
+              <Link href={`/admin/organizations/${t.organization.id}`} className="btn-secondary btn-sm mt-2 w-full">Modifier la fiche de l&apos;organisme</Link>
+            )}
             {!t.organization.active && <Badge tone="red">Désactivé</Badge>}
             <div>{[t.organization.city, t.organization.email, t.organization.phone].filter(Boolean).join(" · ") || "—"}</div>
             <div>{t.organization._count.courses} formation(s) · {t.organization._count.users} compte(s)</div>

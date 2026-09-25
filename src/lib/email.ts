@@ -57,42 +57,44 @@ export type EmailContent = {
 export function renderEmail(c: EmailContent) {
   const url = c.cta ? (c.cta.url.startsWith("http") ? c.cta.url : appUrl(c.cta.url)) : null;
   const label = c.cta ? (c.cta.label ?? ctaLabelFor(c.cta.url)) : null;
-  const font = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-  const p = (t: string) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#424245;white-space:pre-line">${esc(t)}</p>`;
+  // Charte Vylia : Poppins (secours Arial) pour le texte, Lora (secours Georgia) pour les titres
+  const font = "Poppins,Arial,Helvetica,sans-serif";
+  const titleFont = "Lora,Georgia,'Times New Roman',serif";
+  const p = (t: string) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#17262D;white-space:pre-line">${esc(t)}</p>`;
   const html = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(c.title)}</title></head>
-<body style="margin:0;padding:0;background:#f5f5f7;-webkit-font-smoothing:antialiased">
+<body style="margin:0;padding:0;background:#F6F8F9;-webkit-font-smoothing:antialiased">
 <span style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(c.preheader ?? c.paragraphs[0] ?? "")}</span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:32px 12px;font-family:${font}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F8F9;padding:32px 12px;font-family:${font}">
 <tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
-    <tr><td style="padding:0 8px 20px"><img src="${appUrl("/brand/email-logo.png")}" width="94" height="24" alt="Vylia" style="display:block;border:0"></td></tr>
-    <tr><td style="background:#ffffff;border-radius:22px;padding:36px 32px;border:1px solid #e8e8ed">
-      <h1 style="margin:0 0 18px;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:#1d1d1f">${esc(c.title)}</h1>
+    <tr><td style="padding:0 8px 20px"><img src="${appUrl("/brand/email-logo.png")}" width="128" height="40" alt="Vylia" style="display:block;border:0"></td></tr>
+    <tr><td style="background:#ffffff;border-radius:16px;padding:36px 32px;border:1px solid #D6E0E3">
+      <h1 style="margin:0 0 18px;font-family:${titleFont};font-size:26px;line-height:34px;font-weight:600;color:#0E4D5C">${esc(c.title)}</h1>
       ${c.paragraphs.map(p).join("")}
       ${
         c.items?.length
-          ? `${c.itemsTitle ? `<p style="margin:6px 0 8px;font-size:13px;font-weight:600;color:#6e6e73;text-transform:uppercase;letter-spacing:0.06em">${esc(c.itemsTitle)}</p>` : ""}
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background:#f5f5f7;border-radius:14px">
-        ${c.items.map((i, n) => `<tr><td style="padding:10px 16px;font-size:15px;color:#1d1d1f;${n < c.items!.length - 1 ? "border-bottom:1px solid #ececf0" : ""}">${esc(i)}</td></tr>`).join("")}
+          ? `${c.itemsTitle ? `<p style="margin:6px 0 8px;font-size:14px;font-weight:500;color:#546770">${esc(c.itemsTitle)}</p>` : ""}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background:#F6F8F9;border-radius:10px;border:1px solid #D6E0E3">
+        ${c.items.map((i, n) => `<tr><td style="padding:10px 16px;font-size:15px;color:#17262D;${n < c.items!.length - 1 ? "border-bottom:1px solid #D6E0E3" : ""}">${esc(i)}</td></tr>`).join("")}
       </table>`
           : ""
       }
       ${
         url
-          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 6px"><tr><td style="border-radius:980px;background:#0071e3">
-        <a href="${esc(url)}" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:980px">${esc(label!)}</a>
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 6px"><tr><td style="border-radius:10px;background:#0E4D5C">
+        <a href="${esc(url)}" style="display:inline-block;padding:12px 24px;font-size:16px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:10px">${esc(label!)}</a>
       </td></tr></table>
-      <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:#86868b">Le bouton ne fonctionne pas ? Copiez ce lien : <a href="${esc(url)}" style="color:#0071e3;word-break:break-all">${esc(url)}</a></p>`
+      <p style="margin:12px 0 0;font-size:12px;line-height:1.5;color:#546770">Le bouton ne fonctionne pas ? Copiez ce lien : <a href="${esc(url)}" style="color:#0E4D5C;word-break:break-all">${esc(url)}</a></p>`
           : ""
       }
-      ${c.note ? `<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#6e6e73">${esc(c.note)}</p>` : ""}
-      ${c.orgName ? `<p style="margin:26px 0 0;font-size:15px;color:#424245">L'équipe ${esc(c.orgName)}</p>` : ""}
+      ${c.note ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.5;color:#546770">${esc(c.note)}</p>` : ""}
+      ${c.orgName ? `<p style="margin:26px 0 0;font-size:15px;color:#17262D">L'équipe ${esc(c.orgName)}</p>` : ""}
     </td></tr>
-    <tr><td style="padding:22px 12px 0;font-size:12px;line-height:1.6;color:#86868b;text-align:center">
+    <tr><td style="padding:22px 12px 0;font-size:12px;line-height:1.6;color:#546770;text-align:center">
       ${c.orgName ? `Message envoyé par ${esc(c.orgName)} via Vylia, plateforme de formation.<br>` : "Message envoyé par Vylia, plateforme de formation.<br>"}
       ${c.replyable ? "Une question ? Répondez simplement à cet email." : "Email automatique, merci de ne pas y répondre : utilisez l'assistance dans votre espace."}<br>
-      <a href="${appUrl("/legal/confidentialite")}" style="color:#86868b">Confidentialité</a> · <a href="${appUrl("/")}" style="color:#86868b">${esc(appUrl("").replace(/^https?:\/\//, ""))}</a>
+      <a href="${appUrl("/legal/confidentialite")}" style="color:#546770">Confidentialité</a> · <a href="${appUrl("/")}" style="color:#546770">${esc(appUrl("").replace(/^https?:\/\//, ""))}</a>
     </td></tr>
   </table>
 </td></tr></table></body></html>`;

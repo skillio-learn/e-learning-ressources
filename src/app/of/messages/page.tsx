@@ -61,10 +61,10 @@ export default async function OfMessages() {
           {threads.map(({ e, last, unread, waitingSince }) => (
             <Link key={e.id} href={`/of/messages/${e.id}`} className="flex items-center gap-4 p-4 hover:bg-slate-50">
               <div className="min-w-0 flex-1">
-                <div className="font-medium">{e.user.name} <span className="text-xs font-normal text-slate-400">· {e.course.title}</span></div>
+                <div className="font-medium">{e.user.name} <span className="text-xs font-normal text-slate-500">· {e.course.title}</span></div>
                 <div className="truncate text-sm text-slate-500">{last.fromStaff ? "Vous : " : ""}{last.body}</div>
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1 text-xs text-slate-400">
+              <div className="flex shrink-0 flex-col items-end gap-1 text-xs text-slate-500">
                 {formatDate(last.createdAt, true)}
                 {waitingSince && <Badge tone="amber">En attente depuis {formatDuration((Date.now() - waitingSince.getTime()) / 1000)}</Badge>}
                 {unread > 0 && <Badge tone="red">{unread} non lu(s)</Badge>}

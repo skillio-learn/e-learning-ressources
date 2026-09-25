@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, CheckCircle2, Clock3, FileSignature, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, FileSignature, XCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canManageOrg } from "@/lib/permissions";
@@ -51,7 +51,7 @@ export default async function EnrollmentAccess({ params }: { params: Promise<{ i
             <div className="font-semibold text-slate-900">Votre accès est ouvert</div>
             <div className="text-slate-600">Validé le {formatDate(e.accessDecidedAt, true)}{e.accessDecidedBy ? ` par ${e.accessDecidedBy.name}` : ""}.</div>
           </div>
-          <Link href={`/learn/${e.course.slug}`} className="btn-primary">Commencer la formation <ArrowRight className="h-4 w-4" /></Link>
+          <Link href={`/learn/${e.course.slug}`} className="btn-primary">Commencer la formation</Link>
         </div>
       )}
       {e.accessStatus === "UNDER_REVIEW" && (
@@ -102,7 +102,7 @@ export default async function EnrollmentAccess({ params }: { params: Promise<{ i
                 <ul className="mt-3 space-y-1.5 text-xs">
                   {it.files.map((f) => (
                     <li key={f.id} className="flex flex-wrap items-center gap-2 text-slate-600">
-                      <span className={cn("h-2 w-2 rounded-full", f.status === "VALIDATED" ? "bg-emerald-500" : f.status === "REJECTED" ? "bg-red-500" : "bg-slate-400")} />
+                      <span className={cn("h-2 w-2 rounded-full", f.status === "VALIDATED" ? "bg-emerald-600" : f.status === "REJECTED" ? "bg-red-500" : "bg-slate-400")} />
                       {f.source === "E_SIGNATURE" ? (
                         <Link href={it.type === "CONVENTION" ? `/documents/convention/${e.id}` : `/documents/signed/${f.id}`} className="link">Signé en ligne</Link>
                       ) : (

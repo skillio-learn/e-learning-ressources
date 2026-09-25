@@ -216,7 +216,7 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                 <a href={`/api/pdf/enrollments/${e.id}/realisation`} className="btn-secondary btn-sm">Certificat (PDF)</a>
                 <a href={`/api/pdf/enrollments/${e.id}/releve`} className="btn-secondary btn-sm">Relevé (PDF)</a>
                 <a href={`/api/of/reports/timelogs?enrollment=${e.id}`} className="btn-secondary btn-sm">⬇ Détail des temps (CSV)</a>
-                <Link href={`/of/courses/${e.courseId}/learners/${id}`} className="btn-ghost btn-sm">Détail pédagogique →</Link>
+                <Link href={`/of/courses/${e.courseId}/learners/${id}`} className="btn-ghost btn-sm">Voir le détail</Link>
               </div>
               {manager && (
                 <details className="mt-4 rounded-lg bg-slate-50 p-3">
@@ -335,7 +335,7 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                   <td className="whitespace-nowrap text-xs">{formatDate(l.createdAt, true)}</td>
                   <td>{l.type === "FAILED" || l.type === "LOCKED" ? <Badge tone="red">{EVENT_LABEL[l.type]}</Badge> : EVENT_LABEL[l.type]}</td>
                   <td className="text-xs">{l.ip ?? "—"}</td>
-                  <td className="max-w-[180px] truncate text-xs text-slate-400" title={l.userAgent ?? ""}>{l.userAgent ?? "—"}</td>
+                  <td className="max-w-[180px] truncate text-xs text-slate-500" title={l.userAgent ?? ""}>{l.userAgent ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

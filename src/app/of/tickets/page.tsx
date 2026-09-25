@@ -69,7 +69,7 @@ export default async function OfTickets({ searchParams }: { searchParams: Promis
                   <Link key={tk.id} href={`/of/tickets/${tk.id}`} className="flex flex-wrap items-center gap-3 p-4 transition hover:bg-slate-50">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-slate-400">{tk.number}</span>
+                        <span className="font-mono text-xs text-slate-500">{tk.number}</span>
                         <span className="truncate font-medium text-slate-900">{tk.subject}</span>
                         {tk._count.messages > 0 && <span className="rounded-full bg-brand-600 px-1.5 text-[10px] font-semibold text-white">{tk._count.messages}</span>}
                       </div>

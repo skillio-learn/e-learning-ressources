@@ -51,7 +51,7 @@ export default async function OfHome() {
         subtitle="Vue d'ensemble des inscriptions, de l'assiduité et de la qualité."
         actions={
           <>
-            <Link href="/of/courses/new" className="btn-primary">+ Nouvelle formation</Link>
+            <Link href="/of/courses/new" className="btn-primary">Créer une formation</Link>
             {manager && <Link href="/of/reports" className="btn-secondary">Rapports OPCO / France Travail</Link>}
           </>
         }
@@ -72,7 +72,7 @@ export default async function OfHome() {
           <section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2>Dossiers en attente</h2>
-              <Link href="/of/applications" className="text-sm text-brand-600 hover:underline">Tout voir →</Link>
+              <Link href="/of/applications" className="link text-sm">Tout voir</Link>
             </div>
             {recentApps.length === 0 ? (
               <p className="text-sm text-slate-500">Aucun dossier en attente</p>
@@ -83,7 +83,7 @@ export default async function OfHome() {
                     <Link href={`/of/applications/${a.id}`} className="flex items-center justify-between gap-2 py-2 text-sm hover:text-brand-700">
                       <span>
                         <b>{a.user.name}</b> · {a.course.title}
-                        <span className="block text-xs text-slate-400">{a.number} · déposé le {formatDate(a.submittedAt)}</span>
+                        <span className="block text-xs text-slate-500">{a.number} · déposé le {formatDate(a.submittedAt)}</span>
                       </span>
                       <StatusBadge status={a.status} />
                     </Link>
@@ -112,7 +112,7 @@ export default async function OfHome() {
         </section>
       </div>
       {activeEnr + completedEnr > 0 && (
-        <p className="mt-6 text-xs text-slate-400">Taux de complétion : {pct((completedEnr / (activeEnr + completedEnr)) * 100)}</p>
+        <p className="mt-6 text-xs text-slate-500">Taux de complétion : {pct((completedEnr / (activeEnr + completedEnr)) * 100)}</p>
       )}
     </Container>
   );

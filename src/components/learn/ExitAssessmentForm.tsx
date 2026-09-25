@@ -14,7 +14,7 @@ export function ExitAssessmentForm({ action, skills, entry }: { action: (s: S, f
         <div key={s} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 text-sm">
           <span>
             {s}
-            {entry[s] !== undefined && <span className="ml-2 text-xs text-slate-400">(à l&apos;entrée : {SKILL_LEVELS[entry[s]]})</span>}
+            {entry[s] !== undefined && <span className="ml-2 text-xs text-slate-500">(à l&apos;entrée : {SKILL_LEVELS[entry[s]]})</span>}
           </span>
           <select name={`skill_${i}`} required defaultValue="" className="input w-auto py-1 text-sm">
             <option value="">— Mon niveau aujourd&apos;hui —</option>

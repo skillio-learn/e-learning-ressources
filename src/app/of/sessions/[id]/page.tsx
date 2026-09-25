@@ -192,7 +192,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           </div>
         )}
         {s.enrollments.length === 0 && <p className="mt-2 text-sm text-slate-500">Aucun inscrit sur cette session.</p>}
-        <p className="no-print mt-2 text-xs text-slate-400">
+        <p className="no-print mt-2 text-xs text-slate-500">
           Les signatures sont horodatées avec l&apos;adresse IP. <Badge>Absent</Badge> = créneau passé non signé.
         </p>
       </section>

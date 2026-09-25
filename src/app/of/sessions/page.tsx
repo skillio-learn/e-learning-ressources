@@ -36,7 +36,7 @@ export default async function Sessions() {
                       <td><Link href={`/of/sessions/${s.id}`} className="font-medium hover:text-brand-700">{s.name}</Link><div className="text-xs text-slate-500">{s.location ?? ""}</div></td>
                       <td className="text-xs">{s.course.title}</td>
                       <td className="whitespace-nowrap text-xs">{formatDate(s.startDate)} → {formatDate(s.endDate)}</td>
-                      <td>{s._count.enrollments}{s.capacity ? ` / ${s.capacity}` : ""} <span className="text-xs text-slate-400">({s._count.applications} dossier(s))</span></td>
+                      <td>{s._count.enrollments}{s.capacity ? ` / ${s.capacity}` : ""} <span className="text-xs text-slate-500">({s._count.applications} dossier(s))</span></td>
                       <td>{s._count.slots}</td>
                       <td>
                         {s.endDate < now ? <Badge>Terminée</Badge> : s.startDate <= now ? <Badge tone="green">En cours</Badge> : <Badge tone="blue">À venir</Badge>}

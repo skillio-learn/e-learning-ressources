@@ -56,7 +56,7 @@ export default async function LearnerDetail({ params }: { params: Promise<{ id: 
           <tbody>
             {outline?.modules.map((m, mi) => (
               <Fragment key={m.id}>
-                <tr><td colSpan={6} className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">Module {mi + 1} · {m.title}</td></tr>
+                <tr><td colSpan={6} className="bg-slate-50 text-xs font-semibold text-slate-500">Module {mi + 1} · {m.title}</td></tr>
                 {m.lessons.map((l) => {
                   const p = byLesson.get(l.id);
                   const r = resultByLesson.get(l.id);
@@ -85,7 +85,7 @@ export default async function LearnerDetail({ params }: { params: Promise<{ id: 
                       <td className="whitespace-nowrap text-right">
                         {!l.completed && l.type !== "QUIZ" && l.type !== "ASSIGNMENT" && (
                           <form action={forceCompleteLessonAction.bind(null, id, userId, l.id)} className="inline">
-                            <button className="btn-ghost btn-sm" title="Valider manuellement">✓ Valider</button>
+                            <button className="btn-ghost btn-sm" title="Valider manuellement">Valider</button>
                           </form>
                         )}
                         {quizId && r && r.attempts > 0 && (

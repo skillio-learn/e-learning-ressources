@@ -46,7 +46,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                     {m.id !== user.id && (
                       <>
                         <form action={setTeamMemberAction.bind(null, m.id, { role: m.role === "OF_ADMIN" ? "TRAINER" : "OF_ADMIN" })} className="inline">
-                          <SubmitButton className="btn-ghost btn-sm" pendingLabel="…">{m.role === "OF_ADMIN" ? "→ Formateur" : "→ Responsable"}</SubmitButton>
+                          <SubmitButton className="btn-ghost btn-sm" pendingLabel="…">{m.role === "OF_ADMIN" ? "Passer formateur" : "Passer responsable"}</SubmitButton>
                         </form>
                         <form action={setTeamMemberAction.bind(null, m.id, { active: !m.active })} className="inline">
                           <SubmitButton className="btn-ghost btn-sm" pendingLabel="…">{m.active ? "Désactiver" : "Réactiver"}</SubmitButton>

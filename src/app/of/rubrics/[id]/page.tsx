@@ -97,7 +97,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
                   {manageableIds.includes(l.module.courseId) ? (
                     <Link href={`/of/courses/${l.module.courseId}/lessons/${l.id}`} className="text-brand-600 hover:underline">{l.title}</Link>
                   ) : l.title}{" "}
-                  <span className="text-slate-400">— {l.module.course.title}</span>
+                  <span className="text-slate-500">— {l.module.course.title}</span>
                 </li>
               ))}
             </ul>

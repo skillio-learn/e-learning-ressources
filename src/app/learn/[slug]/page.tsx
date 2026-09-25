@@ -45,8 +45,8 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
       </div>
       <div className="flex flex-wrap gap-3">
         {outline.next ? (
-          <Link href={`/learn/${course.slug}/${outline.next.id}`} className="btn-primary">
-            {outline.completed ? "▶ Reprendre" : "▶ Commencer"} : {outline.next.title}
+          <Link href={`/learn/${course.slug}/${outline.next.id}`} className="btn-primary" title={`Prochaine étape : ${outline.next.title}`}>
+            {outline.completed ? "Reprendre le parcours" : "Commencer le parcours"}
           </Link>
         ) : first ? (
           <Link href={`/learn/${course.slug}/${first.id}`} className="btn-secondary">Revoir depuis le début</Link>
@@ -104,7 +104,7 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
                     <td>
                       <Link href={`/learn/${course.slug}/${r.lessonId}`} className="hover:text-brand-600">{r.title}</Link>
                     </td>
-                    <td>{r.kind === "QUIZ" ? "Quiz" : "Devoir"}{!r.counted && <span className="text-xs text-slate-400"> (non noté)</span>}</td>
+                    <td>{r.kind === "QUIZ" ? "Quiz" : "Devoir"}{!r.counted && <span className="text-xs text-slate-500"> (non noté)</span>}</td>
                     <td className="font-semibold">{pct(r.percent)}</td>
                     <td>
                       {r.pending ? (
@@ -130,7 +130,7 @@ export default async function CourseHome({ params }: { params: Promise<{ slug: s
         <div className="grid gap-3 md:grid-cols-2">
           {outline.modules.map((m, i) => (
             <div key={m.id} className="card p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Module {i + 1}</div>
+              <div className="text-xs font-semibold text-slate-500">Module {i + 1}</div>
               <div className="font-semibold">{m.title}</div>
               <div className="mt-2 text-sm text-slate-500">
                 {m.completedCount}/{m.lessons.length} leçon(s) terminée(s)

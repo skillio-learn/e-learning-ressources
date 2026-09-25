@@ -20,7 +20,7 @@ export function SignaturePad({ onSign, label = "Signer" }: { onSign: (dataUrl: s
     ctx.scale(ratio, ratio);
     ctx.lineWidth = 2.2;
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#0f172a";
+    ctx.strokeStyle = "#17262d"; // Ardoise
   }, []);
 
   const pos = (e: React.PointerEvent) => {

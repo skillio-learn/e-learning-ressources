@@ -26,8 +26,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ co
       <div className="no-print mb-4 flex justify-end">
         <PrintButton label="Imprimer / Enregistrer en PDF" />
       </div>
-      <div className="relative aspect-[1.414/1] w-full overflow-hidden rounded-2xl border-[10px] border-double border-brand-700 bg-surface p-10 theme-paper text-center shadow-xl print:shadow-none">
-        <div className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">{settings.platformName}</div>
+      <div className="relative aspect-[1.414/1] w-full overflow-hidden rounded-2xl border-[10px] border-double border-brand-700 bg-surface p-10 theme-paper text-center print:shadow-none">
+        <div className="text-sm font-semibold text-brand-700">{settings.platformName}</div>
         <div className="mt-6 text-4xl font-extrabold text-slate-900 md:text-5xl">Certificat de réussite</div>
         <div className="mt-8 text-slate-500">Ce certificat atteste que</div>
         <div className="mt-2 text-3xl font-bold text-brand-800">{cert.user.name}</div>

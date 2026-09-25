@@ -67,13 +67,13 @@ export function InteractivePlayer({
   }
 
   return (
-    <div ref={wrapper} className="overflow-hidden rounded-xl border border-slate-200 bg-surface shadow-sm">
+    <div ref={wrapper} className="overflow-hidden rounded-xl border border-slate-200 bg-surface">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 text-sm">
         <span className="font-medium text-slate-700">Module interactif</span>
         <div className="flex items-center gap-3">
           {progress !== null && <span className="text-xs text-slate-500">Progression : {progress} %</span>}
           {completionMode === "AUTO" && !done && (
-            <span className="text-xs text-slate-400">Se valide automatiquement à la fin du module</span>
+            <span className="text-xs text-slate-500">Se valide automatiquement à la fin du module</span>
           )}
           {done && <span className="text-xs font-medium text-emerald-600">✓ Terminé</span>}
           <a href={src} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm">↗ Nouvel onglet</a>

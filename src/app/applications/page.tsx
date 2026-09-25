@@ -28,9 +28,9 @@ export default async function MyApplications() {
       ) : (
         <div className="space-y-3">
           {apps.map((a) => (
-            <Link key={a.id} href={`/applications/${a.id}`} className="card flex flex-wrap items-center gap-4 p-5 hover:shadow-md">
+            <Link key={a.id} href={`/applications/${a.id}`} className="card flex flex-wrap items-center gap-4 p-5">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-slate-400">{a.number} · {a.course.organization.name}</div>
+                <div className="text-xs text-slate-500">{a.number} · {a.course.organization.name}</div>
                 <div className="font-semibold">{a.course.title}</div>
                 <div className="mt-1 text-xs text-slate-500">
                   Mis à jour le {formatDate(a.updatedAt, true)} · {a.documents.length} justificatif(s)

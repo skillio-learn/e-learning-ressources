@@ -110,7 +110,7 @@ export default async function Quality() {
                 <Badge tone={COMPLAINT_STATUS[c.status].tone}>{COMPLAINT_STATUS[c.status].label}</Badge>
               </div>
               <p className="mt-2 whitespace-pre-wrap text-slate-700">{c.message}</p>
-              {c.handledBy && <p className="mt-1 text-xs text-slate-400">Traité par {c.handledBy.name}{c.resolvedAt ? ` le ${formatDate(c.resolvedAt)}` : ""}</p>}
+              {c.handledBy && <p className="mt-1 text-xs text-slate-500">Traité par {c.handledBy.name}{c.resolvedAt ? ` le ${formatDate(c.resolvedAt)}` : ""}</p>}
               <StateForm action={respondComplaintAction.bind(null, c.id)} submitLabel="Enregistrer" submitClassName="btn-primary btn-sm" className="mt-3 space-y-2">
                 <textarea name="response" rows={3} defaultValue={c.response ?? ""} className="input" placeholder="Réponse et actions correctives" />
                 <select name="status" defaultValue={c.status === "OPEN" ? "IN_PROGRESS" : c.status} className="input w-auto">

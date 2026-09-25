@@ -166,7 +166,7 @@ export function LessonForm({
               {rubrics.map((r) => <option key={r.id} value={r.id}>{r.title} ({r.scope})</option>)}
             </select>
           </Field>
-          <a href={newRubricHref} className="text-sm text-brand-600 hover:underline">+ Créer une nouvelle grille pour cette formation</a>
+          <a href={newRubricHref} className="text-sm text-brand-600 hover:underline">Créer une grille pour cette formation</a>
         </section>
       )}
       {type !== "ASSIGNMENT" && <input type="hidden" name="rubricId" value={lesson.rubricId ?? ""} />}

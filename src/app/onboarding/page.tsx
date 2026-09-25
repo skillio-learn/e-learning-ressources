@@ -98,7 +98,7 @@ export default async function Onboarding() {
                 <Circle className="h-5 w-5 text-slate-300" strokeWidth={1.75} />
               )}
               <div>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-slate-500">Étape {s.n}</div>
+                <div className="text-[11px] text-slate-500">Étape {s.n}</div>
                 <div className="text-sm font-medium text-slate-900">{s.label}</div>
               </div>
             </li>
@@ -135,7 +135,7 @@ export default async function Onboarding() {
                   <ul className="mt-2 space-y-1 text-xs">
                     {d.files.map((f) => (
                       <li key={f.id} className="flex flex-wrap items-center gap-2 text-slate-600">
-                        <span className={cn("h-2 w-2 rounded-full", f.status === "VALIDATED" ? "bg-emerald-500" : f.status === "REJECTED" ? "bg-red-500" : "bg-slate-400")} />
+                        <span className={cn("h-2 w-2 rounded-full", f.status === "VALIDATED" ? "bg-emerald-600" : f.status === "REJECTED" ? "bg-red-500" : "bg-slate-400")} />
                         <a href={`/api/learner-documents/${f.id}?inline=1`} target="_blank" className="link">{f.fileName}</a>
                         <span>{formatDate(f.createdAt, true)}</span>
                         {f.status === "REJECTED" && f.comment && <span className="text-red-600">Motif : {f.comment}</span>}
@@ -197,7 +197,7 @@ export default async function Onboarding() {
           </ul>
         </section>
       )}
-      <p className="mt-8 text-center text-xs text-slate-400">Statut : {ACCOUNT_STATUS[status].label}</p>
+      <p className="mt-8 text-center text-xs text-slate-500">Statut : {ACCOUNT_STATUS[status].label}</p>
     </Container>
   );
 }

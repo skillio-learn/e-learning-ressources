@@ -99,7 +99,7 @@ export function formatHours(totalSec: number | null | undefined) {
 
 export const ENROLLMENT_STATUS = {
   ACTIVE: { label: "En cours", tone: "blue" },
-  COMPLETED: { label: "Terminée", tone: "green" },
+  COMPLETED: { label: "Terminée", tone: "gold" },
   SUSPENDED: { label: "Interrompue", tone: "amber" },
   ABANDONED: { label: "Abandon", tone: "red" },
 } as const;

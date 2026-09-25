@@ -60,7 +60,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
               <details className="group flex-1">
                 <summary className="cursor-pointer list-none">
                   <span className="font-semibold">Module {mi + 1} · {m.title}</span>
-                  <span className="ml-2 text-xs text-slate-400 group-open:hidden">modifier</span>
+                  <span className="ml-2 text-xs text-slate-500 group-open:hidden">modifier</span>
                 </summary>
                 <form action={updateModuleAction.bind(null, m.id)} className="mt-3 space-y-2">
                   <input name="title" defaultValue={m.title} className="input" />
@@ -80,7 +80,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
             <ol className="divide-y divide-slate-100">
               {m.lessons.map((l, li) => (
                 <li key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 hover:bg-slate-50">
-                  <span className="w-10 text-xs font-medium text-slate-400">{mi + 1}.{li + 1}</span>
+                  <span className="w-10 text-xs font-medium text-slate-500">{mi + 1}.{li + 1}</span>
                   <LessonTypeIcon type={l.type} />
                   <Link href={`/of/courses/${id}/lessons/${l.id}`} className="min-w-0 flex-1 truncate font-medium hover:text-brand-700">
                     {l.title}
@@ -105,13 +105,13 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
 
             <details className="border-t border-slate-100 px-4 py-3">
               <summary className="cursor-pointer text-sm font-medium text-slate-700">
-                Ressources du module ({m.resources.length}) <span className="font-normal text-slate-400">· téléchargeables par l&apos;apprenant dès qu&apos;il commence le module</span>
+                Ressources du module ({m.resources.length}) <span className="font-normal text-slate-500">· téléchargeables par l&apos;apprenant dès qu&apos;il commence le module</span>
               </summary>
               <ul className="mt-3 space-y-1.5 text-sm">
                 {m.resources.map((r) => (
                   <li key={r.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
                     <a href={`/api/resources/${r.id}`} target="_blank" className="min-w-0 flex-1 truncate hover:text-brand-700">{r.title}</a>
-                    <span className="text-xs text-slate-400">{r.url ? "lien" : r.fileName}</span>
+                    <span className="text-xs text-slate-500">{r.url ? "lien" : r.fileName}</span>
                     <form action={deleteResourceAction.bind(null, r.id)}>
                       <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer la ressource « ${r.title} » ?`}>Supprimer</SubmitButton>
                     </form>
@@ -130,13 +130,13 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
               </StateForm>
             </details>
 
-            <div className="grid gap-3 border-t border-slate-100 bg-slate-50/50 p-4 md:grid-cols-2">
+            <div className="grid gap-3 border-t border-slate-100 bg-slate-50/50 p-4">
               <form action={addLessonAction.bind(null, m.id)} className="flex flex-wrap gap-2">
-                <input name="title" placeholder="Titre de la nouvelle leçon" className="input min-w-0 flex-1" required />
+                <input name="title" placeholder="Titre de la nouvelle leçon" className="input min-w-[16rem] flex-1" required />
                 <select name="type" className="input w-auto">
                   {TYPES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
                 </select>
-                <SubmitButton className="btn-primary" pendingLabel="…">+ Leçon</SubmitButton>
+                <SubmitButton className="btn-primary" pendingLabel="…">Ajouter la leçon</SubmitButton>
               </form>
               <details>
                 <summary className="cursor-pointer text-sm font-medium text-brand-700">Ajouter plusieurs leçons d&apos;un coup</summary>
@@ -165,7 +165,7 @@ export default async function CourseStructure({ params }: { params: Promise<{ id
           <h2 className="text-base">Ajouter un module</h2>
           <input name="title" placeholder={`Module ${modules.length + 1} : titre`} className="input" />
           <textarea name="description" rows={2} placeholder="Description (facultative)" className="input" />
-          <SubmitButton className="btn-primary w-full">+ Ajouter le module</SubmitButton>
+          <SubmitButton className="btn-primary w-full">Ajouter le module</SubmitButton>
         </form>
         <div className="card space-y-2 p-4 text-sm text-slate-600">
           <h2 className="text-base">Types d&apos;étapes</h2>

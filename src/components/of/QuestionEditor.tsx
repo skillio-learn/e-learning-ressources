@@ -41,7 +41,7 @@ export function QuestionEditor({ quizId, questions }: { quizId: string; question
           <QuestionForm key={q.id} quizId={quizId} initial={{ ...q }} onDone={() => setEditing(null)} />
         ) : (
           <div key={q.id} className="card flex items-start gap-3 p-4">
-            <span className="mt-0.5 text-sm font-semibold text-slate-400">Q{i + 1}</span>
+            <span className="mt-0.5 text-sm font-semibold text-slate-500">Q{i + 1}</span>
             <div className="min-w-0 flex-1">
               <div className="font-medium">{q.text}</div>
               <div className="mt-1 text-xs text-slate-500">
@@ -78,7 +78,7 @@ export function QuestionEditor({ quizId, questions }: { quizId: string; question
       {editing === "new" ? (
         <QuestionForm quizId={quizId} initial={blank()} onDone={() => setEditing(null)} />
       ) : (
-        <button className="btn-primary" onClick={() => setEditing("new")}>+ Ajouter une question</button>
+        <button className="btn-primary" onClick={() => setEditing("new")}>Ajouter une question</button>
       )}
     </div>
   );
@@ -198,7 +198,7 @@ function QuestionForm({ quizId, initial, onDone }: { quizId: string; initial: Qu
             </div>
           ))}
           {q.options.length < 10 && (
-            <button type="button" className="btn-secondary btn-sm" onClick={() => setChoiceCount(q.options.length + 1)}>+ Proposition</button>
+            <button type="button" className="btn-secondary btn-sm" onClick={() => setChoiceCount(q.options.length + 1)}>Ajouter une proposition</button>
           )}
         </div>
       )}

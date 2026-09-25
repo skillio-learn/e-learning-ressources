@@ -81,7 +81,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
       <Link href="/applications" className="text-sm text-slate-500 hover:text-brand-600">← Mes dossiers</Link>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-xs text-slate-400">Dossier {app.number} · {org.name}</div>
+          <div className="text-xs text-slate-500">Dossier {app.number} · {org.name}</div>
           <h1>{app.course.title}</h1>
         </div>
         <StatusBadge status={app.status} />
@@ -92,7 +92,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
           {["Constitution", "Dépôt", "Vérification", "Validation", "Inscription"].map((label, i) => (
             <li key={label}>
               <div className={cn("mx-auto mb-1 h-2 rounded-full", i <= progressIndex ? "bg-brand-600" : "bg-slate-200")} />
-              <span className={i <= progressIndex ? "font-medium text-brand-700" : "text-slate-400"}>{label}</span>
+              <span className={i <= progressIndex ? "font-medium text-brand-700" : "text-slate-500"}>{label}</span>
             </li>
           ))}
         </ol>
@@ -137,7 +137,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
                       step === i + 1 ? "border-brand-500 bg-brand-50 font-semibold text-brand-800" : "border-slate-200 bg-surface hover:bg-slate-50",
                     )}
                   >
-                    <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold", done[i] ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600")}>
+                    <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold", done[i] ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600")}>
                       {done[i] ? "✓" : i + 1}
                     </span>
                     {label}
@@ -150,7 +150,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
                   <h2 className="mb-1">1. Mes informations administratives</h2>
                   <p className="mb-4 text-sm text-slate-500">Informations exigées par les financeurs (OPCO, France Travail, Caisse des dépôts). Elles sont conservées pour vos prochains dossiers.</p>
                   {learnerProfileEditable(user.accountStatus) ? (
-                    <ProfileForm action={saveProfileAction.bind(null, app.id)} profile={toProfileData(profile)} nextHref={href(2)} submitLabel="Enregistrer et continuer →" />
+                    <ProfileForm action={saveProfileAction.bind(null, app.id)} profile={toProfileData(profile)} nextHref={href(2)} submitLabel="Enregistrer et continuer" />
                   ) : (
                     <>
                       <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
@@ -228,7 +228,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
                     <DocumentUpload action={uploadDocumentAction.bind(null, app.id)} optionalTypes={optionalTypes} label="Ajouter" />
                   </div>
                   <div className="mt-4 flex justify-end">
-                    <Link href={href(4)} className="btn-primary">Continuer vers la vérification →</Link>
+                    <Link href={href(4)} className="btn-primary">Vérifier mon dossier</Link>
                   </div>
                 </section>
               )}
@@ -305,7 +305,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
 
         <aside className="space-y-4">
           <div className="card space-y-2 p-4 text-sm">
-            <div className="text-xs font-semibold uppercase text-slate-400">Récapitulatif</div>
+            <div className="text-xs font-semibold text-slate-500">Récapitulatif</div>
             <div><span className="text-slate-500">Statut :</span> {APPLICATION_STATUS[app.status].label}</div>
             <div><span className="text-slate-500">Créé le :</span> {formatDate(app.createdAt)}</div>
             {(org.email || org.phone) && <div className="border-t border-slate-100 pt-2 text-xs text-slate-500">Contact OF : {org.email} {org.phone}</div>}
@@ -330,7 +330,7 @@ function DocLine({ doc, canDelete }: { doc: { id: string; fileName: string; size
   return (
     <div className="mt-2 space-y-1 text-xs">
       <div className="flex flex-wrap items-center gap-2 text-slate-600">
-        <span className={`h-2 w-2 rounded-full ${doc.status === "VALIDATED" ? "bg-emerald-500" : doc.status === "REJECTED" ? "bg-red-500" : "bg-slate-400"}`} />
+        <span className={`h-2 w-2 rounded-full ${doc.status === "VALIDATED" ? "bg-emerald-600" : doc.status === "REJECTED" ? "bg-red-500" : "bg-slate-400"}`} />
         <a href={`/api/documents/${doc.id}?inline=1`} target="_blank" className="text-brand-600 underline">{doc.fileName}</a>
         <span>{Math.max(1, Math.round(doc.size / 1024))} Ko · {formatDate(doc.uploadedAt, true)}</span>
         {canDelete && (

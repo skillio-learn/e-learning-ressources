@@ -39,7 +39,7 @@ export function RubricTable({
                 <td className="w-56 border border-slate-200 px-3 py-2 align-top">
                   <div className="font-semibold">{c.title}</div>
                   {c.description && <div className="mt-1 text-xs text-slate-500">{c.description}</div>}
-                  {c.weight !== 1 && <div className="mt-1 text-xs text-slate-400">Coefficient ×{c.weight}</div>}
+                  {c.weight !== 1 && <div className="mt-1 text-xs text-slate-500">Coefficient ×{c.weight}</div>}
                   {s && (
                     <div className="mt-2 text-xs font-semibold text-brand-700">
                       {s.points * c.weight} pt{s.comment && <div className="mt-1 font-normal italic text-slate-600">« {s.comment} »</div>}

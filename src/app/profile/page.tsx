@@ -76,7 +76,7 @@ export default async function Profile() {
       {learner && !editable && (
         <section className="card space-y-5 p-6">
           <div>
-            <h2 className="mb-1 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-400" strokeWidth={1.75} /> Informations administratives</h2>
+            <h2 className="mb-1 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-500" strokeWidth={1.75} /> Informations administratives</h2>
             <p className="text-sm text-slate-500">
               Vérifiées par votre organisme de formation, elles servent aux conventions, attestations et justificatifs transmis aux financeurs.
               Pour les corriger, envoyez une demande de modification avec un justificatif : l&apos;organisme la valide avant qu&apos;elle ne soit appliquée.

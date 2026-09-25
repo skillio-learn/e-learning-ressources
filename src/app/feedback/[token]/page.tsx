@@ -18,7 +18,7 @@ export default async function FunderFeedback({ params }: { params: Promise<{ tok
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
       <div className="card p-8">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{fb.organization.name}</div>
+        <div className="text-xs font-semibold text-slate-500">{fb.organization.name}</div>
         <h1 className="mt-1">Votre évaluation de la formation</h1>
         <p className="mt-2 text-sm text-slate-600">
           {fb.enrollment ? <>Formation « {fb.enrollment.course.title} » suivie par {fb.enrollment.user.name}. </> : null}

@@ -130,7 +130,7 @@ export function DetailsForm({
       </fieldset>
       {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
       {state?.ok && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.ok}</p>}
-      {!disabled && <SubmitButton>{nextHref ? "Enregistrer et continuer →" : "Enregistrer mon projet"}</SubmitButton>}
+      {!disabled && <SubmitButton>{nextHref ? "Enregistrer et continuer" : "Enregistrer mon projet"}</SubmitButton>}
     </form>
   );
 }

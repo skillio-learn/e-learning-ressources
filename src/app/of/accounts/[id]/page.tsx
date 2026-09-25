@@ -92,7 +92,7 @@ export default async function AccountReview({ params }: { params: Promise<{ id: 
               {rows.map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-3 border-b border-slate-100 py-1.5">
                   <dt className="text-slate-500">{k}</dt>
-                  <dd className="text-right font-medium text-slate-900">{v || <span className="font-normal text-slate-400">—</span>}</dd>
+                  <dd className="text-right font-medium text-slate-900">{v || <span className="font-normal text-slate-500">—</span>}</dd>
                 </div>
               ))}
             </dl>

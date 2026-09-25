@@ -100,7 +100,7 @@ export default async function CourseResults({ params }: { params: Promise<{ id: 
                     const rate = graded.length ? (ok / graded.length) * 100 : null;
                     return (
                       <tr key={qq.id}>
-                        <td className="max-w-md"><span className="text-slate-400">Q{i + 1}.</span> {qq.text}</td>
+                        <td className="max-w-md"><span className="text-slate-500">Q{i + 1}.</span> {qq.text}</td>
                         <td>{qq.answers.length}</td>
                         <td>
                           <span className={rate === null ? "" : rate < 50 ? "font-semibold text-red-600" : "text-emerald-700"}>{pct(rate)}</span>

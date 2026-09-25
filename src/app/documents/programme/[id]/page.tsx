@@ -26,9 +26,9 @@ export default async function Programme({ params }: { params: Promise<{ id: stri
     const user = await getCurrentUser();
     if (!user || !(await canManageCourse(user, course.id))) notFound();
   }
-  const md = (t: string | null) => (t ? <div className="prose-lms text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(t) }} /> : <p className="text-slate-400">—</p>);
+  const md = (t: string | null) => (t ? <div className="prose-lms text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(t) }} /> : <p className="text-slate-500">—</p>);
   const Sec = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <section className="mt-5"><h2 className="mb-1 text-sm font-bold uppercase tracking-wide text-brand-800">{title}</h2>{children}</section>
+    <section className="mt-5"><h2 className="mb-1 text-sm font-bold text-brand-800">{title}</h2>{children}</section>
   );
   const totalMin = course.modules.reduce((s, m) => s + m.lessons.reduce((t, l) => t + (l.durationMin ?? 0), 0), 0);
   return (

@@ -62,7 +62,7 @@ export default async function OfApplications({ searchParams }: { searchParams: P
               {APPLICATION_STATUS[s].label} ({countOf(s)})
             </Link>
           ))}
-        <span className="self-center text-xs text-slate-400">+ {countOf("DRAFT")} brouillon(s) non déposé(s)</span>
+        <span className="self-center text-xs text-slate-500">+ {countOf("DRAFT")} brouillon(s) non déposé(s)</span>
       </div>
       <form className="mb-4 flex flex-wrap gap-2">
         {status && <input type="hidden" name="status" value={status} />}

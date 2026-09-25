@@ -8,8 +8,14 @@ Plateforme e-learning full stack pour créer des formations en **parcours étape
 
 ## Identité & design
 
-Thème clair inspiré d'Apple : Inter Variable à taille optique (coupe Display fine sur les titres), graisses allégées, palette pilotée par variables CSS (`src/app/globals.css`), boutons « pilule », verre dépoli, halos pastel animés (respect de `prefers-reduced-motion`). Les documents officiels (conventions, attestations, relevés, certificats) restent sur fond blanc via `.theme-paper` et s'impriment toujours en clair.
-Logo : `src/components/brand/Logo.tsx`, `public/brand/` ; favicon `src/app/icon.svg`, icône Apple et miniature de partage (`opengraph-image.png`).
+L'interface applique la **charte graphique Vylia v1.0** (« L'expertise qui accompagne ») :
+
+- **Couleurs 60 / 30 / 10** : Brume `#F6F8F9` et Blanc pour les fonds, Pétrole `#0E4D5C` pour les titres, la navigation et toutes les actions, Ambre `#F2B33D` réservé aux réussites (jamais en texte sur fond clair ni en bouton). Couleurs de soutien : Ardoise (texte), Gris, Contour, Bordure, Succès, Erreur. Les variables officielles (`--vylia-*`) et les échelles Tailwind sont définies dans `src/app/globals.css` ; les utilitaires `ambre-*` portent l'Ambre, les alertes utilisent le Pétrole clair.
+- **Typographie** : Lora (titres H1/H2, chiffres clés) et Poppins (texte, interface), auto-hébergées via `@fontsource` ; mêmes polices intégrées aux PDF (`src/assets/fonts`).
+- **Composants** : boutons à rayon 10 px (8 px en petit), un seul bouton principal par écran, libellés « verbe + objet » sans flèche ; champs à contour gris et halo Pétrole au focus ; cartes à rayon 16 px, bordées, sans ombre ; badges texte + couleur + point ; barres de progression de 6 px ; icônes Lucide au trait de 1,75 px. Aucun dégradé, pas de majuscules décoratives.
+- **Logos officiels** : `src/components/brand/Logo.tsx` (tracés identiques aux SVG de la charte : principal, inversé, monochromes, empilé, symbole) et fichiers sources dans `public/brand/` ; favicon `src/app/icon.svg`, icône d'application et image de partage générées depuis ces SVG. Le logo e-mail (`public/brand/email-logo.png`) et le logo vectoriel des PDF reprennent les mêmes tracés.
+
+Les documents officiels (conventions, attestations, relevés, certificats) restent sur fond Blanc via `.theme-paper` et s'impriment toujours en clair.
 
 ## Fonctionnalités
 

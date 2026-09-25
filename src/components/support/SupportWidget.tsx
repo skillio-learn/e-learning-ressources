@@ -43,8 +43,8 @@ export function SupportWidget() {
   return (
     <div className="no-print fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="flex h-[min(600px,calc(100vh-7rem))] w-[min(390px,calc(100vw-2.5rem))] animate-fade-up flex-col overflow-hidden rounded-[28px] border border-black/[0.06] bg-surface shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)]">
-          <header className="flex items-center gap-3 border-b border-black/[0.06] bg-[linear-gradient(135deg,#0071e3,#5e5ce6)] px-5 py-4 text-white">
+        <div className="flex h-[min(600px,calc(100vh-7rem))] w-[min(390px,calc(100vw-2.5rem))] animate-fade-up flex-col overflow-hidden rounded-2xl border border-slate-200 bg-surface shadow-float">
+          <header className="flex items-center gap-3 bg-brand-600 px-5 py-4 text-white">
             {view !== "list" && (
               <button onClick={() => setView("list")} className="-ml-1 rounded-full p-1 transition hover:bg-white/15" aria-label="Retour">
                 <ArrowLeft className="h-4 w-4" />
@@ -67,7 +67,7 @@ export function SupportWidget() {
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-[0_12px_30px_-8px_rgba(0,113,227,0.7)] transition hover:scale-105 active:scale-95"
+        className="relative grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-float transition-colors duration-150 hover:bg-brand-700"
         aria-label="Assistance"
         title="Besoin d'aide ?"
       >
@@ -81,7 +81,7 @@ export function SupportWidget() {
 }
 
 function ConversationList({ data, onOpen }: { data: Overview | null; onOpen: (v: string) => void }) {
-  if (!data) return <div className="grid flex-1 place-items-center text-sm text-slate-400">Chargement…</div>;
+  if (!data) return <div className="grid flex-1 place-items-center text-sm text-slate-500">Chargement…</div>;
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="p-4">
@@ -91,7 +91,7 @@ function ConversationList({ data, onOpen }: { data: Overview | null; onOpen: (v:
         </button>
         {!data.enabled && <p className="mt-2 text-xs text-amber-700">L&apos;assistance en ligne n&apos;est pas activée par votre organisme.</p>}
       </div>
-      <ul className="flex-1 divide-y divide-black/[0.05] overflow-y-auto border-t border-black/[0.05]">
+      <ul className="flex-1 divide-y divide-slate-200 overflow-y-auto border-t border-slate-200">
         {data.conversations.map((c) => (
           <li key={c.id}>
             <button onClick={() => onOpen(c.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
@@ -104,12 +104,12 @@ function ConversationList({ data, onOpen }: { data: Overview | null; onOpen: (v:
               {c.unread > 0 ? (
                 <span className="rounded-full bg-brand-600 px-1.5 text-[10px] font-semibold text-white">{c.unread}</span>
               ) : (
-                <span className={cn("text-[11px]", c.status === "RESOLVED" ? "text-emerald-600" : "text-slate-400")}>{SUPPORT_STATUS[c.status].label}</span>
+                <span className={cn("text-[11px]", c.status === "RESOLVED" ? "text-emerald-600" : "text-slate-500")}>{SUPPORT_STATUS[c.status].label}</span>
               )}
             </button>
           </li>
         ))}
-        {data.conversations.length === 0 && <li className="p-6 text-center text-sm text-slate-400">Aucune conversation pour le moment.</li>}
+        {data.conversations.length === 0 && <li className="p-6 text-center text-sm text-slate-500">Aucune conversation pour le moment.</li>}
       </ul>
     </div>
   );
@@ -197,7 +197,7 @@ function Thread({ id, onChange }: { id: string; onChange: () => void }) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-black/[0.05] px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-2.5">
         <div className="truncate text-sm font-medium text-slate-900">{conv?.subject ?? "…"}</div>
         {conv && conv.status !== "RESOLVED" && (
           <button
@@ -211,13 +211,13 @@ function Thread({ id, onChange }: { id: string; onChange: () => void }) {
       <div className="flex-1 space-y-2.5 overflow-y-auto bg-slate-50/60 px-4 py-4">
         {messages.map((m) =>
           m.system ? (
-            <div key={m.id} className="mx-auto max-w-[90%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500 shadow-sm">{m.body}</div>
+            <div key={m.id} className="mx-auto max-w-[90%] rounded-2xl bg-white px-3 py-2 text-center text-xs text-slate-500">{m.body}</div>
           ) : (
             <div key={m.id} className={cn("flex", m.fromStaff ? "justify-start" : "justify-end")}>
-              <div className={cn("max-w-[82%] rounded-[20px] px-3.5 py-2 text-sm", m.fromStaff ? "rounded-bl-md bg-white text-slate-900 shadow-sm" : "rounded-br-md bg-brand-600 text-white")}>
+              <div className={cn("max-w-[82%] rounded-[20px] px-3.5 py-2 text-sm", m.fromStaff ? "rounded-bl-md bg-white text-slate-900" : "rounded-br-md bg-brand-600 text-white")}>
                 {m.fromStaff && m.author && <div className="mb-0.5 text-[11px] font-medium text-slate-500">{m.author}</div>}
                 <div className="whitespace-pre-line break-words">{m.body}</div>
-                <div className={cn("mt-0.5 text-right text-[10px]", m.fromStaff ? "text-slate-400" : "text-white/70")}>
+                <div className={cn("mt-0.5 text-right text-[10px]", m.fromStaff ? "text-slate-500" : "text-white/70")}>
                   {time(m.createdAt)}{!m.fromStaff && m.read ? " · lu" : ""}
                 </div>
               </div>
@@ -225,12 +225,12 @@ function Thread({ id, onChange }: { id: string; onChange: () => void }) {
           ),
         )}
         {conv?.status === "RESOLVED" && (
-          <div className="rounded-2xl bg-white p-3 text-center text-xs text-slate-600 shadow-sm">
+          <div className="rounded-2xl bg-white p-3 text-center text-xs text-slate-600">
             <div>Votre avis sur cette assistance :</div>
             <div className="mt-1 flex justify-center gap-1">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} aria-label={`${n} sur 5`} onClick={() => start(async () => { await rateSupportAction(id, n); await load(); })}>
-                  <Star className={cn("h-5 w-5", (conv.rating ?? 0) >= n ? "fill-amber-400 text-amber-400" : "text-slate-300")} />
+                  <Star className={cn("h-5 w-5", (conv.rating ?? 0) >= n ? "fill-ambre-400 text-ambre-400" : "text-slate-300")} />
                 </button>
               ))}
             </div>
@@ -238,7 +238,7 @@ function Thread({ id, onChange }: { id: string; onChange: () => void }) {
         )}
         <div ref={bottom} />
       </div>
-      <div className="border-t border-black/[0.05] p-3">
+      <div className="border-t border-slate-200 p-3">
         {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
         <div className="flex items-end gap-2">
           <textarea

@@ -37,7 +37,7 @@ export default async function Organizations() {
                     <Link href={`/admin/organizations/${o.id}`} className="font-medium hover:text-brand-700">{o.name}</Link>
                     <div className="text-xs text-slate-500">{o.city ?? ""} {o.siret ? `· SIRET ${o.siret}` : ""}</div>
                   </td>
-                  <td className="text-xs">{o.nda ?? <span className="text-amber-600">NDA manquant</span>}<br />{o.qualiopiNumber ?? <span className="text-slate-400">—</span>}</td>
+                  <td className="text-xs">{o.nda ?? <span className="text-amber-600">NDA manquant</span>}<br />{o.qualiopiNumber ?? <span className="text-slate-500">—</span>}</td>
                   <td>{o._count.courses}</td>
                   <td>{o._count.users}</td>
                   <td>{enrByOrg.get(o.id) ?? 0}</td>

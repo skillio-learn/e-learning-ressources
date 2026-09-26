@@ -179,7 +179,7 @@ export default async function CompanyHome() {
                   ))}
                 </div>
               </div>
-              <details className="mt-4 rounded-[10px] border border-slate-200 p-4" open={!na && s.endDate >= now}>
+              <details className="mt-4 rounded-[10px] border border-slate-200 p-4" open={!na?.validatedAt && s.endDate >= now}>
                 <summary className="cursor-pointer font-medium text-brand-600">
                   Vos besoins et attentes {na?.validatedAt ? "(pris en compte par l'organisme)" : na ? "(transmis)" : "(à compléter)"}
                 </summary>

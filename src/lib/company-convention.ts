@@ -4,7 +4,7 @@ import { createHash } from "crypto";
 type ConvOrg = { name: string; legalName: string | null; address: string | null; postalCode: string | null; city: string | null; siret: string | null; nda: string | null; managerName: string | null; managerTitle: string | null; qualiopiNumber: string | null };
 type ConvCompany = { name: string; legalName: string | null; siret: string | null; address: string | null; postalCode: string | null; city: string | null };
 type ConvCourse = { title: string; objectives: string | null; durationHours: number | null; pedagogicalMethods: string | null; evaluationMethods: string | null; modality: string; rncpCode: string | null };
-type ConvSession = { name: string; startDate: Date; endDate: Date; format: string; location: string | null; address: string | null; city: string | null } | null;
+type ConvSession = { name: string; startDate: Date; endDate: Date; format: string; modality?: string | null; location: string | null; address: string | null; city: string | null } | null;
 type Conv = { reference: string; trainees: string[]; hours: number | null; price: number | null; vatRate: number | null; paymentTerms: string | null };
 
 const d = (x: Date) => x.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
@@ -25,7 +25,7 @@ export function companyConventionText(conv: Conv, org: ConvOrg, company: ConvCom
     "Articles L.6353-1 et D.6353-1 du Code du travail",
     "",
     "ENTRE",
-    `${org.legalName ?? org.name}, ${orgAddr}${org.siret ? `, SIRET ${org.siret}` : ""}${org.nda ? `, déclaration d'activité n° ${org.nda} (cet enregistrement ne vaut pas agrément de l'État)` : ""}${org.qualiopiNumber ? `, certifié Qualiopi n° ${org.qualiopiNumber}` : ""}, représenté par ${[org.managerName, org.managerTitle].filter(Boolean).join(", ") || "son représentant légal"}, ci-après « l'organisme de formation » ;`,
+    `${[org.legalName ?? org.name, orgAddr].filter(Boolean).join(", ")}${org.siret ? `, SIRET ${org.siret}` : ""}${org.nda ? `, déclaration d'activité n° ${org.nda} (cet enregistrement ne vaut pas agrément de l'État)` : ""}${org.qualiopiNumber ? `, certifié Qualiopi n° ${org.qualiopiNumber}` : ""}, représenté par ${[org.managerName, org.managerTitle].filter(Boolean).join(", ") || "son représentant légal"}, ci-après « l'organisme de formation » ;`,
     "ET",
     `${company.legalName ?? company.name}${coAddr ? `, ${coAddr}` : ""}${company.siret ? `, SIRET ${company.siret}` : ""}, ci-après « l'entreprise ».`,
     "",
@@ -39,7 +39,7 @@ export function companyConventionText(conv: Conv, org: ConvOrg, company: ConvCom
     "Article 3 · Durée, période et lieu",
     `Durée : ${conv.hours ?? course.durationHours ?? "—"} heures par stagiaire.`,
     session ? `Période : du ${d(session.startDate)} au ${d(session.endDate)} (${session.name}, session ${session.format === "INTRA" ? "intra-entreprise" : "inter-entreprises"}).` : "Période : selon le calendrier convenu entre les parties.",
-    `Modalité : ${MOD[course.modality] ?? course.modality}${session && (session.address || session.location) ? `, lieu : ${[session.address, session.city].filter(Boolean).join(", ") || session.location}` : ""}.`,
+    `Modalité : ${MOD[session?.modality ?? course.modality] ?? session?.modality ?? course.modality}${session && (session.address || session.location) ? `, lieu : ${[session.address, session.city].filter(Boolean).join(", ") || session.location}` : ""}.`,
     "",
     "Article 4 · Stagiaires",
     conv.trainees.length ? conv.trainees.map((t) => `- ${t}`).join("\n") : "Liste des stagiaires communiquée par l'entreprise avant le début de la formation.",

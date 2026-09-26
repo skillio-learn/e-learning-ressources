@@ -20,7 +20,8 @@ export async function issuePasswordLink(userId: string, ttlMs: number) {
 export async function inviteStaffMember(userId: string, invitedBy: string) {
   const link = await issuePasswordLink(userId, 7 * 24 * 3600_000);
   const u = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, name: true, role: true, organization: { select: { name: true, email: true } } } });
-  const roleLabel = u.role === "ADMIN" ? "administrateur de la plateforme" : u.role === "OF_ADMIN" ? "responsable de l'organisme" : "formateur";
+  const roleLabel =
+    u.role === "ADMIN" ? "administrateur de la plateforme" : u.role === "OF_ADMIN" ? "responsable de l'organisme" : u.role === "COMPANY" ? "entreprise cliente (suivi de vos salariés)" : "formateur";
   const sent = emailEnabled()
     ? await sendTemplatedEmail(
         u.email,

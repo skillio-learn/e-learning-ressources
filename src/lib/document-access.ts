@@ -6,14 +6,28 @@ import { enrollmentTrace } from "./reports";
 import { audit } from "./audit";
 import { db } from "./db";
 
-/** Charge la traçabilité d'une inscription si l'utilisateur y a droit (apprenant concerné ou équipe OF). */
+/**
+ * Contact d'une entreprise cliente : accès aux documents de ses salariés si l'OF a activé ce partage.
+ * Les documents de fin de formation ne sont visibles qu'une fois la formation terminée ou interrompue.
+ */
+export async function companyCanSeeEnrollment(user: { role: string; companyId: string | null }, enrollmentId: string, requireFinished = false) {
+  if (user.role !== "COMPANY" || !user.companyId) return false;
+  const e = await db.enrollment.findUnique({ where: { id: enrollmentId }, select: { companyId: true, status: true, exitDate: true, company: { select: { shareDocuments: true, active: true } } } });
+  if (!e || e.companyId !== user.companyId || !e.company?.shareDocuments || !e.company.active) return false;
+  return !requireFinished || e.status === "COMPLETED" || e.status === "ABANDONED" || !!e.exitDate;
+}
+
+/** Charge la traçabilité d'une inscription si l'utilisateur y a droit (apprenant concerné, équipe OF, entreprise autorisée). */
 export async function loadTraceForViewer(enrollmentId: string, docType: string, opts: { learnerRequiresFinished?: boolean } = {}) {
   const user = await requireUser();
   const trace = await enrollmentTrace(enrollmentId);
   if (!trace) notFound();
   const e = trace.enrollment;
   const allowed =
-    e.userId === user.id || canManageOrg(user, e.course.organization.id) || (await canManageCourse(user, e.course.id));
+    e.userId === user.id ||
+    canManageOrg(user, e.course.organization.id) ||
+    (await canManageCourse(user, e.course.id)) ||
+    (await companyCanSeeEnrollment(user, e.id, !!opts.learnerRequiresFinished));
   if (!allowed) notFound();
   // Un certificat de réalisation n'est délivré à l'apprenant qu'à la fin (ou à l'interruption) de sa formation
   if (opts.learnerRequiresFinished && e.userId === user.id && !(e.status === "COMPLETED" || e.status === "ABANDONED" || e.exitDate)) notFound();
@@ -47,7 +61,8 @@ export async function loadEnrollmentForViewer(enrollmentId: string, docType: str
     },
   });
   if (!e) notFound();
-  const allowed = e.userId === user.id || canManageOrg(user, e.course.organizationId) || (await canManageCourse(user, e.courseId));
+  const allowed =
+    e.userId === user.id || canManageOrg(user, e.course.organizationId) || (await canManageCourse(user, e.courseId)) || (await companyCanSeeEnrollment(user, e.id));
   if (!allowed) notFound();
   if (e.userId !== user.id) {
     await audit("export.report", { actorId: user.id, organizationId: e.course.organizationId, entityType: "Enrollment", entityId: e.id, details: { document: docType } });

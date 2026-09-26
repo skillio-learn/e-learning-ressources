@@ -65,6 +65,9 @@ export const COMPLAINT_STATUS = {
   RESOLVED: { label: "Résolue", tone: "green" },
 } as const;
 
+/** Signalement confidentiel (violences, harcèlement, discriminations) : RNQ 2026, indicateur 12. */
+export const SIGNALEMENT_CATEGORY = "Signalement confidentiel (violences, harcèlement, discriminations)";
+
 export const COMPLAINT_CATEGORIES = [
   "Réclamation",
   "Question pédagogique",
@@ -72,6 +75,7 @@ export const COMPLAINT_CATEGORIES = [
   "Question administrative / financement",
   "Accessibilité / handicap",
   "Autre",
+  SIGNALEMENT_CATEGORY,
 ];
 
 export const SATISFACTION_QUESTIONS = [

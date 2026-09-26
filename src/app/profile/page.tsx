@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { changePasswordAction, updateProfileAction } from "@/app/actions/admin";
@@ -62,6 +63,13 @@ export default async function Profile() {
               <input name="next" type="password" required minLength={8} className="input" autoComplete="new-password" />
             </Field>
           </StateForm>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
+            <div>
+              <div className="font-medium text-slate-900">Double authentification</div>
+              <div className="text-sm text-slate-500">{user.mfaEnabled ? "Activée : un code est demandé à chaque connexion." : "Recommandée pour protéger votre compte."}</div>
+            </div>
+            <Link href="/profile/security" className="btn-secondary btn-sm">{user.mfaEnabled ? "Gérer" : "Activer"}</Link>
+          </div>
         </div>
       </div>
 

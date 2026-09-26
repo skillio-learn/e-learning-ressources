@@ -3,7 +3,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 const PROTECTED = [
   "/dashboard", "/learn", "/of", "/admin", "/profile", "/applications", "/apply", "/attendance", "/support", "/notifications",
-  "/onboarding", "/enrollments", "/courses",
+  "/onboarding", "/enrollments", "/courses", "/entreprise", "/terms",
 ];
 
 /** Transmet le chemin demandé aux composants serveur (garde « compte non validé » dans requireUser). */
@@ -26,8 +26,12 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
   }
+  if ((pathname === "/entreprise" || pathname.startsWith("/entreprise/")) && session.role !== "COMPANY") {
+    return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
+  }
   if (pathname === "/of" || pathname.startsWith("/of/")) {
     if (session.role === "LEARNER") return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
+    if (session.role === "COMPANY") return NextResponse.redirect(new URL("/entreprise", req.url));
     // L'administrateur Vylia n'intervient pas dans l'espace des organismes : il les accompagne via le support
     if (session.role === "ADMIN") return NextResponse.redirect(new URL("/admin", req.url));
   }

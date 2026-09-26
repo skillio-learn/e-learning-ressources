@@ -8,11 +8,13 @@ export function CourseForm({
   course,
   isNew,
   organizations,
+  team,
 }: {
   action: (fd: FormData) => Promise<void>;
   course?: Partial<Course>;
   isNew?: boolean;
   organizations?: { id: string; name: string }[];
+  team?: { id: string; name: string }[];
 }) {
   return (
     <form action={action} className="space-y-6">
@@ -76,6 +78,19 @@ export function CourseForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Méthodes et moyens pédagogiques"><textarea name="pedagogicalMethods" rows={3} defaultValue={course?.pedagogicalMethods ?? ""} className="input" /></Field>
           <Field label="Modalités d'évaluation"><textarea name="evaluationMethods" rows={3} defaultValue={course?.evaluationMethods ?? ""} className="input" /></Field>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Délai d'accès" hint="Qualiopi, indicateur 1 : délai entre la demande et le début de la formation.">
+            <input name="accessDelay" defaultValue={course?.accessDelay ?? ""} className="input" placeholder="Ex. 14 jours après signature de la convention" />
+          </Field>
+          {team && (
+            <Field label="Référent pédagogique" hint="Qualiopi 2026, indicateur 19 : interlocuteur pédagogique de la formation.">
+              <select name="pedagogicalReferentId" defaultValue={course?.pedagogicalReferentId ?? ""} className="input">
+                <option value="">—</option>
+                {team.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </Field>
+          )}
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Prérequis">

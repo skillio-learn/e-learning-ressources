@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { notifyOrgManagers } from "@/lib/notify";
 import { getClientInfo } from "@/lib/request";
-import { COMPLAINT_CATEGORIES, SATISFACTION_QUESTIONS } from "@/lib/labels";
+import { SIGNALEMENT_CATEGORY, COMPLAINT_CATEGORIES, SATISFACTION_QUESTIONS } from "@/lib/labels";
 import { optStr, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -111,10 +111,16 @@ export async function createComplaintAction(_: ActionState, fd: FormData): Promi
     const linked = await db.enrollment.count({ where: { userId: user.id, courseId } }) + (await db.application.count({ where: { userId: user.id, courseId } }));
     if (!linked) return { error: "Formation invalide." };
   }
-  const c = await db.complaint.create({ data: { userId: user.id, organizationId, courseId, category, subject, message } });
-  await notifyOrgManagers(organizationId, `${category} : ${subject}`, `${user.name}`, `/of/quality?complaint=${c.id}`);
+  const confidential = category === SIGNALEMENT_CATEGORY;
+  const c = await db.complaint.create({ data: { userId: user.id, organizationId, courseId, category, subject, message, confidential } });
+  // Signalement : notification sans contenu, au seul responsable de l'organisme
+  await notifyOrgManagers(organizationId, confidential ? "Signalement confidentiel reçu" : `${category} : ${subject}`, confidential ? "À traiter en priorité, selon la procédure du règlement intérieur." : `${user.name}`, `/of/quality?complaint=${c.id}`);
   revalidatePath("/support");
-  return { ok: "Votre demande a été transmise. Vous serez notifié(e) de la réponse." };
+  return {
+    ok: confidential
+      ? "Votre signalement a été transmis de façon confidentielle au responsable de l'organisme, qui vous répondra sous 48 heures ouvrées. En cas de danger immédiat : 17 (police), 114 (SMS), 3919 (violences femmes info)."
+      : "Votre demande a été transmise. Vous serez notifié(e) de la réponse.",
+  };
 }
 
 // ─────────────── RGPD ───────────────

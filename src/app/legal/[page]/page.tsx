@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getSettings } from "@/lib/settings";
 import { renderMarkdown } from "@/lib/markdown";
+import { CGU_MARKDOWN } from "@/lib/terms";
 import { Container, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export default async function Legal({ params }: { params: Promise<{ page: string
   return (
     <Container className="max-w-3xl">
       <PageHeader title={def.title} />
-      <article className="card prose-lms p-8" dangerouslySetInnerHTML={{ __html: renderMarkdown(s[def.key]) }} />
+      <article className="card prose-lms p-8" dangerouslySetInnerHTML={{ __html: renderMarkdown(def.key === "cgu" ? CGU_MARKDOWN : s[def.key]) }} />
     </Container>
   );
 }

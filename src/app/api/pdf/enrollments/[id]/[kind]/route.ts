@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canManageCourse, canManageOrg } from "@/lib/permissions";
+import { companyCanSeeEnrollment } from "@/lib/document-access";
 import { enrollmentTrace } from "@/lib/reports";
 import { audit } from "@/lib/audit";
 import { pdfResponse, pdfSlug } from "@/lib/pdf";
@@ -26,14 +27,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!e) return new NextResponse("Introuvable", { status: 404 });
   const own = e.userId === user.id;
   const staff = !own && (canManageOrg(user, e.course.organizationId) || (await canManageCourse(user, e.courseId)));
-  if (!own && !staff) return new NextResponse("Accès refusé", { status: 403 });
+  // Entreprise cliente : documents de ses salariés, une fois la formation terminée, si l'OF l'autorise
+  const company = !own && !staff && (await companyCanSeeEnrollment(user, e.id, true));
+  if (!own && !staff && !company) return new NextResponse("Accès refusé", { status: 403 });
   if (own && !(e.status === "COMPLETED" || e.status === "ABANDONED" || e.exitDate)) {
     return new NextResponse("Disponible à la fin de votre formation.", { status: 403 });
   }
   const trace = await enrollmentTrace(id);
   if (!trace) return new NextResponse("Introuvable", { status: 404 });
   const bytes = kind === "realisation" ? await realisationPdf(trace) : await relevePdf(trace);
-  if (staff) {
+  if (staff || company) {
     await audit("export.report", { actorId: user.id, organizationId: e.course.organizationId, entityType: "Enrollment", entityId: e.id, details: { document: kind, format: "pdf" } });
   }
   const inline = new URL(req.url).searchParams.get("inline") === "1";

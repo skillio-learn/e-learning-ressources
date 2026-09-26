@@ -31,11 +31,45 @@ export async function verifySession(token: string | undefined): Promise<SessionP
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
+    // Un jeton typé (défi de double authentification…) n'est jamais une session
+    if ((payload as { typ?: string }).typ) return null;
     return payload as unknown as SessionPayload;
   } catch {
     return null;
   }
 }
+
+// ─── Défi de double authentification (entre le mot de passe et le code) ───
+
+export const MFA_COOKIE = "lms_mfa";
+const MFA_TTL_SEC = 5 * 60;
+
+export async function signMfaChallenge(p: { uid: string; sv: number; next: string }) {
+  return new SignJWT({ ...p, typ: "mfa" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${MFA_TTL_SEC}s`)
+    .sign(secret());
+}
+
+export async function verifyMfaChallenge(token: string | undefined): Promise<{ uid: string; sv: number; next: string } | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
+    if ((payload as { typ?: string }).typ !== "mfa") return null;
+    return payload as unknown as { uid: string; sv: number; next: string };
+  } catch {
+    return null;
+  }
+}
+
+export const mfaCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: MFA_TTL_SEC,
+};
 
 export const sessionCookieOptions = {
   httpOnly: true,

@@ -9,7 +9,7 @@ import { assertCanManageCourse, canAdministerOrg, canManageOrg } from "@/lib/per
 import { audit } from "@/lib/audit";
 import { inviteStaffMember } from "@/lib/passwords";
 import { notify, notifyOrgManagers } from "@/lib/notify";
-import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS, FUNDING_TYPES, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, DOCUMENT_TYPES, ENROLLMENT_DOCUMENTS, FUNDING_TYPES, LOCKED_ORG_FIELDS, isOrgFieldLocked, type LockedOrgField } from "@/lib/labels";
 import { bool, optFloat, optInt, optStr, randomCode, safeUrl, str } from "@/lib/utils";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -50,6 +50,9 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
     ndaRegion: optStr(fd, "ndaRegion"),
     qualiopiNumber: optStr(fd, "qualiopiNumber"),
     qualiopiDate: dateOrNull(str(fd, "qualiopiDate")),
+    qualiopiCertified: bool(fd, "qualiopiCertified"),
+    qualiopiCertifier: optStr(fd, "qualiopiCertifier"),
+    qualiopiExpiresAt: dateOrNull(str(fd, "qualiopiExpiresAt")),
     address: optStr(fd, "address"),
     postalCode: optStr(fd, "postalCode"),
     city: optStr(fd, "city"),
@@ -85,7 +88,7 @@ export async function updateOrganizationAction(orgId: string, _: ActionState, fd
   const same = (a: unknown, b: unknown) => (a instanceof Date ? a.getTime() : a ?? null) === (b instanceof Date ? b.getTime() : b ?? null);
   if (user.role !== "ADMIN") {
     // Informations déjà renseignées : seul le support Vylia peut les modifier (sur demande par ticket)
-    for (const k of lockedKeys) if (isOrgFieldFilled(current[k])) delete (data as Partial<typeof data>)[k];
+    for (const k of lockedKeys) if (isOrgFieldLocked(k, current[k])) delete (data as Partial<typeof data>)[k];
   }
   const changedIdentity = lockedKeys.filter((k) => k in data && !same(data[k], current[k]));
   await db.organization.update({ where: { id: orgId }, data });
@@ -197,8 +200,9 @@ async function sessionFields(fd: FormData, courseId: string) {
   };
 }
 
+/** Planification des sessions et des créneaux : réservée aux responsables de l'organisme (le formateur émarge et déclare les absences). */
 export async function createSessionAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const courseId = str(fd, "courseId");
   await assertCanManageCourse(user, courseId);
   const startDate = dateOrNull(str(fd, "startDate"));
@@ -225,7 +229,7 @@ export async function createSessionAction(_: ActionState, fd: FormData): Promise
 }
 
 export async function updateSessionAction(sessionId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const s = await db.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
   await assertCanManageCourse(user, s.courseId);
   const startDate = dateOrNull(str(fd, "startDate"));
@@ -242,7 +246,7 @@ export async function updateSessionAction(sessionId: string, _: ActionState, fd:
 }
 
 export async function deleteSessionAction(sessionId: string) {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const s = await db.trainingSession.findUniqueOrThrow({ where: { id: sessionId }, include: { _count: { select: { enrollments: true } } } });
   await assertCanManageCourse(user, s.courseId);
   if (s._count.enrollments > 0) throw new Error("Impossible : des apprenants sont inscrits sur cette session");
@@ -252,7 +256,7 @@ export async function deleteSessionAction(sessionId: string) {
 
 /** Génère les créneaux d'émargement (matin / après-midi) sur une période, pour les jours choisis. */
 export async function generateSlotsAction(sessionId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const s = await db.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
   await assertCanManageCourse(user, s.courseId);
   const from = dateOrNull(str(fd, "from"));
@@ -281,7 +285,7 @@ export async function generateSlotsAction(sessionId: string, _: ActionState, fd:
 }
 
 export async function addSlotAction(sessionId: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const s = await db.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
   await assertCanManageCourse(user, s.courseId);
   const date = dateOrNull(str(fd, "date"));
@@ -294,7 +298,7 @@ export async function addSlotAction(sessionId: string, _: ActionState, fd: FormD
 }
 
 export async function deleteSlotAction(slotId: string) {
-  const user = await requireStaff();
+  const user = await requireOfManager();
   const slot = await db.attendanceSlot.findUniqueOrThrow({ where: { id: slotId }, include: { session: true, _count: { select: { signatures: true } } } });
   await assertCanManageCourse(user, slot.session.courseId);
   if (slot._count.signatures > 0) throw new Error("Créneau déjà signé : suppression impossible (preuve de présence)");

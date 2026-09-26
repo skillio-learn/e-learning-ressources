@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { SCOPE_LABELS } from "@/lib/qualiopi";
@@ -8,7 +9,7 @@ import { Field, PageHeader } from "@/components/ui";
 export const metadata = { title: "Paramètres Qualiopi" };
 export const dynamic = "force-dynamic";
 
-const toInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+const toFr = (d: Date) => d.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
 
 export default async function QualiopiSettings() {
   const user = await requireStaff();
@@ -21,12 +22,18 @@ export default async function QualiopiSettings() {
     <>
       <PageHeader title="Paramètres Qualiopi" subtitle="Certification, catégories d'actions, version du référentiel et référents. Ces réglages déterminent les indicateurs applicables." />
       <StateForm action={saveQualiopiSettingsAction} submitLabel="Enregistrer" submitClassName="btn-primary" className="card space-y-5 p-6">
-        <label className="flex items-center gap-2"><input type="checkbox" name="qualiopiCertified" defaultChecked={org.qualiopiCertified} className="h-4 w-4" /> Notre organisme est certifié Qualiopi</label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Numéro de certificat"><input name="qualiopiNumber" defaultValue={org.qualiopiNumber ?? ""} className="input" /></Field>
-          <Field label="Organisme certificateur"><input name="qualiopiCertifier" defaultValue={org.qualiopiCertifier ?? ""} className="input" /></Field>
-          <Field label="Date de certification"><input type="date" name="qualiopiDate" defaultValue={toInput(org.qualiopiDate)} className="input" /></Field>
-          <Field label="Fin de validité"><input type="date" name="qualiopiExpiresAt" defaultValue={toInput(org.qualiopiExpiresAt)} className="input" /></Field>
+        <div className="rounded-[10px] border border-slate-200 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="font-medium text-slate-900">Certification Qualiopi</div>
+            <Link href={`/of/tickets?category=ORG_INFO&subject=${encodeURIComponent("Mise à jour de la certification Qualiopi")}`} className="btn-secondary btn-sm">Demander une mise à jour</Link>
+          </div>
+          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+            <div><dt className="text-slate-500">Statut</dt><dd>{org.qualiopiCertified ? "Certifié" : "Non certifié"}</dd></div>
+            <div><dt className="text-slate-500">Numéro de certificat</dt><dd>{org.qualiopiNumber ?? "—"}</dd></div>
+            <div><dt className="text-slate-500">Organisme certificateur</dt><dd>{org.qualiopiCertifier ?? "—"}</dd></div>
+            <div><dt className="text-slate-500">Validité</dt><dd>{org.qualiopiDate ? `du ${toFr(org.qualiopiDate)}` : "—"}{org.qualiopiExpiresAt ? ` au ${toFr(org.qualiopiExpiresAt)}` : ""}</dd></div>
+          </dl>
+          <p className="mt-3 text-xs text-slate-500">Ces informations figurent sur vos documents et votre page publique : elles sont vérifiées et saisies par le support Vylia à partir de votre certificat. Joignez-le à votre demande.</p>
         </div>
         <fieldset>
           <legend className="label">Catégories d&apos;actions certifiées</legend>

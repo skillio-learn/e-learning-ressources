@@ -224,6 +224,9 @@ export const LOCKED_ORG_FIELDS = {
   ndaRegion: "Région / préfecture du NDA",
   qualiopiNumber: "N° de certificat Qualiopi",
   qualiopiDate: "Date de certification Qualiopi",
+  qualiopiCertified: "Certification Qualiopi",
+  qualiopiCertifier: "Organisme certificateur",
+  qualiopiExpiresAt: "Fin de validité du certificat Qualiopi",
   logoUrl: "Logo",
   address: "Adresse",
   postalCode: "Code postal",
@@ -239,6 +242,13 @@ export const LOCKED_ORG_FIELDS = {
   mediatorInfo: "Médiateur de la consommation",
 } as const;
 export type LockedOrgField = keyof typeof LOCKED_ORG_FIELDS;
+
+/**
+ * Identité légale et certification : jamais modifiables par l'organisme lui-même, même vides
+ * (renseignées ou corrigées par le support Vylia sur demande, justificatif à l'appui).
+ */
+export const STRICT_ORG_FIELDS: readonly LockedOrgField[] = ["name", "legalName", "siret", "nda", "ndaRegion", "qualiopiNumber", "qualiopiDate", "qualiopiCertified", "qualiopiCertifier", "qualiopiExpiresAt"];
+export const isOrgFieldLocked = (k: LockedOrgField, value: unknown) => STRICT_ORG_FIELDS.includes(k) || isOrgFieldFilled(value);
 
 export const isOrgFieldFilled = (v: unknown) => v !== null && v !== undefined && String(v).trim() !== "";
 

@@ -33,7 +33,20 @@ export function InteractivePlayer({
   const [progress, setProgress] = useState<number | null>(null);
   const [height, setHeight] = useState<number | null>(null);
   const [done, setDone] = useState(completed);
+  // Grand format dans le même onglet (et non un nouvel onglet) : le temps de formation reste comptabilisé
+  const [expanded, setExpanded] = useState(false);
   const sent = useRef(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [expanded]);
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
@@ -67,7 +80,7 @@ export function InteractivePlayer({
   }
 
   return (
-    <div ref={wrapper} className="overflow-hidden rounded-xl border border-slate-200 bg-surface">
+    <div ref={wrapper} className={expanded ? "fixed inset-0 z-[90] flex flex-col bg-surface" : "overflow-hidden rounded-xl border border-slate-200 bg-surface"}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 text-sm">
         <span className="font-medium text-slate-700">Module interactif</span>
         <div className="flex items-center gap-3">
@@ -76,7 +89,9 @@ export function InteractivePlayer({
             <span className="text-xs text-slate-500">Se valide automatiquement à la fin du module</span>
           )}
           {done && <span className="text-xs font-medium text-emerald-600">✓ Terminé</span>}
-          <a href={src} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm">↗ Nouvel onglet</a>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setExpanded((v) => !v)} title="Afficher le module sur toute la fenêtre, le temps reste comptabilisé">
+            {expanded ? "Réduire" : "Agrandir"}
+          </button>
           <button
             type="button"
             className="btn-ghost btn-sm"
@@ -90,8 +105,8 @@ export function InteractivePlayer({
         ref={frame}
         src={src}
         title={title}
-        className={height ? "block w-full bg-surface" : "block h-[75vh] min-h-[520px] w-full bg-surface"}
-        style={height ? { height } : undefined}
+        className={expanded ? "block w-full flex-1 bg-surface" : height ? "block w-full bg-surface" : "block h-[75vh] min-h-[520px] w-full bg-surface"}
+        style={height && !expanded ? { height } : undefined}
         allow="autoplay; fullscreen; clipboard-write; encrypted-media"
         allowFullScreen
         sandbox={src.startsWith("/api/") ? "allow-scripts allow-forms allow-popups allow-modals allow-downloads" : undefined}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireStaff } from "@/lib/auth";
+import { isOfManager, requireStaff } from "@/lib/auth";
 import { manageableCoursesWhere } from "@/lib/permissions";
 import { createSessionAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Sessions() {
   const user = await requireStaff();
+  const manager = isOfManager(user);
   const courses = await db.course.findMany({ where: manageableCoursesWhere(user), select: { id: true, title: true }, orderBy: { title: "asc" } });
   const sessions = await db.trainingSession.findMany({
     where: { courseId: { in: courses.map((c) => c.id) } },
@@ -28,7 +29,12 @@ export default async function Sessions() {
   return (
     <Container>
       <PageHeader title="Sessions de formation & émargement" subtitle="Planifiez les sessions, leurs capacités et les créneaux à émarger (présentiel ou classes virtuelles)." />
-      <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
+      <p className="mb-6 rounded-[10px] bg-brand-50 p-4 text-sm text-brand-700">
+        <b className="font-medium">Émargement synchrone ou asynchrone.</b> Créez des créneaux uniquement pour les temps synchrones (salle, classe virtuelle à heure fixe) :
+        stagiaires et formateur y signent chaque demi-journée. Les parties à distance en autonomie (FOAD asynchrone) n&apos;ont pas de créneau : la plateforme enregistre
+        automatiquement le temps d&apos;activité réel de chaque stagiaire, restitué dans le relevé de connexions et le certificat de réalisation.
+      </p>
+      <div className={manager ? "grid gap-6 xl:grid-cols-[1fr_420px]" : ""}>
         <div>
           {sessions.length === 0 ? (
             <Empty title="Aucune session">Créez une session pour permettre aux candidats de la choisir.</Empty>
@@ -58,7 +64,7 @@ export default async function Sessions() {
             </div>
           )}
         </div>
-        <aside className="card p-5">
+        {manager && <aside className="card p-5">
           <h2 className="mb-3 text-xl">Nouvelle session</h2>
           <StateForm action={createSessionAction} submitLabel="Créer la session" submitClassName="btn-primary w-full" className="space-y-3">
             <label className="block"><span className="label">Formation</span>
@@ -68,7 +74,7 @@ export default async function Sessions() {
             </label>
             <SessionFields companies={companies} team={team} />
           </StateForm>
-        </aside>
+        </aside>}
       </div>
     </Container>
   );

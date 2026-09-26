@@ -47,11 +47,7 @@ export async function saveQualiopiSettingsAction(_: QState, fd: FormData): Promi
   await db.organization.update({
     where: { id: orgId },
     data: {
-      qualiopiCertified: bool(fd, "qualiopiCertified"),
-      qualiopiCertifier: optStr(fd, "qualiopiCertifier"),
-      qualiopiNumber: optStr(fd, "qualiopiNumber"),
-      qualiopiDate: dateOrNull(str(fd, "qualiopiDate")),
-      qualiopiExpiresAt: dateOrNull(str(fd, "qualiopiExpiresAt")),
+      // Certification (numéro, dates, certificateur) : renseignée par le support Vylia sur justificatif, non modifiable ici
       qualiopiScope: scope.length ? scope : ["ACTIONS"],
       rnqVersion: version,
       qualityReferentId: member(str(fd, "qualityReferentId")),

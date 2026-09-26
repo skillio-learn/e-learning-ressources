@@ -33,6 +33,11 @@ export default async function Attendance() {
   return (
     <Container className="max-w-4xl">
       <PageHeader title="Émargement électronique" subtitle="Signez votre présence pour chaque demi-journée ou classe virtuelle, le jour même." />
+      <p className="mb-6 rounded-[10px] bg-brand-50 p-4 text-sm text-brand-700">
+        <b className="font-medium">Quand faut-il émarger ?</b> Uniquement pour les temps <b className="font-medium">synchrones</b> : journées en salle et classes virtuelles
+        à heure fixe, que votre organisme a planifiées ci-dessous. Pour les modules <b className="font-medium">à distance en autonomie</b>, vous n&apos;avez rien à signer :
+        votre temps de connexion et d&apos;activité est enregistré automatiquement et sert de preuve de présence (relevé de connexions).
+      </p>
       {slots.length === 0 ? (
         <Empty title="Aucun créneau d'émargement">Votre organisme n&apos;a pas encore planifié de créneau pour vos sessions.</Empty>
       ) : (

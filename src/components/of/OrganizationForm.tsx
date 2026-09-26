@@ -4,7 +4,7 @@ import type { Organization } from "@prisma/client";
 import { updateOrganizationAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
 import { Field } from "@/components/ui";
-import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES, LOCKED_ORG_FIELDS, isOrgFieldFilled, type LockedOrgField } from "@/lib/labels";
+import { ACCOUNT_DOCUMENT_CHOICES, ENROLLMENT_DOCUMENTS, DOCUMENT_TYPES, LOCKED_ORG_FIELDS, isOrgFieldLocked, type LockedOrgField } from "@/lib/labels";
 
 /**
  * « managers » : responsables de l'OF, candidats au rôle de référent support Vylia.
@@ -20,7 +20,7 @@ export function OrganizationForm({
   mode?: "of" | "admin";
 }) {
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
-  const lk = (k: LockedOrgField) => mode === "of" && isOrgFieldFilled(org[k]);
+  const lk = (k: LockedOrgField) => mode === "of" && isOrgFieldLocked(k, org[k]);
   const anyLocked = (Object.keys(LOCKED_ORG_FIELDS) as LockedOrgField[]).some(lk);
   const ticketHref = `/of/tickets?category=ORG_INFO&subject=${encodeURIComponent("Modification des informations de l'organisme")}`;
   return (
@@ -29,7 +29,7 @@ export function OrganizationForm({
         <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-100/80 p-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
           <Lock className="h-4 w-4 shrink-0 text-slate-500" strokeWidth={1.75} />
           <p className="min-w-0 flex-1">
-            Les informations d&apos;identité, de coordonnées et de signature déjà renseignées sont verrouillées : elles figurent sur vos
+            L&apos;identité légale (raison sociale, SIRET, déclaration d&apos;activité, certification Qualiopi) n&apos;est modifiable que par le support Vylia, sur justificatif. Les coordonnées et la signature déjà renseignées sont également verrouillées : elles figurent sur vos
             conventions, attestations et certificats. Pour les modifier, adressez une demande au support Vylia.
           </p>
           <Link href={ticketHref} className="btn-secondary btn-sm">Demander une modification</Link>
@@ -44,6 +44,9 @@ export function OrganizationForm({
         <Field label="Région / préfecture du NDA"><input name="ndaRegion" disabled={lk("ndaRegion")} title={lk("ndaRegion") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.ndaRegion ?? ""} className="input" /></Field>
         <Field label="N° de certificat Qualiopi"><input name="qualiopiNumber" disabled={lk("qualiopiNumber")} title={lk("qualiopiNumber") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.qualiopiNumber ?? ""} className="input" /></Field>
         <Field label="Date de certification Qualiopi"><input type="date" name="qualiopiDate" disabled={lk("qualiopiDate")} title={lk("qualiopiDate") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={iso(org.qualiopiDate)} className="input" /></Field>
+        <Field label="Organisme certificateur Qualiopi"><input name="qualiopiCertifier" disabled={lk("qualiopiCertifier")} title={lk("qualiopiCertifier") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={org.qualiopiCertifier ?? ""} className="input" /></Field>
+        <Field label="Fin de validité du certificat"><input type="date" name="qualiopiExpiresAt" disabled={lk("qualiopiExpiresAt")} title={lk("qualiopiExpiresAt") ? "Verrouillé : demandez la modification au support Vylia" : undefined} defaultValue={iso(org.qualiopiExpiresAt)} className="input" /></Field>
+        <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="qualiopiCertified" disabled={lk("qualiopiCertified")} defaultChecked={org.qualiopiCertified} className="h-4 w-4" /> Organisme certifié Qualiopi (certificat vérifié)</label>
         <Field label="Logo (URL)"><input name="logoUrl" disabled={lk("logoUrl")} title={lk("logoUrl") ? "Verrouillé : demandez la modification au support Vylia" : undefined} type="url" defaultValue={org.logoUrl ?? ""} className="input" /></Field>
       </section>
       <section className="card grid gap-4 p-6 md:grid-cols-3">

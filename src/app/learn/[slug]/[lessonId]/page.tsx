@@ -12,6 +12,7 @@ import { AutoComplete, CompleteButton } from "@/components/learn/CompleteButton"
 import { LessonClock } from "@/components/tracking/LessonClock";
 import { QuizPanel } from "@/components/learn/QuizPanel";
 import { AssignmentPanel } from "@/components/learn/AssignmentPanel";
+import { ModuleResources } from "@/components/learn/ModuleResources";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,11 @@ export default async function LessonPage({
 
   const lesson = await db.lesson.findUnique({
     where: { id: lessonId },
-    include: { module: { select: { title: true, position: true } } },
+    include: {
+      module: {
+        select: { title: true, position: true, resources: { orderBy: { position: "asc" }, select: { id: true, title: true, description: true, url: true, fileName: true, size: true } } },
+      },
+    },
   });
   if (!lesson) notFound();
   if (!preview) await markLessonStarted(user.id, lesson.id);
@@ -106,6 +111,8 @@ export default async function LessonPage({
         {lesson.type === "ASSIGNMENT" && (
           <AssignmentPanel lessonId={lesson.id} userId={user.id} preview={preview} content={lesson.content} />
         )}
+
+        <ModuleResources moduleTitle={lesson.module.title} resources={lesson.module.resources} allHref={`/learn/${slug}/ressources`} />
 
         {canComplete && lesson.completionMode === "ON_VIEW" && !entry.completed && <AutoComplete lessonId={lesson.id} minTimeSec={lesson.minTimeSec} initialSeconds={spent} />}
         {canComplete && lesson.completionMode !== "ON_VIEW" && (

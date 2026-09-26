@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireStaff } from "@/lib/auth";
+import { isOfManager, requireStaff } from "@/lib/auth";
 import { canManageCourse } from "@/lib/permissions";
 import { addSlotAction, deleteSessionAction, deleteSlotAction, generateSlotsAction, updateSessionAction } from "@/app/actions/of-admin";
 import { StateForm } from "@/components/StateForm";
@@ -21,6 +21,7 @@ export const metadata = { title: "Session" };
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireStaff();
+  const manager = isOfManager(user);
   const s = await db.trainingSession.findUnique({
     where: { id },
     include: {
@@ -67,6 +68,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           ))}
           {s.companyId && <Link href={`/of/companies/${s.companyId}`} className="link text-sm">Fiche entreprise, besoins et conventions</Link>}
         </div>
+        {manager && (
+          <>
         <details className="card mt-6 p-4">
           <summary className="cursor-pointer font-medium text-brand-600">Paramètres de la session (type, lieu, formateur, tarif)</summary>
           <StateForm action={updateSessionAction.bind(null, s.id)} className="mt-4 space-y-3" submitClassName="btn-primary">
@@ -114,6 +117,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             </StateForm>
           </div>
         </div>
+          </>
+        )}
       </div>
 
             {/* Signature du formateur pour les créneaux du jour */}
@@ -151,7 +156,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                     <th key={sl.id} className="min-w-[90px] border bg-slate-50 px-1 py-1 font-normal">
                       <div className="font-semibold">{formatDate(sl.date)}</div>
                       <div>{sl.label} {sl.startTime}-{sl.endTime}</div>
-                      {sl.signatures.length === 0 && iso(sl.date) >= today && (
+                      {manager && sl.signatures.length === 0 && iso(sl.date) >= today && (
                         <form action={deleteSlotAction.bind(null, sl.id)} className="no-print">
                           <button className="text-[10px] text-red-500 hover:underline">supprimer</button>
                         </form>

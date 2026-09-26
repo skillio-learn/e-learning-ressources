@@ -17,6 +17,7 @@ export default async function Programme({ params }: { params: Promise<{ id: stri
     where: { id },
     include: {
       organization: true,
+      pedagogicalReferent: { select: { name: true, email: true } },
       modules: { orderBy: { position: "asc" }, include: { lessons: { where: { published: true }, orderBy: { position: "asc" }, select: { title: true, durationMin: true, type: true } } } },
       sessions: { where: { open: true, endDate: { gte: new Date() } }, orderBy: { startDate: "asc" } },
     },
@@ -40,7 +41,8 @@ export default async function Programme({ params }: { params: Promise<{ id: stri
           <tr><td className="border px-3 py-1.5 text-slate-600">Niveau</td><td className="border px-3 py-1.5">{LEVEL_LABELS[course.level]}</td></tr>
           {course.rncpCode && <tr><td className="border px-3 py-1.5 text-slate-600">Certification</td><td className="border px-3 py-1.5">{course.rncpCode}</td></tr>}
           <tr><td className="border px-3 py-1.5 text-slate-600">Tarif</td><td className="border px-3 py-1.5">{course.price != null ? `${course.price.toLocaleString("fr-FR")} € HT` : "Sur devis"}{course.cpfEligible ? " · éligible CPF" : ""}</td></tr>
-          <tr><td className="border px-3 py-1.5 text-slate-600">Délai d&apos;accès</td><td className="border px-3 py-1.5">Entrée après validation du dossier (délai indicatif : 14 jours ; 11 jours ouvrés minimum pour un financement CPF)</td></tr>
+          <tr><td className="border px-3 py-1.5 text-slate-600">Délai d&apos;accès</td><td className="border px-3 py-1.5">{course.accessDelay ?? "Entrée après validation du dossier (délai indicatif : 14 jours ; 11 jours ouvrés minimum pour un financement CPF)"}</td></tr>
+          {course.pedagogicalReferent && <tr><td className="border px-3 py-1.5 text-slate-600">Référent pédagogique</td><td className="border px-3 py-1.5">{course.pedagogicalReferent.name}</td></tr>}
           {course.sessions.length > 0 && (
             <tr><td className="border px-3 py-1.5 text-slate-600">Prochaines sessions</td><td className="border px-3 py-1.5">{course.sessions.map((s) => `${formatDate(s.startDate)} → ${formatDate(s.endDate)}`).join(" ; ")}</td></tr>
           )}

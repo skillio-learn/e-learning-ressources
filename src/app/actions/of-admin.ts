@@ -170,6 +170,33 @@ export async function setTeamMemberAction(memberId: string, patch: { role?: "OF_
 
 // ─────────────── Sessions de formation & émargement ───────────────
 
+/** Champs communs d'une session : inter ou intra (entreprise cliente), présentiel / distanciel, lieu, formateur. */
+async function sessionFields(fd: FormData, courseId: string) {
+  const course = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { organizationId: true } });
+  const format = str(fd, "format") === "INTRA" ? "INTRA" : "INTER";
+  const companyId = str(fd, "companyId");
+  const company = companyId ? await db.company.findFirst({ where: { id: companyId, organizationId: course.organizationId }, select: { id: true } }) : null;
+  if (format === "INTRA" && !company) return { error: "Choisissez l'entreprise cliente de la session intra." as const };
+  const trainerId = str(fd, "trainerId");
+  const trainer = trainerId ? await db.user.findFirst({ where: { id: trainerId, organizationId: course.organizationId, role: { in: ["OF_ADMIN", "TRAINER"] }, active: true }, select: { id: true } }) : null;
+  const modality = ["FOAD", "PRESENTIEL", "MIXTE"].includes(str(fd, "modality")) ? (str(fd, "modality") as "FOAD" | "PRESENTIEL" | "MIXTE") : null;
+  return {
+    data: {
+      format: format as "INTER" | "INTRA",
+      companyId: format === "INTRA" ? company!.id : null,
+      modality,
+      address: optStr(fd, "address"),
+      postalCode: optStr(fd, "postalCode"),
+      city: optStr(fd, "city"),
+      room: optStr(fd, "room"),
+      accessInfo: optStr(fd, "accessInfo"),
+      trainerId: trainer?.id ?? null,
+      minParticipants: optInt(fd, "minParticipants"),
+      price: optFloat(fd, "price"),
+    },
+  };
+}
+
 export async function createSessionAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireStaff();
   const courseId = str(fd, "courseId");
@@ -177,17 +204,22 @@ export async function createSessionAction(_: ActionState, fd: FormData): Promise
   const startDate = dateOrNull(str(fd, "startDate"));
   const endDate = dateOrNull(str(fd, "endDate"));
   if (!startDate || !endDate || endDate < startDate) return { error: "Dates invalides." };
-  await db.trainingSession.create({
+  const extra = await sessionFields(fd, courseId);
+  if ("error" in extra) return { error: extra.error };
+  const session = await db.trainingSession.create({
     data: {
       courseId,
       name: str(fd, "name") || `Session du ${startDate.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}`,
       startDate,
       endDate,
       capacity: optInt(fd, "capacity"),
-      location: optStr(fd, "location"),
-      open: true,
+      location: optStr(fd, "location") ?? extra.data.city,
+      // Une session intra est réservée à l'entreprise : pas de candidature ouverte
+      open: extra.data.format === "INTER",
+      ...extra.data,
     },
   });
+  await audit("session.create", { actorId: user.id, organizationId: user.organizationId, entityType: "TrainingSession", entityId: session.id, details: { format: session.format } });
   revalidatePath("/of/sessions");
   return { ok: "Session créée." };
 }
@@ -199,9 +231,11 @@ export async function updateSessionAction(sessionId: string, _: ActionState, fd:
   const startDate = dateOrNull(str(fd, "startDate"));
   const endDate = dateOrNull(str(fd, "endDate"));
   if (!startDate || !endDate || endDate < startDate) return { error: "Dates invalides." };
+  const extra = await sessionFields(fd, s.courseId);
+  if ("error" in extra) return { error: extra.error };
   await db.trainingSession.update({
     where: { id: sessionId },
-    data: { name: str(fd, "name") || s.name, startDate, endDate, capacity: optInt(fd, "capacity"), location: optStr(fd, "location"), open: bool(fd, "open") },
+    data: { name: str(fd, "name") || s.name, startDate, endDate, capacity: optInt(fd, "capacity"), location: optStr(fd, "location"), open: bool(fd, "open"), ...extra.data },
   });
   revalidatePath(`/of/sessions/${sessionId}`);
   return { ok: "Session mise à jour." };

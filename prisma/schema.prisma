@@ -15,6 +15,7 @@ enum Role {
   OF_ADMIN // Responsable d'organisme de formation : gère son OF, ses dossiers, ses formations et son équipe
   TRAINER // Formateur rattaché à un OF : crée ses formations, quiz, grilles et évalue
   LEARNER // Apprenant : candidate et suit les formations
+  COMPANY // Contact d'une entreprise cliente (RH, manager) : suit ses salariés, signe les conventions, évalue
 }
 
 /// Statut du compte apprenant sur la plateforme (validation par l'OF avant tout accès)
@@ -51,8 +52,21 @@ model User {
   accountReviewedById String?
   accountReviewedBy   User?         @relation("AccountReviewer", fields: [accountReviewedById], references: [id], onDelete: SetNull)
   accountReviewNote   String?       @db.Text // Motif de refus ou compléments demandés
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+
+  // Entreprise cliente (rôle COMPANY)
+  companyId String?
+  company   Company? @relation("CompanyContacts", fields: [companyId], references: [id], onDelete: SetNull)
+
+  // Double authentification (TOTP) : secret chiffré, codes de secours hachés
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  totpRecoveryHashes String[]  @default([])
+
+  termsAcceptedVersion String? // Version des CGU acceptée
+  calendarToken        String? @unique // Flux d'agenda ICS personnel (lien secret)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   profile                LearnerProfile?
   applications           Application[]          @relation("ApplicationLearner")
@@ -94,6 +108,21 @@ model User {
   supportReferentOf      Organization[]         @relation("OrgSupportReferent")
   profileChangeRequests  ProfileChangeRequest[] @relation("ChangeRequester")
   reviewedChangeRequests ProfileChangeRequest[] @relation("ChangeReviewer")
+
+  qualityReferentOf       Organization[]         @relation("OrgQualityReferent")
+  handicapReferentOf      Organization[]         @relation("OrgHandicapReferent")
+  sessionsTrained         TrainingSession[]      @relation("SessionTrainer")
+  tasksAssigned           Task[]                 @relation("TaskAssignee")
+  tasksCreated            Task[]                 @relation("TaskCreator")
+  watchAcks               WatchAck[]
+  accommodations          Accommodation[]        @relation("AccommodationLearner")
+  handledAccommodations   Accommodation[]        @relation("AccommodationHandler")
+  absences                AbsenceRecord[]        @relation("AbsenceLearner")
+  reviewedAbsences        AbsenceRecord[]        @relation("AbsenceReviewer")
+  qualifications          TrainerQualification[] @relation("QualificationOwner")
+  validatedQualifications TrainerQualification[] @relation("QualificationValidator")
+  improvementActions      ImprovementAction[]    @relation("ActionOwner")
+  pedagogicalReferentOf   Course[]               @relation("CoursePedagogicalReferent")
 }
 
 model Setting {
@@ -128,37 +157,43 @@ enum TrainingModality {
 }
 
 model Course {
-  id                 String           @id @default(cuid())
-  slug               String           @unique
-  title              String
-  subtitle           String?
-  description        String?          @db.Text
-  objectives         String?          @db.Text
-  prerequisites      String?          @db.Text
-  audience           String?          @db.Text
-  category           String?
-  level              CourseLevel      @default(BEGINNER)
-  durationHours      Float?
-  coverUrl           String?
-  status             CourseStatus     @default(DRAFT)
-  enrollmentPolicy   EnrollmentPolicy @default(INVITE)
-  sequential         Boolean          @default(true) // Parcours étape par étape : chaque leçon débloque la suivante
-  certificateEnabled Boolean          @default(true)
-  passingScore       Int              @default(70) // % moyen minimum aux quiz notés pour valider la formation
-  authorId           String
-  author             User             @relation("CourseAuthor", fields: [authorId], references: [id])
-  organizationId     String
-  organization       Organization     @relation(fields: [organizationId], references: [id])
-  modality           TrainingModality @default(FOAD)
-  rncpCode           String? // Code RNCP / RS de la certification visée
-  cpfEligible        Boolean          @default(false)
-  price              Float? // Tarif HT
-  requiredDocuments  String[]         @default([]) // Justificatifs exigés pour candidater (vide = réglage de l'OF)
-  skills             String[]         @default([]) // Compétences visées (positionnement d'entrée / de sortie)
-  evaluationMethods  String?          @db.Text // Modalités d'évaluation (programme)
-  pedagogicalMethods String?          @db.Text // Méthodes et moyens pédagogiques (programme)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  slug                  String           @unique
+  title                 String
+  subtitle              String?
+  description           String?          @db.Text
+  objectives            String?          @db.Text
+  prerequisites         String?          @db.Text
+  audience              String?          @db.Text
+  category              String?
+  level                 CourseLevel      @default(BEGINNER)
+  durationHours         Float?
+  coverUrl              String?
+  status                CourseStatus     @default(DRAFT)
+  enrollmentPolicy      EnrollmentPolicy @default(INVITE)
+  sequential            Boolean          @default(true) // Parcours étape par étape : chaque leçon débloque la suivante
+  certificateEnabled    Boolean          @default(true)
+  passingScore          Int              @default(70) // % moyen minimum aux quiz notés pour valider la formation
+  authorId              String
+  author                User             @relation("CourseAuthor", fields: [authorId], references: [id])
+  organizationId        String
+  organization          Organization     @relation(fields: [organizationId], references: [id])
+  modality              TrainingModality @default(FOAD)
+  rncpCode              String? // Code RNCP / RS de la certification visée
+  cpfEligible           Boolean          @default(false)
+  price                 Float? // Tarif HT
+  requiredDocuments     String[]         @default([]) // Justificatifs exigés pour candidater (vide = réglage de l'OF)
+  skills                String[]         @default([]) // Compétences visées (positionnement d'entrée / de sortie)
+  pedagogicalReferentId String? // Référent pédagogique de la formation (indicateur 19, RNQ 2026)
+  pedagogicalReferent   User?            @relation("CoursePedagogicalReferent", fields: [pedagogicalReferentId], references: [id], onDelete: SetNull)
+  accessDelay           String? // Délai d'accès (indicateur 1)
+  certSuccessRate       Float? // Taux d'obtention de la certification (indicateur 3), saisi par l'OF
+  certCandidates        Int? // Effectif présenté
+  certPeriod            String? // Période de référence (ex. « Sessions 2025 »)
+  evaluationMethods     String?          @db.Text // Modalités d'évaluation (programme)
+  pedagogicalMethods    String?          @db.Text // Méthodes et moyens pédagogiques (programme)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
   sessions     TrainingSession[]
   applications Application[]
@@ -495,9 +530,18 @@ model Enrollment {
   accessRequestAt    DateTime?
   documents          LearnerDocument[]
 
-  satisfactions SatisfactionResponse[]
-  messages      PedagogicalMessage[]
-  feedbacks     FunderFeedback[]
+  // Salarié d'une entreprise cliente (inter ou intra)
+  companyId      String?
+  company        Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  absenceAlertAt DateTime? // Dernière alerte d'absences envoyée
+
+  satisfactions    SatisfactionResponse[]
+  messages         PedagogicalMessage[]
+  feedbacks        FunderFeedback[]
+  accommodations   Accommodation[]
+  absences         AbsenceRecord[]
+  insertionSurveys InsertionSurvey[]
+  needsAnalysis    NeedsAnalysis?
 
   @@unique([userId, courseId])
 }
@@ -577,16 +621,36 @@ model Organization {
   autoGrantAccess             Boolean  @default(false) // Ouvrir l'accès dès que toutes les pièces sont validées
 
   // Chat d'assistance
-  supportEnabled       Boolean  @default(true)
+  supportEnabled       Boolean @default(true)
   supportHours         String? // ex. « Du lundi au vendredi, 9 h – 18 h »
-  supportResponseHours Int      @default(24) // Engagement de délai de première réponse (heures ouvrées)
-  supportAutoReply     String?  @db.Text // Message automatique à l'ouverture d'une conversation
+  supportResponseHours Int     @default(24) // Engagement de délai de première réponse (heures ouvrées)
+  supportAutoReply     String? @db.Text // Message automatique à l'ouverture d'une conversation
   // Support Vylia : interlocuteur de l'OF pour les tickets avec l'administrateur
   supportReferentId    String?
-  supportReferent      User?    @relation("OrgSupportReferent", fields: [supportReferentId], references: [id], onDelete: SetNull)
-  active               Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  supportReferent      User?   @relation("OrgSupportReferent", fields: [supportReferentId], references: [id], onDelete: SetNull)
+
+  // Qualiopi (référentiel national qualité)
+  qualiopiCertified  Boolean   @default(false)
+  rnqVersion         String    @default("2026") // "2019" (32 indicateurs, guide V9) ou "2026" (33 indicateurs, décret 2026-728, au 1er novembre 2026)
+  qualiopiCertifier  String? // Organisme certificateur
+  qualiopiScope      String[]  @default(["ACTIONS"]) // ACTIONS, BILAN, VAE, APPRENTISSAGE
+  qualiopiExpiresAt  DateTime? // Fin de validité du certificat
+  qualityReferentId  String?
+  qualityReferent    User?     @relation("OrgQualityReferent", fields: [qualityReferentId], references: [id], onDelete: SetNull)
+  handicapReferentId String?
+  handicapReferent   User?     @relation("OrgHandicapReferent", fields: [handicapReferentId], references: [id], onDelete: SetNull)
+  publishResults     Boolean   @default(false) // Page publique des indicateurs de résultats
+  resultsNote        String?   @db.Text // Commentaire publié avec les indicateurs
+
+  // Assiduité
+  absenceAlertThreshold   Int     @default(2) // Absences non justifiées avant alerte
+  notifyEmployerOnAbsence Boolean @default(false) // Alerter aussi l'entreprise / l'employeur
+
+  mfaRequired Boolean @default(false) // Double authentification obligatoire pour l'équipe de l'OF
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users                User[]
   feedbacks            FunderFeedback[]
@@ -596,6 +660,23 @@ model Organization {
   courses              Course[]
   auditLogs            AuditLog[]
   complaints           Complaint[]
+  companies            Company[]
+  companyConventions   CompanyConvention[]
+  tasks                Task[]
+  watchItems           WatchItem[]
+  accommodations       Accommodation[]
+  insertionSurveys     InsertionSurvey[]
+  webhooks             Webhook[]
+  qualifications       TrainerQualification[]
+  qualityIndicators    QualityIndicator[]
+  qualityEvidences     QualityEvidence[]
+  improvementActions   ImprovementAction[]
+  qualityAudits        QualityAudit[]
+  nonConformities      NonConformity[]
+  auditorAccesses      AuditorAccess[]
+  needsAnalyses        NeedsAnalysis[]
+  qualityRisks         QualityRisk[]
+  subcontractors       Subcontractor[]
 }
 
 // ─────────────────────────────── Dossier apprenant & candidatures ───────────────────────────────
@@ -762,9 +843,31 @@ model TrainingSession {
   open      Boolean  @default(true) // Ouverte aux candidatures
   createdAt DateTime @default(now())
 
-  applications Application[]
-  enrollments  Enrollment[]
-  slots        AttendanceSlot[]
+  // Inter-entreprises (plusieurs structures) ou intra (une entreprise cliente)
+  format          SessionFormat     @default(INTER)
+  modality        TrainingModality? // Null = modalité de la formation
+  companyId       String?
+  company         Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  address         String?
+  postalCode      String?
+  city            String?
+  room            String?
+  accessInfo      String?           @db.Text // Accès, horaires, repas, matériel à apporter
+  trainerId       String?
+  trainer         User?             @relation("SessionTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+  minParticipants Int?
+  price           Float? // Prix HT (intra : prix global de la session)
+
+  applications       Application[]
+  enrollments        Enrollment[]
+  slots              AttendanceSlot[]
+  companyConventions CompanyConvention[]
+  needsAnalyses      NeedsAnalysis[]
+}
+
+enum SessionFormat {
+  INTER
+  INTRA
 }
 
 // ─────────────────────────────── Traçabilité (contrôles OPCO / France Travail / Qualiopi) ───────────────────────────────
@@ -870,8 +973,9 @@ model AttendanceSlot {
   signatures AttendanceSignature[]
 
   trainerName      String?
-  trainerSignature String?   @db.Text
+  trainerSignature String?         @db.Text
   trainerSignedAt  DateTime?
+  absences         AbsenceRecord[]
 
   @@index([sessionId, date])
 }
@@ -920,7 +1024,8 @@ model Complaint {
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   courseId       String?
   course         Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  category       String // Réclamation, question pédagogique, technique, administrative…
+  category       String // Réclamation, question pédagogique, technique, administrative…, SIGNALEMENT
+  confidential   Boolean         @default(false) // Signalement (violences, harcèlement, discriminations) : réservé au responsable
   subject        String
   message        String          @db.Text
   status         ComplaintStatus @default(OPEN)
@@ -1173,4 +1278,417 @@ model Resource {
   createdAt   DateTime @default(now())
 
   @@index([moduleId, position])
+}
+
+// ─────────────────────────────── Lot 5 : entreprises, qualité, assiduité, intégrations ───────────────────────────────
+
+/// Entreprise cliente de l'OF (employeur des stagiaires, commanditaire d'une session intra)
+model Company {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name               String
+  legalName          String?
+  siret              String?
+  address            String?
+  postalCode         String?
+  city               String?
+  opcoName           String?
+  contactName        String?
+  contactEmail       String?
+  contactPhone       String?
+  notes              String?      @db.Text
+  // Informations visibles par l'entreprise dans son espace (paramétrables par l'OF)
+  shareProgress      Boolean      @default(true)
+  shareTime          Boolean      @default(true)
+  shareAttendance    Boolean      @default(true)
+  shareResults       Boolean      @default(false)
+  shareDocuments     Boolean      @default(true)
+  shareAbsenceAlerts Boolean      @default(true)
+  active             Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  contacts      User[]              @relation("CompanyContacts")
+  sessions      TrainingSession[]
+  enrollments   Enrollment[]
+  conventions   CompanyConvention[]
+  needsAnalyses NeedsAnalysis[]
+
+  @@index([organizationId])
+}
+
+/// Convention de formation professionnelle OF ↔ entreprise (art. L.6353-1), signée en ligne par l'entreprise
+model CompanyConvention {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  companyId      String
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sessionId      String?
+  session        TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  reference      String
+  trainees       String[]         @default([]) // Noms des stagiaires couverts
+  hours          Float?
+  price          Float? // Prix HT
+  vatRate        Float?           @default(20)
+  paymentTerms   String?          @db.Text
+  status         String           @default("SENT") // SENT, SIGNED, CANCELLED
+  sentAt         DateTime         @default(now())
+  signedAt       DateTime?
+  signerName     String?
+  signerTitle    String?
+  signature      String?          @db.Text
+  signedIp       String?
+  contentHash    String?
+  signedContent  String?          @db.Text
+  createdById    String?
+  createdAt      DateTime         @default(now())
+
+  @@index([companyId])
+}
+
+/// Analyse du besoin (Qualiopi indicateur 4) : entreprise, session intra ou apprenant
+model NeedsAnalysis {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  companyId      String?
+  company        Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sessionId      String?
+  session        TrainingSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollmentId   String?          @unique
+  enrollment     Enrollment?      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  context        String           @db.Text // Contexte et situation de départ
+  objectives     String           @db.Text // Objectifs attendus
+  constraints    String?          @db.Text // Contraintes (dates, lieu, public, handicap…)
+  adaptations    String?          @db.Text // Adaptations proposées par l'OF
+  filledByRole   String // OF, COMPANY, LEARNER
+  filledById     String?
+  validatedById  String?
+  validatedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+}
+
+/// Tâches et relances internes de l'équipe OF
+model Task {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  notes          String?      @db.Text
+  dueAt          DateTime?
+  priority       String       @default("NORMAL") // NORMAL, HIGH
+  status         TaskStatus   @default(OPEN)
+  assigneeId     String?
+  assignee       User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User?        @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  link           String? // Chemin interne (fiche apprenant, dossier…)
+  linkLabel      String?
+  remindedAt     DateTime?
+  doneAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, status, dueAt])
+  @@index([assigneeId, status])
+}
+
+/// Veille (Qualiopi indicateurs 23 à 25)
+model WatchItem {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category          String // LEGAL, SKILLS, PEDAGOGY, HANDICAP
+  title             String
+  source            String?
+  url               String?
+  summary           String       @db.Text
+  impact            String?      @db.Text // Analyse d'impact pour l'OF
+  actions           String?      @db.Text // Décisions et actions prises
+  publishedOn       DateTime?
+  shareWithTrainers Boolean      @default(true)
+  createdById       String?
+  createdAt         DateTime     @default(now())
+
+  acks WatchAck[]
+
+  @@index([organizationId, createdAt])
+}
+
+model WatchAck {
+  itemId String
+  item   WatchItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId String
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ackAt  DateTime  @default(now())
+
+  @@id([itemId, userId])
+}
+
+/// Registre des aménagements handicap (Qualiopi indicateur 26)
+model Accommodation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation("AccommodationLearner", fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentId   String?
+  enrollment     Enrollment?  @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  need           String       @db.Text
+  measures       String?      @db.Text // Aménagements décidés
+  partners       String[]     @default([]) // Agefiph, Cap emploi, MDPH, médecine du travail…
+  status         String       @default("REQUESTED") // REQUESTED, ANALYSING, IN_PLACE, ORIENTED, CLOSED
+  requestedBy    String       @default("LEARNER") // LEARNER, STAFF
+  handledById    String?
+  handledBy      User?        @relation("AccommodationHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  decidedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status])
+}
+
+/// Absence, retard ou départ anticipé sur un créneau d'émargement
+model AbsenceRecord {
+  id           String         @id @default(cuid())
+  slotId       String
+  slot         AttendanceSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation("AbsenceLearner", fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentId String?
+  enrollment   Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  kind         String         @default("ABSENCE") // ABSENCE, LATE, EARLY_LEAVE
+  minutes      Int?
+  reason       String // Code motif
+  comment      String?        @db.Text
+  fileName     String?
+  fileType     String?
+  size         Int?
+  data         Bytes?
+  status       String         @default("PENDING") // PENDING, ACCEPTED, REFUSED
+  declaredBy   String         @default("LEARNER") // LEARNER, STAFF
+  reviewedById String?
+  reviewedBy   User?          @relation("AbsenceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@unique([slotId, userId])
+}
+
+/// Enquête d'insertion à 6 mois (indicateurs de résultats, Qualiopi indicateur 2)
+model InsertionSurvey {
+  id                String       @id @default(cuid())
+  token             String       @unique
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enrollmentId      String
+  enrollment        Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  horizonMonths     Int          @default(6)
+  dueAt             DateTime
+  sentAt            DateTime?
+  answeredAt        DateTime?
+  situation         String? // EMPLOYED_CDI, EMPLOYED_CDD, SELF_EMPLOYED, TRAINING, JOB_SEEKING, INACTIVE, SAME_JOB
+  relatedToTraining Boolean?
+  skillsUsed        Int? // 1 à 5
+  comment           String?      @db.Text
+  createdAt         DateTime     @default(now())
+
+  @@unique([enrollmentId, horizonMonths])
+  @@index([organizationId, dueAt])
+}
+
+/// Webhooks sortants (Make, Zapier, n8n…)
+model Webhook {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  url            String
+  secret         String
+  events         String[]     @default([])
+  description    String?
+  active         Boolean      @default(true)
+  lastStatus     Int?
+  lastError      String?
+  lastAt         DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+/// Compétences des formateurs (Qualiopi indicateurs 21 et 22)
+model TrainerQualification {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation("QualificationOwner", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kind           String // CV, DIPLOMA, CERTIFICATION, EXPERIENCE, TRAINING
+  title          String
+  issuer         String?
+  obtainedAt     DateTime?
+  expiresAt      DateTime?
+  fileName       String?
+  fileType       String?
+  size           Int?
+  data           Bytes?
+  status         String       @default("PENDING") // PENDING, VALIDATED, REJECTED
+  validatedById  String?
+  validatedBy    User?        @relation("QualificationValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  validatedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, userId])
+}
+
+/// Suivi d'un indicateur du référentiel national qualité par l'OF
+model QualityIndicator {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  code                String // "1" à "32"
+  applicable          Boolean      @default(true)
+  notApplicableReason String?
+  status              String       @default("TODO") // TODO, IN_PROGRESS, READY, VALIDATED
+  comment             String?      @db.Text
+  validatedById       String?
+  validatedAt         DateTime?
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([organizationId, code])
+}
+
+/// Preuve déposée manuellement pour un indicateur
+model QualityEvidence {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  code           String
+  title          String
+  description    String?      @db.Text
+  url            String?
+  fileName       String?
+  fileType       String?
+  size           Int?
+  data           Bytes?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, code])
+}
+
+/// Plan d'amélioration continue (Qualiopi indicateur 32)
+model ImprovementAction {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  source         String // COMPLAINT, SATISFACTION, FEEDBACK, AUDIT, WATCH, ABANDON, INTERNAL
+  sourceRef      String?
+  indicatorCode  String?
+  title          String
+  description    String?      @db.Text
+  ownerId        String?
+  owner          User?        @relation("ActionOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  dueAt          DateTime?
+  status         String       @default("OPEN") // OPEN, IN_PROGRESS, DONE, CANCELLED
+  result         String?      @db.Text // Résultat et efficacité constatée
+  closedAt       DateTime?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+
+  nonConformities NonConformity[]
+
+  @@index([organizationId, status])
+}
+
+/// Audits de certification (initial, surveillance, renouvellement, complémentaire)
+model QualityAudit {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String // INITIAL, SURVEILLANCE, RENEWAL, ADDITIONAL
+  certifier      String?
+  auditor        String?
+  scheduledAt    DateTime
+  remote         Boolean      @default(false)
+  status         String       @default("PLANNED") // PLANNED, DONE
+  result         String? // CERTIFIED, CERTIFIED_WITH_NC, REFUSED
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+
+  nonConformities NonConformity[]
+
+  @@index([organizationId, scheduledAt])
+}
+
+model NonConformity {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  auditId        String
+  audit          QualityAudit       @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  indicatorCode  String
+  level          String // MINOR, MAJOR
+  description    String             @db.Text
+  dueAt          DateTime?
+  status         String             @default("OPEN") // OPEN, SUBMITTED, CLOSED
+  actionId       String?
+  action         ImprovementAction? @relation(fields: [actionId], references: [id], onDelete: SetNull)
+  closedAt       DateTime?
+  createdAt      DateTime           @default(now())
+}
+
+/// Accès temporaire en lecture au dossier de preuves pour l'auditeur
+model AuditorAccess {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  label          String
+  expiresAt      DateTime
+  createdById    String?
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+/// Analyse des risques qualité (indicateur 32, RNQ 2026)
+model QualityRisk {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  process        String? // Processus concerné (inscription, déroulé, évaluation…)
+  probability    Int          @default(2) // 1 à 4
+  impact         Int          @default(2) // 1 à 4
+  mitigation     String?      @db.Text // Mesures de maîtrise
+  ownerName      String?
+  reviewedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+/// Sous-traitants et formateurs externes (indicateur 27)
+model Subcontractor {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name              String
+  siret             String?
+  kind              String       @default("SUBCONTRACTOR") // SUBCONTRACTOR, FREELANCE_TRAINER, PORTAGE
+  contactEmail      String?
+  qualiopiCertified Boolean      @default(false)
+  qualiopiExpiresAt DateTime?
+  contractSignedAt  DateTime? // Contrat formalisé avec clause de conformité au RNQ
+  contractFileName  String?
+  contractFileType  String?
+  contractSize      Int?
+  contractData      Bytes?
+  lastEvaluationAt  DateTime?
+  evaluationNote    String?      @db.Text
+  createdAt         DateTime     @default(now())
 }

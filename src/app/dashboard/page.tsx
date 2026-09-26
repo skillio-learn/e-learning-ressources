@@ -15,6 +15,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const { denied } = await searchParams;
   if (user.role === "ADMIN") redirect("/admin");
+  if (user.role === "COMPANY") redirect("/entreprise");
   if (user.role !== "LEARNER" && !denied) redirect("/of");
   return (
     <Container>

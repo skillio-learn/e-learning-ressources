@@ -11,6 +11,9 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { signSlotAsTrainerAction } from "@/app/actions/compliance";
 import { Badge, Container } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
+import { SessionFields } from "@/components/of/SessionFields";
+import { declareAbsenceAction, reviewAbsenceAction } from "@/app/actions/absences";
+import { ABSENCE_KINDS, ABSENCE_REASONS, ABSENCE_STATUS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session" };
@@ -23,10 +26,25 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     include: {
       course: { select: { id: true, title: true, organization: true } },
       enrollments: { include: { user: { select: { id: true, name: true } } }, orderBy: { user: { name: "asc" } } },
-      slots: { orderBy: [{ date: "asc" }, { startTime: "asc" }], include: { signatures: { select: { userId: true, signature: true, signedAt: true } } } },
+      slots: {
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        include: {
+          signatures: { select: { userId: true, signature: true, signedAt: true } },
+          absences: { select: { id: true, userId: true, kind: true, reason: true, status: true, minutes: true, comment: true, fileName: true, declaredBy: true, createdAt: true } },
+        },
+      },
+      company: { select: { id: true, name: true } },
+      companyConventions: { where: { status: { not: "CANCELLED" } }, select: { id: true, reference: true, status: true, company: { select: { name: true } } } },
     },
   });
   if (!s || !(await canManageCourse(user, s.courseId))) notFound();
+  const orgId = s.course.organization.id;
+  const [companies, team] = await Promise.all([
+    db.company.findMany({ where: { organizationId: orgId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: { organizationId: orgId, role: { in: ["OF_ADMIN", "TRAINER"] }, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
+  const pendingAbs = s.slots.flatMap((sl) => sl.absences.filter((a) => a.status === "PENDING").map((a) => ({ ...a, slot: sl })));
+  const nameOf = (uid: string) => s.enrollments.find((e) => e.userId === uid)?.user.name ?? "Stagiaire";
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const today = iso(new Date());
   const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
@@ -42,27 +60,26 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           </div>
           <PrintButton label="Feuille d'émargement (PDF)" />
         </div>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <div className="card p-4">
-            <h2 className="mb-2 text-base">Paramètres</h2>
-            <StateForm action={updateSessionAction.bind(null, s.id)}>
-              <input name="name" defaultValue={s.name} className="input" />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="date" name="startDate" defaultValue={iso(s.startDate)} className="input" />
-                <input type="date" name="endDate" defaultValue={iso(s.endDate)} className="input" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input name="capacity" type="number" defaultValue={s.capacity ?? ""} placeholder="Places" className="input" />
-                <input name="location" defaultValue={s.location ?? ""} placeholder="Lieu" className="input" />
-              </div>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="open" defaultChecked={s.open} /> Ouverte aux candidatures</label>
-            </StateForm>
-            {s.enrollments.length === 0 && (
-              <form action={deleteSessionAction.bind(null, s.id)} className="mt-3">
-                <SubmitButton className="btn-ghost btn-sm text-red-600" confirm="Supprimer cette session ?">Supprimer la session</SubmitButton>
-              </form>
-            )}
-          </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Badge tone={s.format === "INTRA" ? "purple" : "blue"}>{s.format === "INTRA" ? `Intra · ${s.company?.name ?? "entreprise à préciser"}` : "Inter-entreprises"}</Badge>
+          {s.companyConventions.map((c) => (
+            <Link key={c.id} href={`/documents/convention-entreprise/${c.id}`}><Badge tone={c.status === "SIGNED" ? "green" : "amber"}>Convention {c.reference} · {c.company.name} · {c.status === "SIGNED" ? "signée" : "à signer"}</Badge></Link>
+          ))}
+          {s.companyId && <Link href={`/of/companies/${s.companyId}`} className="link text-sm">Fiche entreprise, besoins et conventions</Link>}
+        </div>
+        <details className="card mt-6 p-4">
+          <summary className="cursor-pointer font-medium text-brand-600">Paramètres de la session (type, lieu, formateur, tarif)</summary>
+          <StateForm action={updateSessionAction.bind(null, s.id)} className="mt-4 space-y-3" submitClassName="btn-primary">
+            <SessionFields session={s} companies={companies} team={team} />
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="open" defaultChecked={s.open} className="h-4 w-4" /> Ouverte aux candidatures (sessions inter)</label>
+          </StateForm>
+          {s.enrollments.length === 0 && (
+            <form action={deleteSessionAction.bind(null, s.id)} className="mt-3">
+              <SubmitButton className="btn-ghost btn-sm text-red-600" confirm="Supprimer cette session ?">Supprimer la session</SubmitButton>
+            </form>
+          )}
+        </details>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="card p-4">
             <h2 className="mb-2 text-base">Générer les créneaux d&apos;émargement</h2>
             <StateForm action={generateSlotsAction.bind(null, s.id)} submitLabel="Générer">
@@ -161,6 +178,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
                             {sig ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={sig.signature} alt="✓" title={`Signé le ${formatDate(sig.signedAt, true)}`} className="paper-sign mx-auto h-9" />
+                            ) : sl.absences.find((a) => a.userId === e.userId) ? (
+                              <span className={sl.absences.find((a) => a.userId === e.userId)!.status === "ACCEPTED" ? "text-emerald-700" : sl.absences.find((a) => a.userId === e.userId)!.status === "PENDING" ? "text-amber-600" : "text-red-500"}>
+                                {ABSENCE_KINDS[sl.absences.find((a) => a.userId === e.userId)!.kind]}<br />{ABSENCE_STATUS[sl.absences.find((a) => a.userId === e.userId)!.status].label}
+                              </span>
                             ) : d < today ? (
                               <span className="text-red-500">Absent</span>
                             ) : d === today ? (
@@ -195,6 +216,42 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         <p className="no-print mt-2 text-xs text-slate-500">
           Les signatures sont horodatées avec l&apos;adresse IP. <Badge>Absent</Badge> = créneau passé non signé.
         </p>
+      </section>
+      <section id="absences" className="no-print mt-8 grid gap-4 lg:grid-cols-2">
+        <div className="card p-4">
+          <h2 className="mb-2 text-base">Justificatifs à examiner ({pendingAbs.length})</h2>
+          {pendingAbs.length === 0 ? <p className="text-sm text-slate-500">Aucun justificatif en attente.</p> : (
+            <ul className="divide-y divide-slate-100 text-sm">
+              {pendingAbs.map((a) => (
+                <li key={a.id} className="py-2">
+                  <div><b>{nameOf(a.userId)}</b> · {formatDate(a.slot.date)} {a.slot.label} · {ABSENCE_KINDS[a.kind]}{a.minutes ? ` (${a.minutes} min)` : ""}</div>
+                  <div className="text-slate-500">{ABSENCE_REASONS[a.reason] ?? a.reason}{a.comment ? ` · ${a.comment}` : ""}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {a.fileName && <a href={`/api/absences/${a.id}?inline=1`} target="_blank" rel="noopener" className="link">Voir le justificatif</a>}
+                    <form action={reviewAbsenceAction.bind(null, a.id, true)}><SubmitButton className="btn-secondary btn-sm">Accepter</SubmitButton></form>
+                    <form action={reviewAbsenceAction.bind(null, a.id, false)}><SubmitButton className="btn-ghost btn-sm text-red-600">Refuser</SubmitButton></form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="card p-4">
+          <h2 className="mb-2 text-base">Déclarer une absence, un retard ou un départ anticipé</h2>
+          {s.slots.length === 0 || s.enrollments.length === 0 ? <p className="text-sm text-slate-500">Créneaux et inscrits nécessaires.</p> : (
+            <StateForm action={declareAbsenceAction} submitLabel="Enregistrer" submitClassName="btn-secondary" className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select name="userId" className="input" required>{s.enrollments.map((e) => <option key={e.userId} value={e.userId}>{e.user.name}</option>)}</select>
+                <select name="slotId" className="input" required>{s.slots.map((sl) => <option key={sl.id} value={sl.id}>{formatDate(sl.date)} · {sl.label} {sl.startTime}</option>)}</select>
+                <select name="kind" className="input">{Object.entries(ABSENCE_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                <select name="reason" className="input" defaultValue="NON_JUSTIFIE">{Object.entries(ABSENCE_REASONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+              </div>
+              <input name="minutes" type="number" min={1} placeholder="Durée en minutes (retard, départ)" className="input" />
+              <input name="comment" placeholder="Commentaire" className="input" />
+              <p className="text-xs text-slate-500">Au-delà du seuil fixé dans les paramètres de l&apos;organisme, une alerte est envoyée au responsable, au formateur, au stagiaire et, si activé, à l&apos;entreprise.</p>
+            </StateForm>
+          )}
+        </div>
       </section>
     </Container>
   );

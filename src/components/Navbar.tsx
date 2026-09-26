@@ -12,6 +12,7 @@ import { Logo } from "./brand/Logo";
 export async function Navbar() {
   const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
   const staff = isStaff(user);
+  const learner = !!user && !staff && user.role !== "COMPANY";
   const path = (await headers()).get("x-pathname") ?? "";
   // Accueil et pages d'authentification portent déjà leur bouton principal « Se connecter »
   const authPage = path === "/" || ["/login", "/forgot-password", "/reset-password"].some((p) => path.startsWith(p));
@@ -30,16 +31,17 @@ export async function Navbar() {
   return (
     <header className="no-print sticky top-0 z-40 border-b border-slate-200 bg-surface">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-8">
-        <Link href={user ? (user.role === "ADMIN" ? "/admin" : staff ? "/of" : "/dashboard") : "/"} className="shrink-0 rounded-[10px]" aria-label={`${settings.platformName} : accueil`}>
+        <Link href={user ? (user.role === "ADMIN" ? "/admin" : staff ? "/of" : user.role === "COMPANY" ? "/entreprise" : "/dashboard") : "/"} className="shrink-0 rounded-[10px]" aria-label={`${settings.platformName} : accueil`}>
           {/* Logo horizontal : 120 px de large minimum (charte) */}
           <Logo className="h-[38px]" />
         </Link>
         <nav className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto px-1 [scrollbar-width:none]">
-          {user && !staff && <NavLink href="/dashboard">Tableau de bord</NavLink>}
-          {user && !staff && <NavLink href="/learn">Mes formations</NavLink>}
-          {user && !staff && <NavLink href="/applications">Mes dossiers</NavLink>}
-          {user && !staff && <NavLink href="/attendance">Émargement</NavLink>}
-          {user && !staff && <NavLink href="/support">Aide</NavLink>}
+          {learner && <NavLink href="/dashboard">Tableau de bord</NavLink>}
+          {learner && <NavLink href="/learn">Mes formations</NavLink>}
+          {learner && <NavLink href="/applications">Mes dossiers</NavLink>}
+          {learner && <NavLink href="/attendance">Émargement</NavLink>}
+          {learner && <NavLink href="/support">Aide</NavLink>}
+          {user?.role === "COMPANY" && <NavLink href="/entreprise">Espace entreprise</NavLink>}
           {staff && user?.role !== "ADMIN" && <NavLink href="/of">Espace OF{org ? ` · ${org.name}` : ""}</NavLink>}
           {user?.role === "ADMIN" && <NavLink href="/admin">Administration</NavLink>}
         </nav>

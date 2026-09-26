@@ -65,6 +65,9 @@ export const COMPLAINT_STATUS = {
   RESOLVED: { label: "Résolue", tone: "green" },
 } as const;
 
+/** Signalement confidentiel (violences, harcèlement, discriminations) : RNQ 2026, indicateur 12. */
+export const SIGNALEMENT_CATEGORY = "Signalement confidentiel (violences, harcèlement, discriminations)";
+
 export const COMPLAINT_CATEGORIES = [
   "Réclamation",
   "Question pédagogique",
@@ -72,6 +75,7 @@ export const COMPLAINT_CATEGORIES = [
   "Question administrative / financement",
   "Accessibilité / handicap",
   "Autre",
+  SIGNALEMENT_CATEGORY,
 ];
 
 export const SATISFACTION_QUESTIONS = [
@@ -279,3 +283,33 @@ export const CHANGE_REQUEST_STATUS = {
 
 /** Le profil n'est modifiable par l'apprenant que pendant la constitution de son dossier de compte. */
 export const learnerProfileEditable = (accountStatus: string) => accountStatus === "PENDING_PROFILE";
+
+/** Motifs d'absence (justificatif demandé par l'OF ; les absences non justifiées sont signalées à l'employeur si l'OF l'a paramétré). */
+export const ABSENCE_REASONS: Record<string, string> = {
+  MALADIE: "Maladie (arrêt de travail)",
+  ENFANT_MALADE: "Enfant malade",
+  FAMILLE: "Événement familial",
+  TRAVAIL: "Contrainte professionnelle",
+  TRANSPORT: "Problème de transport",
+  CONVOCATION: "Convocation administrative ou judiciaire",
+  TECHNIQUE: "Problème technique (formation à distance)",
+  AUTRE: "Autre motif",
+  NON_JUSTIFIE: "Non justifiée",
+};
+export const ABSENCE_KINDS: Record<string, string> = { ABSENCE: "Absence", LATE: "Retard", EARLY_LEAVE: "Départ anticipé" };
+export const ABSENCE_STATUS: Record<string, { label: string; tone: "gray" | "amber" | "green" | "red" }> = {
+  PENDING: { label: "Justificatif à examiner", tone: "amber" },
+  ACCEPTED: { label: "Justifiée", tone: "green" },
+  REFUSED: { label: "Non justifiée", tone: "red" },
+};
+
+/** Situation déclarée à l'enquête d'insertion (indicateurs de résultats, Qualiopi indicateur 2). */
+export const INSERTION_SITUATIONS: Record<string, string> = {
+  SAME_JOB: "Maintien dans mon emploi (salarié(e) avant la formation)",
+  EMPLOYED_CDI: "En emploi : CDI",
+  EMPLOYED_CDD: "En emploi : CDD, intérim ou contrat en alternance",
+  SELF_EMPLOYED: "Création ou reprise d'entreprise, indépendant(e)",
+  TRAINING: "En formation (poursuite d'études, autre formation)",
+  JOB_SEEKING: "En recherche d'emploi",
+  INACTIVE: "Autre situation (sans recherche d'emploi)",
+};

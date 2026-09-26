@@ -18,7 +18,7 @@ export default async function Settings() {
           <Field label="Email de support"><input name="supportEmail" type="email" defaultValue={s.supportEmail} className="input" /></Field>
           <Field label="Signature des certificats"><input name="certificateSignature" defaultValue={s.certificateSignature} className="input" /></Field>
           <Field label="Mentions légales (Markdown)"><textarea name="legalMentions" rows={8} defaultValue={s.legalMentions} className="input font-mono text-xs" /></Field>
-          <Field label="Conditions générales d'utilisation (Markdown)"><textarea name="cgu" rows={8} defaultValue={s.cgu} className="input font-mono text-xs" /></Field>
+          <p className="rounded-[10px] bg-brand-50 p-4 text-sm text-brand-700">Les conditions générales d&apos;utilisation sont versionnées dans le code (src/lib/terms.ts) : chaque nouvelle version est présentée à tous les utilisateurs, qui doivent l&apos;accepter.</p>
           <Field label="Politique de confidentialité / RGPD (Markdown)"><textarea name="privacy" rows={10} defaultValue={s.privacy} className="input font-mono text-xs" /></Field>
           <Field label="Accessibilité & handicap (Markdown)"><textarea name="accessibility" rows={5} defaultValue={s.accessibility} className="input font-mono text-xs" /></Field>
         </StateForm>

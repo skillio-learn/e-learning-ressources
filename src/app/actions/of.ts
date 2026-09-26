@@ -54,7 +54,16 @@ function courseData(fd: FormData) {
     skills: str(fd, "skills").split(/\r?\n/).map((s) => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean).slice(0, 20),
     pedagogicalMethods: optStr(fd, "pedagogicalMethods"),
     evaluationMethods: optStr(fd, "evaluationMethods"),
+    accessDelay: optStr(fd, "accessDelay"),
   };
+}
+
+/** Référent pédagogique (indicateur 19) : un membre actif de l'équipe de l'organisme, sinon aucun. */
+async function referentFor(fd: FormData, organizationId: string) {
+  const id = str(fd, "pedagogicalReferentId");
+  if (!id) return null;
+  const m = await db.user.findFirst({ where: { id, organizationId, role: { in: ["OF_ADMIN", "TRAINER"] }, active: true }, select: { id: true } });
+  return m?.id ?? null;
 }
 
 export async function createCourseAction(fd: FormData) {
@@ -64,7 +73,7 @@ export async function createCourseAction(fd: FormData) {
   const organizationId = user.role === "ADMIN" ? str(fd, "organizationId") || user.organizationId : user.organizationId;
   if (!organizationId) throw new Error("Choisissez l'organisme de formation");
   const course = await db.course.create({
-    data: { ...data, slug: await uniqueSlug(data.title), authorId: user.id, organizationId },
+    data: { ...data, pedagogicalReferentId: await referentFor(fd, organizationId), slug: await uniqueSlug(data.title), authorId: user.id, organizationId },
   });
   // Création rapide de la structure : N modules
   const modules = optInt(fd, "moduleCount") ?? 0;
@@ -82,7 +91,9 @@ export async function updateCourseAction(courseId: string, fd: FormData) {
   const slugInput = str(fd, "slug");
   const slug = await uniqueSlug(slugInput || data.title, courseId);
   const orgPatch = user.role === "ADMIN" && str(fd, "organizationId") ? { organizationId: str(fd, "organizationId") } : {};
-  await db.course.update({ where: { id: courseId }, data: { ...data, slug, ...orgPatch } });
+  const current = await db.course.findUniqueOrThrow({ where: { id: courseId }, select: { organizationId: true } });
+  const pedagogicalReferentId = await referentFor(fd, (orgPatch as { organizationId?: string }).organizationId ?? current.organizationId);
+  await db.course.update({ where: { id: courseId }, data: { ...data, pedagogicalReferentId, slug, ...orgPatch } });
   revalidatePath(`/of/courses/${courseId}`, "layout");
 }
 

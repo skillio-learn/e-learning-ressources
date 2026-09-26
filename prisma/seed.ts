@@ -8,6 +8,7 @@
 import { PrismaClient, type LessonType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
+import { TERMS_VERSION } from "../src/lib/terms";
 
 const db = new PrismaClient();
 const PASSWORD = process.env.SEED_PASSWORD || `Demo-${randomBytes(9).toString("base64url")}`;
@@ -54,10 +55,10 @@ async function main() {
         "## Règlement intérieur (modèle à adapter)\n\n*Articles L.6352-3 et R.6352-1 et suivants du Code du travail.*\n\n**Discipline.** Le stagiaire suit la formation personnellement, respecte les horaires et les consignes, et émarge ou se connecte pour justifier de sa présence.\n\n**Usage de la plateforme.** Les identifiants sont personnels ; le temps de connexion et les activités sont enregistrés pour justifier la réalisation de la formation auprès des financeurs.\n\n**Sanctions.** Tout manquement peut donner lieu à un avertissement ou à une exclusion, après que le stagiaire a été informé des griefs et entendu.\n\n**Représentation des stagiaires.** Pour les actions de plus de 500 heures, un délégué est élu.",
     },
   });
-  const upsertUser = (email: string, name: string, role: "ADMIN" | "OF_ADMIN" | "TRAINER" | "LEARNER") =>
+  const upsertUser = (email: string, name: string, role: "ADMIN" | "OF_ADMIN" | "TRAINER" | "LEARNER" | "COMPANY", companyId?: string) =>
     db.user.upsert({
       where: { email },
-      create: { email, name, role, passwordHash: hash, organizationId: role === "ADMIN" ? null : org.id, consentAt: new Date(), createdVia: "SEED" },
+      create: { email, name, role, passwordHash: hash, organizationId: role === "ADMIN" ? null : org.id, companyId: companyId ?? null, consentAt: new Date(), termsAcceptedVersion: TERMS_VERSION, createdVia: "SEED" },
       update: {},
     });
 
@@ -77,6 +78,21 @@ async function main() {
     };
     await db.learnerProfile.upsert({ where: { userId: u.id }, create: { userId: u.id, ...profile }, update: {} });
   }
+
+  // Entreprise cliente de démonstration et son contact (espace entreprise)
+  const company =
+    (await db.company.findFirst({ where: { organizationId: org.id, name: "Atelier Lumière" } })) ??
+    (await db.company.create({
+      data: {
+        organizationId: org.id, name: "Atelier Lumière", legalName: "Atelier Lumière SARL", siret: "98765432100015", address: "3 quai des Arts",
+        postalCode: "69002", city: "Lyon", opcoName: "AFDAS", contactName: "Dominique Entreprise", contactEmail: "entreprise@skillio.fr",
+      },
+    }));
+  await upsertUser("entreprise@skillio.fr", "Dominique Entreprise", "COMPANY", company.id);
+  await db.organization.update({
+    where: { id: org.id },
+    data: { qualiopiCertified: true, qualiopiScope: ["ACTIONS"], qualityReferentId: ofAdmin.id, handicapReferentId: trainer.id },
+  });
 
   const slug = "production-de-contenus-audiovisuels-sur-les-reseaux-sociaux";
   if (await db.course.findUnique({ where: { slug } })) {
@@ -249,6 +265,15 @@ async function main() {
       origin: "OF",
       accessStatus: "GRANTED", // inscription de démonstration déjà validée
       accessDecidedAt: new Date(),
+      companyId: company.id,
+    },
+  });
+  await db.trainingSession.create({
+    data: {
+      courseId: course.id, name: "Intra Atelier Lumière", format: "INTRA", modality: "PRESENTIEL", companyId: company.id, open: false,
+      startDate: new Date(now.getFullYear(), now.getMonth() + 1, 5), endDate: new Date(now.getFullYear(), now.getMonth() + 1, 6),
+      capacity: 8, address: "3 quai des Arts", postalCode: "69002", city: "Lyon", location: "Lyon", room: "Studio 2", trainerId: trainer.id, price: 2400,
+      accessInfo: "Accueil à 8 h 45. Apportez votre smartphone et son chargeur.",
     },
   });
   console.log("✅ Données de démonstration créées. Mot de passe des comptes :", PASSWORD);

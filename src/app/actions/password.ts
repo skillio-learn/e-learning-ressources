@@ -8,6 +8,7 @@ import { notifyOrgManagers } from "@/lib/notify";
 import { audit } from "@/lib/audit";
 import { requireOfManager } from "@/lib/auth";
 import { str } from "@/lib/utils";
+import { TERMS_VERSION } from "@/lib/terms";
 
 export type PwState = { error?: string; ok?: string } | undefined;
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -68,15 +69,21 @@ export async function resetPasswordWithTokenAction(token: string, _: PwState, fd
     return { error: "8 caractères minimum, dont une lettre et un chiffre." };
   }
   if (password !== String(fd.get("confirm") ?? "")) return { error: "Les deux mots de passe ne correspondent pas." };
-  const rec = await db.passwordResetToken.findUnique({ where: { tokenHash: hash(String(token).slice(0, 128)) } });
+  const rec = await db.passwordResetToken.findUnique({ where: { tokenHash: hash(String(token).slice(0, 128)) }, include: { user: { select: { termsAcceptedVersion: true } } } });
   if (!rec || rec.usedAt || rec.expiresAt < new Date()) return { error: "Lien invalide ou expiré. Refaites une demande." };
+  // Première activation (ou nouvelle version des CGU) : acceptation recueillie en même temps que le mot de passe
+  const needsTerms = rec.user.termsAcceptedVersion !== TERMS_VERSION;
+  if (needsTerms && fd.get("acceptTerms") !== "on") return { error: "Acceptez les conditions générales d'utilisation pour continuer." };
   // Consommation atomique : un lien ne sert qu'une fois, même en cas de double envoi
   const consumed = await db.passwordResetToken.updateMany({ where: { id: rec.id, usedAt: null }, data: { usedAt: new Date() } });
   if (consumed.count !== 1) return { error: "Lien invalide ou expiré. Refaites une demande." };
   await db.$transaction([
     db.user.update({
       where: { id: rec.userId },
-      data: { passwordHash: await bcrypt.hash(password, 10), failedLogins: 0, lockedUntil: null, sessionVersion: { increment: 1 } },
+      data: {
+        passwordHash: await bcrypt.hash(password, 10), failedLogins: 0, lockedUntil: null, sessionVersion: { increment: 1 },
+        ...(needsTerms ? { termsAcceptedVersion: TERMS_VERSION, consentAt: new Date() } : {}),
+      },
     }),
     db.passwordResetToken.updateMany({ where: { userId: rec.userId, usedAt: null }, data: { usedAt: new Date() } }),
   ]);

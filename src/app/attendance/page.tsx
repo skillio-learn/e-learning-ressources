@@ -4,6 +4,10 @@ import { signAttendanceAction } from "@/app/actions/learner-extra";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Badge, Container, Empty, PageHeader } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
+import { justifyAbsenceAction } from "@/app/actions/absences";
+import { StateForm } from "@/components/StateForm";
+import { ABSENCE_KINDS, ABSENCE_REASONS, ABSENCE_STATUS } from "@/lib/labels";
+import { ACCEPT_ATTR, MAX_UPLOAD_MB } from "@/lib/uploads";
 
 export const metadata = { title: "Émargement" };
 export const dynamic = "force-dynamic";
@@ -21,6 +25,7 @@ export default async function Attendance() {
     include: {
       session: { select: { name: true, course: { select: { title: true } } } },
       signatures: { where: { userId: user.id } },
+      absences: { where: { userId: user.id }, select: { id: true, status: true, reason: true, kind: true, fileName: true } },
     },
   });
   const today = new Date().toISOString().slice(0, 10);
@@ -72,7 +77,28 @@ export default async function Attendance() {
                         <td>{s.label} ({s.startTime}–{s.endTime})</td>
                         <td className="text-slate-500">{s.session.course.title}</td>
                         <td>
-                          {s.signatures[0] ? <Badge tone="green">Présent(e) – signé</Badge> : d < today ? <Badge tone="red">Non signé</Badge> : d === today ? <Badge tone="amber">À signer</Badge> : <Badge>À venir</Badge>}
+                          {s.signatures[0] ? <Badge tone="green">Présent(e) – signé</Badge> : s.absences[0] ? (
+                            <Badge tone={ABSENCE_STATUS[s.absences[0].status].tone}>{ABSENCE_KINDS[s.absences[0].kind]} · {ABSENCE_STATUS[s.absences[0].status].label}</Badge>
+                          ) : d < today ? <Badge tone="red">Non signé</Badge> : d === today ? <Badge tone="amber">À signer</Badge> : <Badge>À venir</Badge>}
+                          {!s.signatures[0] && s.absences[0]?.status !== "ACCEPTED" && d <= today && (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-xs font-medium text-brand-600">Justifier</summary>
+                              <StateForm action={justifyAbsenceAction.bind(null, s.id)} submitLabel="Envoyer le justificatif" submitClassName="btn-secondary btn-sm" className="mt-2 space-y-2">
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  <select name="kind" className="input" defaultValue="ABSENCE">
+                                    {Object.entries(ABSENCE_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                  </select>
+                                  <select name="reason" className="input" required defaultValue="">
+                                    <option value="" disabled>Motif</option>
+                                    {Object.entries(ABSENCE_REASONS).filter(([k]) => k !== "NON_JUSTIFIE").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                  </select>
+                                </div>
+                                <input name="minutes" type="number" min={1} placeholder="Durée en minutes (retard, départ anticipé)" className="input" />
+                                <textarea name="comment" rows={2} placeholder="Précisions (facultatif)" className="input" />
+                                <label className="block text-xs text-slate-500">Justificatif (PDF ou photo, {MAX_UPLOAD_MB} Mo max.)<input type="file" name="file" accept={ACCEPT_ATTR.document} className="mt-1 block text-sm" /></label>
+                              </StateForm>
+                            </details>
+                          )}
                         </td>
                       </tr>
                     );

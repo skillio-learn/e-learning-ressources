@@ -23,9 +23,10 @@ export default async function CourseSettings({ params }: { params: Promise<{ id:
     where: { id },
     include: { author: { select: { name: true, email: true } }, trainers: { include: { user: { select: { id: true, name: true, email: true } } } } },
   });
+  const team = await db.user.findMany({ where: { organizationId: course.organizationId, role: { in: ["OF_ADMIN", "TRAINER"] }, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <CourseForm action={updateCourseAction.bind(null, id)} course={course} organizations={organizations} />
+      <CourseForm action={updateCourseAction.bind(null, id)} course={course} organizations={organizations} team={team} />
       <aside className="space-y-4">
         <div className="card space-y-3 p-4">
           <h2 className="text-base">Équipe pédagogique</h2>

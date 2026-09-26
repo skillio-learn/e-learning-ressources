@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireOfManager } from "@/lib/auth";
 import { createTeamMemberAction, setTeamMemberAction } from "@/app/actions/of-admin";
+import { resetUserMfaAction } from "@/app/actions/mfa";
 import { StateForm } from "@/components/StateForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Badge, Container, PageHeader } from "@/components/ui";
@@ -39,7 +40,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
               {members.map((m) => (
                 <tr key={m.id} className={m.active ? "" : "opacity-60"}>
                   <td><div className="font-medium">{m.name}</div><div className="text-xs text-slate-500">{m.email}</div></td>
-                  <td><Badge tone={m.role === "OF_ADMIN" ? "purple" : "blue"}>{ROLE_LABELS[m.role]}</Badge>{!m.active && <Badge tone="red">Désactivé</Badge>}</td>
+                  <td><Badge tone={m.role === "OF_ADMIN" ? "purple" : "blue"}>{ROLE_LABELS[m.role]}</Badge>{!m.active && <Badge tone="red">Désactivé</Badge>}{m.totpEnabledAt && <Badge tone="green">2FA</Badge>}</td>
                   <td>{m._count.coursesAuthored}</td>
                   <td className="text-xs">{formatDate(m.lastLoginAt, true)}</td>
                   <td className="whitespace-nowrap text-right">
@@ -51,6 +52,11 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ o
                         <form action={setTeamMemberAction.bind(null, m.id, { active: !m.active })} className="inline">
                           <SubmitButton className="btn-ghost btn-sm" pendingLabel="…">{m.active ? "Désactiver" : "Réactiver"}</SubmitButton>
                         </form>
+                        {m.totpEnabledAt && m.role !== "OF_ADMIN" && user.role === "OF_ADMIN" && (
+                          <form action={resetUserMfaAction.bind(null, m.id)} className="inline">
+                            <SubmitButton className="btn-ghost btn-sm" pendingLabel="…" confirm={`Réinitialiser la double authentification de ${m.name} ? Il devra la réactiver.`}>Réinitialiser la 2FA</SubmitButton>
+                          </form>
+                        )}
                       </>
                     )}
                   </td>

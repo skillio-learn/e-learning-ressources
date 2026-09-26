@@ -69,3 +69,20 @@ export async function loadEnrollmentForViewer(enrollmentId: string, docType: str
   }
   return { user, enrollment: e, isLearner: e.userId === user.id };
 }
+
+/** Convention OF ↔ entreprise : responsable de l'organisme ou contact actif de l'entreprise concernée. */
+export async function loadCompanyConvention(id: string) {
+  const user = await requireUser();
+  const conv = await db.companyConvention.findUnique({
+    where: { id },
+    include: { organization: true, company: true, session: { include: { course: true } } },
+  });
+  if (!conv) notFound();
+  const allowed = canManageOrg(user, conv.organizationId) || (user.role === "COMPANY" && user.companyId === conv.companyId);
+  if (!allowed || (user.role === "COMPANY" && conv.status === "CANCELLED")) notFound();
+  const { companyConventionText } = await import("./company-convention");
+  const text =
+    conv.signedContent ??
+    (conv.session ? companyConventionText(conv, conv.organization, conv.company, conv.session.course, conv.session).text : "Session supprimée : convention caduque.");
+  return { user, conv, text };
+}

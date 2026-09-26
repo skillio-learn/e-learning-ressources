@@ -283,3 +283,22 @@ export const CHANGE_REQUEST_STATUS = {
 
 /** Le profil n'est modifiable par l'apprenant que pendant la constitution de son dossier de compte. */
 export const learnerProfileEditable = (accountStatus: string) => accountStatus === "PENDING_PROFILE";
+
+/** Motifs d'absence (justificatif demandé par l'OF ; les absences non justifiées sont signalées à l'employeur si l'OF l'a paramétré). */
+export const ABSENCE_REASONS: Record<string, string> = {
+  MALADIE: "Maladie (arrêt de travail)",
+  ENFANT_MALADE: "Enfant malade",
+  FAMILLE: "Événement familial",
+  TRAVAIL: "Contrainte professionnelle",
+  TRANSPORT: "Problème de transport",
+  CONVOCATION: "Convocation administrative ou judiciaire",
+  TECHNIQUE: "Problème technique (formation à distance)",
+  AUTRE: "Autre motif",
+  NON_JUSTIFIE: "Non justifiée",
+};
+export const ABSENCE_KINDS: Record<string, string> = { ABSENCE: "Absence", LATE: "Retard", EARLY_LEAVE: "Départ anticipé" };
+export const ABSENCE_STATUS: Record<string, { label: string; tone: "gray" | "amber" | "green" | "red" }> = {
+  PENDING: { label: "Justificatif à examiner", tone: "amber" },
+  ACCEPTED: { label: "Justifiée", tone: "green" },
+  REFUSED: { label: "Non justifiée", tone: "red" },
+};

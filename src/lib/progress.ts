@@ -180,7 +180,7 @@ export async function getLearnerResults(userId: string, courseId: string) {
 export async function evaluateCourseCompletion(userId: string, courseId: string) {
   const course = await db.course.findUnique({
     where: { id: courseId },
-    select: { passingScore: true, certificateEnabled: true, title: true, slug: true },
+    select: { passingScore: true, certificateEnabled: true, title: true, slug: true, organizationId: true },
   });
   if (!course) return false;
   // Pas d'inscription, pas de validation ni de certificat
@@ -208,6 +208,8 @@ export async function evaluateCourseCompletion(userId: string, courseId: string)
       "Félicitations ! Votre attestation de réalisation et le relevé de vos connexions sont disponibles au téléchargement dans votre espace.",
       `/learn/${course.slug}/documents`,
     );
+    const { audit } = await import("./audit");
+    await audit("enrollment.completed", { actorId: userId, organizationId: course.organizationId, entityType: "Enrollment", entityId: enrollment.id });
   }
   if (course.certificateEnabled) {
     await db.certificate.upsert({

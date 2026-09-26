@@ -1,3 +1,4 @@
+import { resetUserMfaAction } from "@/app/actions/mfa";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { createUserAction, deleteUserAction, resetPasswordAction, toggleUserActiveAction, updateUserRoleAction } from "@/app/actions/admin";
@@ -83,6 +84,11 @@ export default async function Users({ searchParams }: { searchParams: Promise<{ 
                         <StateForm action={resetPasswordAction} submitLabel="Réinit. MDP" submitClassName="btn-ghost btn-sm" className="max-w-[220px]">
                           <input type="hidden" name="userId" value={u.id} />
                         </StateForm>
+                        {u.totpEnabledAt && u.role !== "ADMIN" && (
+                          <form action={resetUserMfaAction.bind(null, u.id)}>
+                            <SubmitButton className="btn-ghost btn-sm" pendingLabel="…" confirm={`Réinitialiser la double authentification de ${u.email} ?`}>Réinit. 2FA</SubmitButton>
+                          </form>
+                        )}
                         <form action={deleteUserAction.bind(null, u.id)}>
                           <SubmitButton className="btn-ghost btn-sm text-red-600" pendingLabel="…" confirm={`Supprimer définitivement ${u.email} et toutes ses données ?`}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></SubmitButton>
                         </form>

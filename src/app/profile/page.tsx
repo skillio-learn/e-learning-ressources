@@ -15,6 +15,9 @@ import { Badge, Container, Field, PageHeader } from "@/components/ui";
 import { toProfileData } from "@/lib/profile";
 import { formatDuration } from "@/lib/labels";
 import { formatDate, ROLE_LABELS } from "@/lib/utils";
+import { disableCalendarAction, renewCalendarTokenAction } from "@/app/actions/calendar";
+import { requestAccommodationAction } from "@/app/actions/quality";
+import { appUrl } from "@/lib/email";
 
 export const metadata = { title: "Mon profil" };
 export const dynamic = "force-dynamic";
@@ -38,6 +41,11 @@ export default async function Profile() {
   const learner = u.role === "LEARNER";
   const editable = learner && learnerProfileEditable(u.accountStatus);
   const pending = requests.find((r) => r.status === "PENDING");
+  const calendarToken = u.calendarToken;
+  const accommodations = learner && u.organizationId
+    ? await db.accommodation.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, select: { id: true, need: true, measures: true, status: true, createdAt: true } })
+    : [];
+  const ACC_STATUS: Record<string, string> = { REQUESTED: "Transmise", ANALYSING: "En cours d'analyse", IN_PLACE: "Aménagements en place", ORIENTED: "Orientée vers un partenaire", CLOSED: "Clôturée" };
   return (
     <Container className="max-w-5xl space-y-6">
       <PageHeader title="Mon profil" subtitle={`${u.email} · ${ROLE_LABELS[u.role]}${u.organization ? ` · ${u.organization.name}` : ""}`} />
@@ -70,8 +78,49 @@ export default async function Profile() {
             </div>
             <Link href="/profile/security" className="btn-secondary btn-sm">{user.mfaEnabled ? "Gérer" : "Activer"}</Link>
           </div>
+          {user.role !== "COMPANY" && (
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <div className="font-medium text-slate-900">Agenda (Google, Outlook, Apple)</div>
+              <div className="text-sm text-slate-500">Abonnez votre agenda à vos créneaux de formation{user.role !== "LEARNER" ? " et à vos tâches" : ""}. Ce lien est personnel : ne le partagez pas.</div>
+              {calendarToken ? (
+                <>
+                  <input readOnly value={appUrl(`/api/calendar/${calendarToken}.ics`)} className="input mt-2 font-mono text-xs" aria-label="Adresse du flux d'agenda" />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a href={appUrl(`/api/calendar/${calendarToken}.ics`).replace(/^https?:/, "webcal:")} className="btn-secondary btn-sm">Ouvrir dans mon agenda</a>
+                    <form action={renewCalendarTokenAction}><SubmitButton className="btn-ghost btn-sm" confirm="L'ancien lien cessera de fonctionner. Continuer ?">Renouveler le lien</SubmitButton></form>
+                    <form action={disableCalendarAction}><SubmitButton className="btn-ghost btn-sm">Désactiver</SubmitButton></form>
+                  </div>
+                </>
+              ) : (
+                <form action={renewCalendarTokenAction} className="mt-2"><SubmitButton className="btn-secondary btn-sm">Créer mon lien d&apos;agenda</SubmitButton></form>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {learner && u.organizationId && (
+        <section className="card p-6">
+          <h2 className="mb-1">Handicap et besoins particuliers</h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Une situation de handicap, un trouble de l&apos;apprentissage ou une contrainte de santé ? Le référent handicap de votre organisme étudie avec vous les
+            aménagements possibles (temps, supports, accessibilité, rythme). Votre demande est confidentielle et n&apos;est pas transmise à votre employeur.
+          </p>
+          {accommodations.length > 0 && (
+            <ul className="mb-4 space-y-2 text-sm">
+              {accommodations.map((a) => (
+                <li key={a.id} className="rounded-[10px] border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-slate-500">Demande du {formatDate(a.createdAt)}</span><Badge tone={a.status === "IN_PLACE" ? "green" : "blue"}>{ACC_STATUS[a.status] ?? a.status}</Badge></div>
+                  {a.measures && <p className="mt-1"><b>Aménagements :</b> {a.measures}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <StateForm action={requestAccommodationAction} submitLabel="Envoyer ma demande" submitClassName="btn-secondary" className="space-y-3">
+            <Field label="Votre besoin"><textarea name="need" rows={3} required className="input" placeholder="Ex. : temps supplémentaire aux évaluations, sous-titres, salle accessible en fauteuil…" /></Field>
+          </StateForm>
+        </section>
+      )}
 
       {learner && editable && (
         <section className="card p-6">

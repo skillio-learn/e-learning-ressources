@@ -43,6 +43,9 @@ export default async function OfHome() {
       include: { user: { select: { id: true, name: true } }, course: { select: { title: true } } },
     }),
   ]);
+  const myTasks = user.organizationId
+    ? await db.task.findMany({ where: { organizationId: user.organizationId, assigneeId: user.id, status: "OPEN" }, orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }], take: 6 })
+    : [];
   const count = (s: string) => appsByStatus.find((a) => a.status === s)?._count ?? 0;
   return (
     <Container>
@@ -68,6 +71,24 @@ export default async function OfHome() {
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <section className="card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2>Mes tâches</h2>
+            <Link href="/of/tasks" className="link text-sm">Tout voir</Link>
+          </div>
+          {myTasks.length === 0 ? (
+            <p className="text-sm text-slate-500">Aucune tâche en cours.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100 text-sm">
+              {myTasks.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-2 py-2">
+                  <span>{t.link ? <Link href={t.link} className="hover:text-brand-700">{t.title}</Link> : t.title}</span>
+                  {t.dueAt && <Badge tone={t.dueAt < new Date() ? "red" : "gray"}>{formatDate(t.dueAt)}</Badge>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
         {manager && (
           <section className="card p-5">
             <div className="mb-3 flex items-center justify-between">

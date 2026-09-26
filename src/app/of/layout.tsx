@@ -1,9 +1,10 @@
 import { requireStaff, isOfManager } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  BarChart3, BookOpen, CalendarDays, ClipboardList, Headset, Home, Inbox, KeyRound, LifeBuoy, MessagesSquare, PenLine, ScrollText, Settings, Star, UserCheck, Users, UserCog,
+  BadgeCheck, BarChart3, BookOpen, Building2, CheckSquare, GraduationCap, Newspaper, CalendarDays, ClipboardList, Headset, Home, Inbox, KeyRound, LifeBuoy, MessagesSquare, PenLine, ScrollText, Settings, Star, UserCheck, Users, UserCog,
 } from "lucide-react";
 import { SideLink } from "@/components/NavLink";
+import { canManageQuality } from "@/lib/qualiopi-evidence";
 
 export default async function OfLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
@@ -37,6 +38,10 @@ export default async function OfLayout({ children }: { children: React.ReactNode
       where: { fromStaff: false, readAt: null, ...(user.role === "ADMIN" ? {} : { enrollment: { course: { organizationId: user.organizationId ?? "__" } } }) },
     }),
   ]);
+  const [quality, openTasks] = await Promise.all([
+    canManageQuality(user),
+    user.organizationId ? db.task.count({ where: { organizationId: user.organizationId, assigneeId: user.id, status: "OPEN", dueAt: { lt: new Date() } } }) : Promise.resolve(0),
+  ]);
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col lg:flex-row">
       <aside className="no-print border-b border-slate-200 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
@@ -48,6 +53,7 @@ export default async function OfLayout({ children }: { children: React.ReactNode
         </div>
         <nav className="flex gap-0.5 overflow-x-auto p-3 lg:flex-col">
           <SideLink href="/of/home" icon={<Home strokeWidth={1.75} />}>Tableau de bord</SideLink>
+          {user.role !== "ADMIN" && <SideLink href="/of/tasks" icon={<CheckSquare strokeWidth={1.75} />} count={openTasks}>Tâches et relances</SideLink>}
           {manager && <SideLink href="/of/accounts" icon={<UserCheck strokeWidth={1.75} />} count={pendingAccounts}>Comptes apprenants</SideLink>}
           {manager && <SideLink href="/of/applications" icon={<Inbox strokeWidth={1.75} />} count={pendingApps}>Dossiers de candidature</SideLink>}
           {manager && <SideLink href="/of/access" icon={<KeyRound strokeWidth={1.75} />} count={pendingAccess}>Accès aux parcours</SideLink>}
@@ -57,11 +63,15 @@ export default async function OfLayout({ children }: { children: React.ReactNode
           <div className="mx-3 my-2 hidden h-px bg-slate-200 lg:block" />
           <SideLink href="/of/courses" icon={<BookOpen strokeWidth={1.75} />}>Formations</SideLink>
           <SideLink href="/of/sessions" icon={<CalendarDays strokeWidth={1.75} />}>Sessions & émargement</SideLink>
+          {manager && user.role !== "ADMIN" && <SideLink href="/of/companies" icon={<Building2 strokeWidth={1.75} />}>Entreprises clientes</SideLink>}
           <SideLink href="/of/grading" icon={<PenLine strokeWidth={1.75} />} count={pendingGrading}>Corrections</SideLink>
           <SideLink href="/of/rubrics" icon={<ClipboardList strokeWidth={1.75} />}>Grilles d&apos;évaluation</SideLink>
           {manager && <div className="mx-3 my-2 hidden h-px bg-slate-200 lg:block" />}
           {manager && <SideLink href="/of/reports" icon={<BarChart3 strokeWidth={1.75} />}>Rapports & traçabilité</SideLink>}
+          {quality && <SideLink href="/of/qualiopi" icon={<BadgeCheck strokeWidth={1.75} />}>Qualiopi</SideLink>}
           {manager && <SideLink href="/of/quality" icon={<Star strokeWidth={1.75} />}>Qualité & réclamations</SideLink>}
+          {user.role !== "ADMIN" && <SideLink href="/of/veille" icon={<Newspaper strokeWidth={1.75} />}>Veille</SideLink>}
+          {user.role !== "ADMIN" && <SideLink href="/of/competences" icon={<GraduationCap strokeWidth={1.75} />}>Mes compétences</SideLink>}
           {manager && <SideLink href="/of/audit" icon={<ScrollText strokeWidth={1.75} />}>Journal d&apos;audit</SideLink>}
           {manager && <SideLink href="/of/team" icon={<UserCog strokeWidth={1.75} />}>Équipe</SideLink>}
           {manager && user.role !== "ADMIN" && <SideLink href="/of/settings" icon={<Settings strokeWidth={1.75} />}>Paramètres de l&apos;OF</SideLink>}

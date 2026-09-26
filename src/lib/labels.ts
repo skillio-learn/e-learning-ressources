@@ -302,3 +302,14 @@ export const ABSENCE_STATUS: Record<string, { label: string; tone: "gray" | "amb
   ACCEPTED: { label: "Justifiée", tone: "green" },
   REFUSED: { label: "Non justifiée", tone: "red" },
 };
+
+/** Situation déclarée à l'enquête d'insertion (indicateurs de résultats, Qualiopi indicateur 2). */
+export const INSERTION_SITUATIONS: Record<string, string> = {
+  SAME_JOB: "Maintien dans mon emploi (salarié(e) avant la formation)",
+  EMPLOYED_CDI: "En emploi : CDI",
+  EMPLOYED_CDD: "En emploi : CDD, intérim ou contrat en alternance",
+  SELF_EMPLOYED: "Création ou reprise d'entreprise, indépendant(e)",
+  TRAINING: "En formation (poursuite d'études, autre formation)",
+  JOB_SEEKING: "En recherche d'emploi",
+  INACTIVE: "Autre situation (sans recherche d'emploi)",
+};

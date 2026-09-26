@@ -23,6 +23,19 @@ export async function audit(
   } catch (e) {
     console.error("audit failed", action, e);
   }
+  if (opts.organizationId) {
+    const { WEBHOOK_EVENTS, fireWebhooks } = await import("./webhooks");
+    if (WEBHOOK_EVENTS[action]) {
+      const orgId = opts.organizationId;
+      const run = () => fireWebhooks(action, orgId, opts).catch((e) => console.error("webhook failed", e));
+      try {
+        const { after } = await import("next/server");
+        after(run);
+      } catch {
+        await run();
+      }
+    }
+  }
 }
 
 export const AUDIT_LABELS: Record<string, string> = {

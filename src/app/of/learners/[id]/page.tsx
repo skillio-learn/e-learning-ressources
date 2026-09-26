@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isOfManager, requireStaff } from "@/lib/auth";
 import { canViewLearner, manageableCoursesWhere } from "@/lib/permissions";
 import { updateEnrollmentAction } from "@/app/actions/of-admin";
+import { setEnrollmentCompanyAction } from "@/app/actions/companies";
 import { createFunderFeedbackAction, requestColdEvaluationAction, sendConvocationAction } from "@/app/actions/compliance";
 import { ofResetLearnerPasswordAction } from "@/app/actions/password";
 import { enrollLearnerInCourseAction } from "@/app/actions/access";
@@ -54,6 +55,9 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
     db.timeLog.groupBy({ by: ["courseId"], where: { userId: id, courseId: { in: courseIds } }, _sum: { seconds: true }, _max: { endedAt: true } }),
     Promise.all(learner.enrollments.map((e) => getCourseOutline(e.courseId, id, { ignoreLocks: true }))),
   ]);
+  const companies = manager && user.organizationId
+    ? await db.company.findMany({ where: { organizationId: user.organizationId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+    : [];
   const timeMap = new Map(timeByCourse.map((t) => [t.courseId, t]));
   const totalSec = timeByCourse.reduce((s, t) => s + (t._sum.seconds ?? 0), 0);
   const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
@@ -259,7 +263,16 @@ export default async function LearnerFile({ params }: { params: Promise<{ id: st
                       </select>
                     </label>
                   </StateForm>
-                                </details>
+                  <StateForm action={setEnrollmentCompanyAction.bind(null, e.id)} submitLabel="Rattacher" submitClassName="btn-secondary btn-sm self-end" className="mt-4 flex flex-wrap items-end gap-2 border-t border-slate-200 pt-3">
+                    <label className="text-sm">
+                      <span className="label">Entreprise (employeur, espace entreprise)</span>
+                      <select name="companyId" defaultValue={e.companyId ?? ""} className="input">
+                        <option value="">Aucune</option>
+                        {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </label>
+                  </StateForm>
+                </details>
               )}
               {manager && (
                 <details className="mt-3 rounded-lg bg-slate-50 p-3">
